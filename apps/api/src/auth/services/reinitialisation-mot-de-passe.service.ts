@@ -35,7 +35,6 @@ import type {
 import { JETON_CONFIG } from '../../config/config.jetons';
 import type { Config } from '../../config/config.types';
 import { ServiceCourriel } from '../../courriel';
-import { EXPEDITEUR_DFA_PAR_DEFAUT } from '../../courriel/config-courriel';
 import { JETON_DB, JETON_DB_AMORCAGE } from '../../db/db.jetons';
 import type { AccesAmorcage, AccesBase, ContexteTenant, TransactionDfa } from '../../db/db.types';
 import { jetonReinitialisationMotDePasse, session, tenant, utilisateur } from '../../db/schema';
@@ -147,14 +146,13 @@ export class ServiceReinitialisationMotDePasseImpl implements ServiceReinitialis
     const libelles = libellesReinitialisationMotDePasse(u.langue);
     try {
       const resultat = await this.courriel.envoyer({
+        ctx,
         destinataires: [email],
         sujet: libelles.sujet,
         corpsTexte: libelles.corpsTexte(lien, DUREE_JETON_REINITIALISATION_MINUTES),
         nomGarage: raisonSociale,
         // Un courriel de sécurité du SOCLE (pas une correspondance du garage avec son client) :
-        // aucune adresse de garage n'est pertinente comme Reply-To ici — même adresse technique
-        // que l'expéditeur (voir l'en-tête de `courriel/config-courriel.ts` : `no-reply@dmsforall.example`).
-        adresseReponseGarage: this.config.SMTP_EXPEDITEUR ?? EXPEDITEUR_DFA_PAR_DEFAUT,
+        // aucune adresse de réponse n'est fournie, `ServiceCourriel` répond à l'expéditeur.
       });
       if (!resultat.succes) {
         // Best-effort : le jeton existe déjà en base et reste valide 30 minutes — un nouvel
@@ -263,7 +261,12 @@ export class ServiceReinitialisationMotDePasseImpl implements ServiceReinitialis
 
         await tx
           .update(utilisateur)
-          .set({ motDePasseHash, echecsConnexion: 0, verrouilleJusquA: null })
+          .set({
+            motDePasseHash,
+            motDePasseAChanger: false,
+            echecsConnexion: 0,
+            verrouilleJusquA: null,
+          })
           .where(and(eq(utilisateur.tenantId, u.tenantId), eq(utilisateur.id, u.id)));
       });
     } catch (erreur) {

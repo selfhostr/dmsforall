@@ -8,7 +8,7 @@ import {
 } from '@/hooks/pneus/depot-pneus.api';
 import { clesPneus } from '@/hooks/pneus/cles';
 
-const FILTRES: FiltresDepotsVehicule = { statut: ['en_depot', 'a_relancer'], tri: 'creeLe:desc' };
+const FILTRES: FiltresDepotsVehicule = { statut: ['en_depot', 'a_relancer'], tri: 'entreLe:desc' };
 
 export type EtatDepotPneusClient =
   | { readonly etat: 'inconnu' }

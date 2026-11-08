@@ -1,5 +1,5 @@
 import { QueryClientProvider, type QueryClient } from '@tanstack/react-query';
-import { render, screen, waitFor, type RenderResult } from '@testing-library/react';
+import { render, screen, waitFor, within, type RenderResult } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { MemoryRouter } from 'react-router';
@@ -9,9 +9,10 @@ import '@/i18n';
 
 import type { RoleUtilisateur } from '@dfa/shared';
 
-import { FournisseurSiteCourant } from '@/hooks/site/ContexteSiteCourant';
+import { reinitialiserEtatAssistant, useEtatAssistant } from '@/hooks/assistant/etat-assistant';
 import { SESSION_TEST } from '@/test/msw/handlers';
 import { server } from '@/test/msw/server';
+import { creerSessionTest } from '@/test/session';
 import { creerQueryClientTest } from '@/test/utils';
 
 import { BarreLaterale } from './BarreLaterale';
@@ -52,22 +53,6 @@ function rendre(routeInitiale: string): RenderResult & { queryClient: QueryClien
       </QueryClientProvider>,
     ),
   };
-}
-
-/** Même rendu que `rendre`, sous `FournisseurSiteCourant` — seul moyen d'exercer la préférence de
- *  site mémorisée (`hooks/site/ContexteSiteCourant.tsx`, issue #91), que `BarreLaterale` seule ne
- *  peut pas lire (contexte non fourni hors d'`AppShell.tsx` en usage réel). */
-function rendreAvecPreferenceSite(routeInitiale: string): void {
-  const queryClient = creerQueryClientTest();
-  render(
-    <QueryClientProvider client={queryClient}>
-      <MemoryRouter initialEntries={[routeInitiale]}>
-        <FournisseurSiteCourant>
-          <BarreLaterale />
-        </FournisseurSiteCourant>
-      </MemoryRouter>
-    </QueryClientProvider>,
-  );
 }
 
 /** Même rendu que `rendre` ci-dessus, avec le prop `repli` fourni — c'est ce que fait uniquement
@@ -142,7 +127,7 @@ describe('BarreLaterale — les six entrées', () => {
     await screen.findByRole('link', { name: /^pièces$/i });
 
     expect(libellesDesEntrees()).toEqual([
-      "Aujourd'hui",
+      'Tableau de bord',
       'Atelier',
       'Clients & véhicules',
       'Pièces',
@@ -160,7 +145,7 @@ describe('BarreLaterale — les six entrées', () => {
     // Atelier reste avant Clients & véhicules, qui reste avant Pièces : l'ordre est absolu, pas
     // relatif au rôle. Ventes apparaît : la grille (Pièces : Faire) ouvre `ventes.dossier.lire`.
     expect(libellesDesEntrees()).toEqual([
-      "Aujourd'hui",
+      'Tableau de bord',
       'Atelier',
       'Clients & véhicules',
       'Pièces',
@@ -205,9 +190,9 @@ describe('BarreLaterale — où mène chaque entrée', () => {
 
     await screen.findByRole('link', { name: /^pièces$/i });
 
-    // Fusion accueil/tableau de bord : l'entrée « Aujourd'hui » pointe directement sur
+    // Fusion accueil/tableau de bord : l'entrée « Tableau de bord » pointe directement sur
     // `/tableau-bord`, plus sur `/` (qui n'est plus qu'un relais vers cette même page).
-    expect(hrefDuLien(/aujourd/i)).toBe('/tableau-bord');
+    expect(hrefDuLien(/^tableau de bord$/i)).toBe('/tableau-bord');
     expect(hrefDuLien(/^atelier$/i)).toBe('/ordres-reparation');
     expect(hrefDuLien(/clients & véhicules/i)).toBe('/clients');
     expect(hrefDuLien(/^pièces$/i)).toBe('/pieces/recherche-comptoir');
@@ -240,21 +225,35 @@ describe('BarreLaterale — où mène chaque entrée', () => {
     expect(reglages.getAttribute('href')).toBe('/parametrage/referentiels');
   });
 
-  it('direction : Réglages est un lien direct de la barre, visible sans ouvrir le menu du compte', async () => {
+  it('direction : Réglages vit dans le menu du compte, il n’y a plus de lien direct dans la barre', async () => {
     connecte('direction');
     rendre('/');
 
-    const lien = await screen.findByRole('link', { name: /réglages/i });
-    expect(lien.getAttribute('href')).toBe('/parametrage/atelier');
+    await screen.findByRole('link', { name: /^pièces$/i });
+    expect(screen.queryByRole('link', { name: /réglages/i })).not.toBeInTheDocument();
+
+    await ouvrirMenuCompte();
+    const reglages = await screen.findByRole('menuitem', { name: /réglages/i });
+    // « Mon garage » est le premier onglet de Réglages : c'est lui qui s'ouvre.
+    expect(reglages.getAttribute('href')).toBe('/parametrage/garage');
   });
 
-  it('comptable : le menu du pied ouvre Réglages sur les coordonnées bancaires (gouvernance atelier fermée)', async () => {
+  it('repliée : Réglages reste atteignable par le menu du compte (avatar)', async () => {
+    connecte('direction');
+    rendreAvecRepli('/', true);
+
+    expect(screen.queryByRole('link', { name: /réglages/i })).not.toBeInTheDocument();
+    await ouvrirMenuCompte();
+    expect(await screen.findByRole('menuitem', { name: /réglages/i })).toBeInTheDocument();
+  });
+
+  it('comptable : le menu du pied ouvre Réglages sur Mon garage (gouvernance atelier fermée)', async () => {
     connecte('comptable');
     rendre('/');
 
     await ouvrirMenuCompte();
     const reglages = await screen.findByRole('menuitem', { name: /réglages/i });
-    expect(reglages.getAttribute('href')).toBe('/parametrage/facturation');
+    expect(reglages.getAttribute('href')).toBe('/parametrage/garage');
   });
 });
 
@@ -287,41 +286,6 @@ describe('BarreLaterale — conservation du site courant', () => {
 
     expect(hrefDuLien(/clients & véhicules/i)).toBe('/clients');
     expect(hrefDuLien(/^atelier$/i)).toBe('/ordres-reparation');
-  });
-});
-
-/**
- * Régression issue #91 (« il oublie mon choix dès que je change d'écran ») : quand l'URL courante
- * ne porte AUCUN `?site=` (parce qu'un écran hors de ce périmètre a construit un lien interne sans
- * le propager), la barre latérale ne retombe plus sur « aucun site » — elle reprend la dernière
- * préférence mémorisée (`hooks/site/ContexteSiteCourant.tsx`, tenant `SESSION_TEST.tenant.id` =
- * `'tenant-1'`). Un `?site=` déjà présent dans l'URL continue de faire foi (test précédent,
- * inchangé) : la préférence ne comble que son absence, jamais ne l'écrase.
- */
-describe('BarreLaterale — reprise de la préférence de site (issue #91)', () => {
-  afterEach(() => {
-    window.localStorage.clear();
-  });
-
-  it('reprend la préférence mémorisée quand l’URL n’en porte pas', async () => {
-    window.localStorage.setItem('dfa.site-courant.tenant-1', 'site-secondaire');
-    connecte('direction');
-    rendreAvecPreferenceSite('/');
-
-    await screen.findByRole('link', { name: /^pièces$/i });
-
-    expect(hrefDuLien(/clients & véhicules/i)).toBe('/clients?site=site-secondaire');
-    expect(hrefDuLien(/^atelier$/i)).toBe('/ordres-reparation?site=site-secondaire');
-  });
-
-  it('l’URL reste prioritaire sur la préférence mémorisée quand les deux sont présents', async () => {
-    window.localStorage.setItem('dfa.site-courant.tenant-1', 'site-secondaire');
-    connecte('direction');
-    rendreAvecPreferenceSite('/clients?site=site-sion');
-
-    await screen.findByRole('link', { name: /^pièces$/i });
-
-    expect(hrefDuLien(/clients & véhicules/i)).toBe('/clients?site=site-sion');
   });
 });
 
@@ -410,7 +374,7 @@ describe('BarreLaterale — masquage par rôle', () => {
       '/factures',
     );
     expect(libellesDesEntrees()).toEqual([
-      "Aujourd'hui",
+      'Tableau de bord',
       'Atelier',
       'Clients & véhicules',
       'Pièces',
@@ -505,7 +469,7 @@ describe('BarreLaterale — repli desktop', () => {
     await screen.findByRole('link', { name: /^pièces$/i });
 
     expect(libellesDesEntrees()).toEqual([
-      "Aujourd'hui",
+      'Tableau de bord',
       'Atelier',
       'Clients & véhicules',
       'Pièces',
@@ -589,7 +553,7 @@ describe('BarreLaterale — numéro de version, collé au pied compte', () => {
     rendre('/');
 
     const compte = await screen.findByRole('button', { name: /jean dupont/i });
-    const version = screen.getByText('0.1.0+a1b2c3d');
+    const version = screen.getByText('v0.1.0');
     // Même pied que le déclencheur du compte, pas un pied détaché — ancré sur `.border-t`
     // (le filet qui délimite VISUELLEMENT le pied compte, `BarreLaterale.tsx`) plutôt que sur
     // `closest('div')` : le déclencheur est nichée sous un `div` de mise en page intermédiaire
@@ -603,22 +567,24 @@ describe('BarreLaterale — numéro de version, collé au pied compte', () => {
     expect(version).toHaveAttribute('title', 'Version 0.1.0+a1b2c3d');
   });
 
-  it('affiche le marqueur « +modifié » quand l’arbre était sale au moment du build', async () => {
+  it('format court « v0.1.0 » : hash et marqueur « +modifié » réservés à l’infobulle', async () => {
     vi.stubEnv('VITE_DFA_VERSION_INFO', '0.1.0+a1b2c3d+modifié');
     connecte('direction');
     rendre('/');
 
     await screen.findByRole('button', { name: /jean dupont/i });
-    expect(screen.getByText('0.1.0+a1b2c3d+modifié')).toBeInTheDocument();
+    // Affichage court « v0.1.0 » ; hash et marqueur restent dans l'infobulle, pour le support.
+    expect(screen.getByText('v0.1.0')).toHaveAttribute('title', 'Version 0.1.0+a1b2c3d+modifié');
   });
 
-  it('retombe sur « inconnue » (traduit) quand l’information n’est pas disponible — jamais une chaîne vide ni une exception', async () => {
+  it('version indisponible : aucune ligne « inconnue » n’est affichée', async () => {
     vi.stubEnv('VITE_DFA_VERSION_INFO', undefined);
     connecte('direction');
     rendre('/');
 
     await screen.findByRole('button', { name: /jean dupont/i });
-    expect(screen.getByText('inconnue')).toBeInTheDocument();
+    expect(screen.queryByText(/inconnu/i)).not.toBeInTheDocument();
+    expect(document.querySelector('[title^="Version"]')).toBeNull();
   });
 
   it('repliée : le texte de version est masqué entièrement (jamais tronqué), le pied compte reste accessible en icône', async () => {
@@ -628,7 +594,7 @@ describe('BarreLaterale — numéro de version, collé au pied compte', () => {
 
     const compte = await screen.findByRole('button', { name: /jean dupont/i });
     expect(compte).toBeInTheDocument();
-    const version = screen.getByText('0.1.0+a1b2c3d');
+    const version = screen.getByText('v0.1.0');
     expect(version.className).toContain('hidden');
   });
 
@@ -638,7 +604,7 @@ describe('BarreLaterale — numéro de version, collé au pied compte', () => {
     rendreAvecRepli('/', false);
 
     await screen.findByRole('button', { name: /jean dupont/i });
-    const version = screen.getByText('0.1.0+a1b2c3d');
+    const version = screen.getByText('v0.1.0');
     expect(version.className).not.toContain('hidden');
   });
 
@@ -658,7 +624,7 @@ describe('BarreLaterale — numéro de version, collé au pied compte', () => {
     await waitFor(() => {
       expect(screen.queryByRole('link')).not.toBeInTheDocument();
     });
-    expect(screen.getByText('0.1.0+a1b2c3d')).toBeInTheDocument();
+    expect(screen.getByText('v0.1.0')).toBeInTheDocument();
 
     await ouvrirMenuCompte();
     expect(screen.queryByRole('menuitem', { name: /réglages/i })).not.toBeInTheDocument();
@@ -671,7 +637,7 @@ describe('BarreLaterale — numéro de version, collé au pied compte', () => {
  * mot-symbole « dmsforall » (voir la doc de tête du fichier, §1). Le SITE, qui vivait dans ce même
  * bloc, a déménagé vers `BarreOutilsSuperieure.tsx` au lot « bandeau haut » (26.08.2026) — ses
  * tests (rendu à un site, multi-site, code court replié, « Tous les sites »/« Aucun site choisi »)
- * vivent désormais dans `BarreOutilsSuperieure.spec.tsx` et `SelecteurSiteEntete.spec.tsx`.
+ * ont quitté la barre latérale (le site se filtre désormais par écran, `FiltreSite`).
  */
 describe('BarreLaterale — bloc tenant', () => {
   it('affiche le nom du tenant, jamais le mot-symbole du produit', async () => {
@@ -714,25 +680,110 @@ describe('BarreLaterale — pied compte', () => {
     expect(declencheur).toHaveTextContent('JD');
   });
 
-  it('le menu propose Réglages puis Se déconnecter, dans cet ordre — en plus du lien direct de la barre', async () => {
+  it('le menu : entrées avec icône, trois préférences en lignes « libellé : valeur », liens externes, déconnexion en dernier', async () => {
     connecte('chef_atelier');
     rendre('/');
 
-    // Depuis l'audit « garage neuf » : Réglages est aussi un lien direct, toujours visible (un
-    // garage neuf ne trouvait pas la porte de configuration dans le menu du compte).
     await screen.findByRole('link', { name: /^pièces$/i });
-    expect(screen.getByRole('link', { name: /^réglages$/i })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /^réglages$/i })).not.toBeInTheDocument();
 
     await ouvrirMenuCompte();
-    const elements = await screen.findAllByRole('menuitem');
-    expect(elements.map((element) => element.textContent?.trim())).toEqual([
-      expect.stringContaining('Réglages'),
-      expect.stringContaining('Se déconnecter'),
-      // Choix de langue (SelecteurLangueMenu), après la déconnexion, dans sa propre langue.
-      expect.stringContaining('Français'),
-      expect.stringContaining('Deutsch'),
-      expect.stringContaining('Italiano'),
+    const menu = await screen.findByRole('menu');
+    const entrees = within(menu).getAllByRole('menuitem');
+    expect(entrees.map((e) => e.getAttribute('aria-label') ?? e.textContent?.trim())).toEqual([
+      'Réglages',
+      'Langue : Français',
+      'Taille du texte : Automatique',
+      'Thème : Système',
+      'Documentation',
+      'Code source (GitHub)',
+      'Signaler un problème',
+      'Se déconnecter',
     ]);
+    // Chaque entrée porte une icône ; plus aucune rangée de contrôles muets.
+    for (const entree of entrees) expect(entree.querySelector('svg')).not.toBeNull();
+    expect(screen.queryByRole('group', { name: 'Réglages rapides' })).not.toBeInTheDocument();
+    expect(entrees.at(-1)).toHaveTextContent('Se déconnecter');
+  });
+
+  it('les liens Documentation et Code source s’ouvrent dans un nouvel onglet, sans opener', async () => {
+    connecte('chef_atelier');
+    rendre('/');
+
+    await ouvrirMenuCompte();
+    const doc = await screen.findByRole('menuitem', { name: 'Documentation' });
+    const code = screen.getByRole('menuitem', { name: 'Code source (GitHub)' });
+    expect(doc).toHaveAttribute('href', 'https://dmsforall.selfhostr.io/docs/');
+    expect(code).toHaveAttribute('href', 'https://github.com/selfhostr/dmsforall');
+    for (const lien of [doc, code]) {
+      expect(lien).toHaveAttribute('target', '_blank');
+      expect(lien).toHaveAttribute('rel', expect.stringContaining('noopener'));
+    }
+  });
+
+  it('le thème propose clair, sombre et système dans un sous-menu', async () => {
+    connecte('chef_atelier');
+    const utilisateur = userEvent.setup();
+    rendre('/');
+
+    await ouvrirMenuCompte();
+    await utilisateur.click(await screen.findByRole('menuitem', { name: /^thème/i }));
+    const choix = await screen.findAllByRole('menuitemradio');
+    expect(choix.map((e) => e.textContent)).toEqual(['Clair', 'Sombre', 'Système']);
+  });
+
+  it('direction : une mise à jour disponible ajoute une pastille et une ligne vers les notes', async () => {
+    connecte('direction');
+    server.use(
+      http.get('/api/v1/systeme/version', () =>
+        HttpResponse.json({
+          actuelle: '0.3.0',
+          derniere: '0.4.0',
+          miseAJourDisponible: true,
+          urlNotes: 'https://github.com/selfhostr/dmsforall/releases/tag/v0.4.0',
+        }),
+      ),
+    );
+    rendre('/');
+
+    const declencheur = await screen.findByRole('button', { name: /nouvelle version disponible/i });
+    expect(declencheur.querySelector('[data-testid="pastille-configuration"]')).not.toBeNull();
+    await userEvent.setup().click(declencheur);
+    const ligne = await screen.findByRole('menuitem', { name: 'Version 0.4.0 disponible' });
+    expect(ligne).toHaveAttribute(
+      'href',
+      'https://github.com/selfhostr/dmsforall/releases/tag/v0.4.0',
+    );
+    expect(ligne).toHaveAttribute('target', '_blank');
+  });
+
+  it('un rôle qui n’installe pas ne voit jamais l’alerte, même si le serveur en annonce une', async () => {
+    connecte('chef_atelier');
+    server.use(
+      http.get('/api/v1/systeme/version', () =>
+        HttpResponse.json({
+          actuelle: '0.3.0',
+          derniere: '0.4.0',
+          miseAJourDisponible: true,
+          urlNotes: 'https://github.com/selfhostr/dmsforall/releases/tag/v0.4.0',
+        }),
+      ),
+    );
+    rendre('/');
+
+    await ouvrirMenuCompte();
+    await screen.findByRole('menuitem', { name: 'Documentation' });
+    expect(screen.queryByRole('menuitem', { name: /disponible/i })).not.toBeInTheDocument();
+  });
+
+  it('direction : si la vérification échoue, aucun message et aucune pastille', async () => {
+    connecte('direction');
+    server.use(http.get('/api/v1/systeme/version', () => HttpResponse.error()));
+    rendre('/');
+
+    await ouvrirMenuCompte();
+    await screen.findByRole('menuitem', { name: 'Documentation' });
+    expect(screen.queryByRole('menuitem', { name: /disponible/i })).not.toBeInTheDocument();
   });
 
   it('déclenche la mutation de déconnexion au clic sur « Se déconnecter »', async () => {
@@ -751,5 +802,226 @@ describe('BarreLaterale — pied compte', () => {
 
     const declencheur = await screen.findByRole('button', { name: /jean dupont.*chef d.atelier/i });
     expect(declencheur.querySelector('span.min-w-0')).not.toBeInTheDocument();
+  });
+});
+
+describe('BarreLaterale — recherche, site et choix du compte regroupés dans la colonne', () => {
+  it('la recherche est un champ en bas de colonne : après la navigation, avant le pied compte', async () => {
+    connecte('direction');
+    rendre('/');
+
+    const recherche = await screen.findByRole('button', { name: 'Rechercher' });
+    const derniereEntree = screen.getAllByRole('link').at(-1) as HTMLElement;
+    const compte = await screen.findByRole('button', { name: /jean dupont/i });
+    expect(
+      recherche.compareDocumentPosition(derniereEntree) & Node.DOCUMENT_POSITION_PRECEDING,
+    ).toBeTruthy();
+    expect(
+      recherche.compareDocumentPosition(compte) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(recherche).toHaveTextContent(/Ctrl K|⌘K/);
+    expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+  });
+
+  it('repliée : la loupe seule reste atteignable', async () => {
+    connecte('direction');
+    rendreAvecRepli('/', true);
+
+    const recherche = await screen.findByRole('button', { name: 'Rechercher' });
+    expect(recherche).not.toHaveTextContent('Rechercher');
+    expect(recherche).toHaveAttribute(
+      'title',
+      expect.stringMatching(/^Rechercher \((Ctrl K|⌘K)\)$/),
+    );
+  });
+
+  it('taille du texte : se règle dans un sous-menu, la ligne affiche ensuite le choix', async () => {
+    connecte('direction');
+    const utilisateur = userEvent.setup();
+    rendre('/');
+
+    await ouvrirMenuCompte();
+    await utilisateur.click(await screen.findByRole('menuitem', { name: /^taille du texte/i }));
+    const aeree = await screen.findByRole('menuitemradio', { name: 'Aérée' });
+    expect(aeree).toHaveAttribute('aria-checked', 'false');
+    aeree.focus();
+    await utilisateur.keyboard('{Enter}');
+    await waitFor(() => expect(window.localStorage.getItem('dfa-densite')).toBe('aeree'));
+  });
+});
+
+/**
+ * Rappel « garage à configurer » : pastille sur l'avatar + entrée « Configurer le garage » dans le
+ * menu du compte, tant que l'assistant a été fermé et que le garage n'est pas configuré.
+ */
+const CLE_FERME = `dfa.assistant-demarrage.ferme.${SESSION_TEST.tenant.id}.${SESSION_TEST.utilisateur.id}`;
+const NEUF = {
+  coordonnees: false,
+  iban: false,
+  numeroTva: false,
+  tauxHoraire: false,
+  motifsRdv: false,
+  premierCollaborateur: false,
+  borne: false,
+};
+const CONFIGURE = {
+  ...NEUF,
+  coordonnees: true,
+  iban: true,
+  numeroTva: true,
+  tauxHoraire: true,
+  motifsRdv: true,
+  premierCollaborateur: true,
+  borne: true,
+};
+
+function garage(etapes: typeof NEUF, role: RoleUtilisateur = 'direction'): void {
+  server.use(
+    http.get('/api/v1/auth/moi', () => HttpResponse.json(creerSessionTest(role))),
+    http.get('/api/v1/accueil/etat-demarrage', () => HttpResponse.json({ etapes })),
+  );
+}
+
+describe('BarreLaterale — rappel de configuration du garage', () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+    reinitialiserEtatAssistant();
+  });
+
+  it('assistant fermé + garage non configuré : pastille sur l’avatar, nommée pour les lecteurs d’écran', async () => {
+    window.localStorage.setItem(CLE_FERME, '1');
+    garage(NEUF);
+    rendre('/');
+
+    expect(await screen.findByTestId('pastille-configuration')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /garage à configurer/i })).toBeInTheDocument();
+  });
+
+  it('repliée : la pastille reste visible sur l’avatar', async () => {
+    window.localStorage.setItem(CLE_FERME, '1');
+    garage(NEUF);
+    rendreAvecRepli('/', true);
+
+    expect(await screen.findByTestId('pastille-configuration')).toBeInTheDocument();
+  });
+
+  it('assistant jamais fermé : pas de pastille (il s’ouvre tout seul)', async () => {
+    garage(NEUF);
+    rendre('/');
+
+    await screen.findByRole('button', { name: /jean dupont/i });
+    expect(screen.queryByTestId('pastille-configuration')).not.toBeInTheDocument();
+  });
+
+  it('garage configuré : pas de pastille, pas d’entrée', async () => {
+    window.localStorage.setItem(CLE_FERME, '1');
+    garage(CONFIGURE);
+    rendre('/');
+
+    await screen.findByRole('button', { name: /jean dupont/i });
+    await new Promise((r) => setTimeout(r, 50));
+    expect(screen.queryByTestId('pastille-configuration')).not.toBeInTheDocument();
+    await ouvrirMenuCompte();
+    expect(
+      screen.queryByRole('menuitem', { name: 'Configurer le garage' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('sans le droit de gérer les paramètres : ni pastille ni entrée', async () => {
+    window.localStorage.setItem(CLE_FERME, '1');
+    garage(NEUF, 'technicien');
+    rendre('/');
+
+    await screen.findByRole('button', { name: /jean dupont/i });
+    await new Promise((r) => setTimeout(r, 50));
+    expect(screen.queryByTestId('pastille-configuration')).not.toBeInTheDocument();
+  });
+
+  it('« Configurer le garage » demande la réouverture de l’assistant', async () => {
+    window.localStorage.setItem(CLE_FERME, '1');
+    garage(NEUF);
+    let demande = false;
+    function Sonde() {
+      demande = useEtatAssistant().ouvertureDemandee;
+      return null;
+    }
+    const queryClient = creerQueryClientTest();
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter initialEntries={['/clients']}>
+          <BarreLaterale />
+          <Sonde />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    await screen.findByTestId('pastille-configuration');
+    await ouvrirMenuCompte();
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Configurer le garage' }));
+
+    expect(demande).toBe(true);
+  });
+});
+
+/**
+ * Bloc du garage : hauteur fixe partagée avec la rangée d'onglets (leurs filets se prolongent),
+ * nom sur deux lignes au plus, sélecteur de site au-dessus du nom quand il y a plusieurs sites.
+ */
+describe('BarreLaterale — bloc du garage', () => {
+  function enteteDuBloc(): HTMLElement {
+    const nom = screen.getByTitle('Garage Test SA');
+    return nom.closest('div.border-b') as HTMLElement;
+  }
+
+  it('hauteur fixe commune avec les onglets, nom limité à deux lignes, sans emplacement de logo', async () => {
+    connecte('direction');
+    rendre('/');
+    await screen.findByText('Garage Test SA');
+
+    expect(enteteDuBloc().className).toContain('h-[calc(var(--cible-tactile)+1px)]');
+    expect(screen.getByText('Garage Test SA').className).toContain('line-clamp-2');
+    expect(enteteDuBloc().querySelector('img, svg:not([aria-hidden])')).toBeNull();
+  });
+
+  it('nom long : la police baisse d’un cran plutôt que d’agrandir le bloc', async () => {
+    server.use(
+      http.get('/api/v1/auth/moi', () =>
+        HttpResponse.json(
+          creerSessionTest('direction', {
+            tenant: {
+              ...SESSION_TEST.tenant,
+              raisonSociale: 'Garage Carrosserie du Lac et Fils SA',
+            },
+          }),
+        ),
+      ),
+    );
+    rendre('/');
+    const nom = await screen.findByTitle('Garage Carrosserie du Lac et Fils SA');
+    expect(nom.className).toContain('texte-libelle');
+  });
+
+  it('plusieurs sites : aucun sélecteur de site dans la barre latérale, replié ou non', async () => {
+    server.use(
+      http.get('/api/v1/auth/moi', () =>
+        HttpResponse.json(
+          creerSessionTest('direction', {
+            sites: [
+              { id: 'site-1', code: 'SIO', codeCourt: 'SIO', nom: 'Sion', actif: true },
+              { id: 'site-2', code: 'MTG', codeCourt: 'MTG', nom: 'Martigny', actif: true },
+            ],
+          }),
+        ),
+      ),
+    );
+    const { unmount } = rendre('/?site=site-1');
+    await screen.findByText('Garage Test SA');
+    expect(screen.queryByTitle('Sion')).not.toBeInTheDocument();
+    expect(screen.queryByText('SIO')).not.toBeInTheDocument();
+    unmount();
+    rendreAvecRepli('/?site=site-1', true);
+    await screen.findByRole('link', { name: /^pièces$/i });
+    expect(screen.queryByTitle('Sion')).not.toBeInTheDocument();
+    expect(screen.queryByText('SIO')).not.toBeInTheDocument();
   });
 });

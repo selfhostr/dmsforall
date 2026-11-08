@@ -3,6 +3,7 @@ import { Link } from 'react-router';
 
 import { cn } from '@/lib/utils';
 
+import { HAUTEUR_MIN_ENTETE_COLONNE } from './hauteur-entete-colonne';
 import { useNavigationActive } from './useNavigationActive';
 
 interface Props {
@@ -58,10 +59,16 @@ export function OngletsDomaine({ className }: Props) {
   const libelleEntree = t(correspondance.entree.cleLibelle);
 
   return (
-    /* UNE SEULE rangée quand la place le permet (gain de 44 à 56 px avant le titre d'écran, audit
-          §1) : onglets à gauche, vues à droite du même niveau ; `flex-wrap` ne passe sur une
-          seconde rangée que si les deux ne tiennent pas côte à côte (tablette portrait). */
-    <div className={cn('flex shrink-0 flex-wrap items-center border-b bg-background', className)}>
+    /* DEUX rangées : onglets du domaine, puis vues de l'onglet en barre secondaire pleine largeur
+          dessous (retour terrain du 07.11.2026 : vues et onglets dans la même barre se lisaient
+          comme un seul niveau). Le filet entre les rangées prolonge celui de la barre latérale. */
+    <div
+      className={cn(
+        'flex shrink-0 flex-col border-b bg-background',
+        HAUTEUR_MIN_ENTETE_COLONNE,
+        className,
+      )}
+    >
       {afficheOnglets ? (
         // `aria-label` nommé par le domaine (« Onglets d'Atelier ») et non « Onglets » tout court :
         // deux zones de navigation dans la même page (barre latérale + onglets) doivent porter des
@@ -116,12 +123,7 @@ export function OngletsDomaine({ className }: Props) {
           aria-label={t('navigation:onglets.vuesAria', {
             onglet: t(correspondance.onglet.cleLibelle),
           })}
-          className={cn(
-            'min-w-0 overflow-x-auto',
-            afficheOnglets
-              ? 'ml-auto border-l pl-1 max-lg:w-full max-lg:border-l-0 max-lg:border-t'
-              : undefined,
-          )}
+          className={cn('min-w-0 w-full overflow-x-auto', afficheOnglets ? 'border-t' : undefined)}
         >
           <ul className="flex min-w-max items-stretch gap-1 px-2">
             {vues.map((vue) => {

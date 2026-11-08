@@ -1,4 +1,4 @@
-import { CheckCircle2, Lock } from 'lucide-react';
+import { CheckCircle2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
@@ -23,6 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { AideContextuelle } from '@/composants/AideContextuelle';
 import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { ChampMontant } from '@/composants/comptoir/ChampMontant';
@@ -191,10 +192,6 @@ function FormulaireParametresPieces({
             disabled={!peutEcrire}
             libelle={t('parametrage:pieces.stock.stockNegatifForcageAutorise')}
           />
-          <ChampInerte
-            libelle={t('parametrage:pieces.conditionnement.articleDistinct')}
-            raison={t('parametrage:pieces.conditionnement.inerte')}
-          />
         </CardContent>
       </Card>
 
@@ -204,11 +201,17 @@ function FormulaireParametresPieces({
             {t('parametrage:pieces.valorisation.titre')}
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-2">
+        <CardContent className="space-y-4">
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="pp-methode-prix">
-              {t('parametrage:pieces.valorisation.methodePrixAchat')}
-            </Label>
+            <div className="flex items-center gap-1.5">
+              <Label htmlFor="pp-methode-prix">
+                {t('parametrage:pieces.valorisation.methodePrixAchat')}
+              </Label>
+              <AideContextuelle
+                sujet={t('parametrage:pieces.valorisation.methodePrixAchat')}
+                texte={t('aide:parametrage.methodePrixAchat')}
+              />
+            </div>
             <Controller
               control={form.control}
               name="methodePrixAchat"
@@ -235,19 +238,7 @@ function FormulaireParametresPieces({
               )}
             />
           </div>
-          <p className="texte-libelle text-muted-foreground">
-            {t('parametrage:pieces.valorisation.methodePrixAchatAide')}
-          </p>
-        </CardContent>
-      </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="texte-titre-section">
-            {t('parametrage:pieces.inventaire.titre')}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2">
           <Controller
             control={form.control}
             name="seuilValeurAjustementSignificatifCentimes"
@@ -255,6 +246,12 @@ function FormulaireParametresPieces({
               <ChampMontant
                 id="pp-seuil-ajustement"
                 label={t('parametrage:pieces.inventaire.seuilValeurAjustementSignificatif')}
+                aide={
+                  <AideContextuelle
+                    sujet={t('parametrage:pieces.inventaire.seuilValeurAjustementSignificatif')}
+                    texte={t('aide:parametrage.seuilAjustement')}
+                  />
+                }
                 disabled={!peutEcrire}
                 valeurCentimes={field.value}
                 onChangeCentimes={field.onChange}
@@ -262,9 +259,6 @@ function FormulaireParametresPieces({
               />
             )}
           />
-          <p className="texte-libelle text-muted-foreground">
-            {t('parametrage:pieces.inventaire.seuilValeurAjustementSignificatifAide')}
-          </p>
         </CardContent>
       </Card>
 
@@ -276,9 +270,15 @@ function FormulaireParametresPieces({
         </CardHeader>
         <CardContent className="grid grid-cols-2 gap-3">
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="pp-delai-consigne">
-              {t('parametrage:pieces.consigne.delaiAcquisitionJours')}
-            </Label>
+            <div className="flex items-center gap-1.5">
+              <Label htmlFor="pp-delai-consigne">
+                {t('parametrage:pieces.consigne.delaiAcquisitionJours')}
+              </Label>
+              <AideContextuelle
+                sujet={t('parametrage:pieces.consigne.delaiAcquisitionJours')}
+                texte={t('aide:parametrage.delaiConsigne')}
+              />
+            </div>
             <Controller
               control={form.control}
               name="delaiConsigneAcquisitionJours"
@@ -297,9 +297,6 @@ function FormulaireParametresPieces({
                 />
               )}
             />
-            <p className="texte-libelle text-muted-foreground">
-              {t('parametrage:pieces.consigne.delaiAcquisitionJoursAide')}
-            </p>
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="pp-tva-consigne">{t('parametrage:pieces.consigne.tauxTva')}</Label>
@@ -384,20 +381,5 @@ function CaseACocher({ name, form, disabled, libelle }: PropsCaseACocher) {
         </label>
       )}
     />
-  );
-}
-
-/** Réglage lu depuis l'API mais INERTE (`conditionnementArticleDistinct`, hypothèse figée `RP-05`
- *  tant que `QP-03` n'est pas tranché — voir `contrats/pieces/parametrage.ts`) : affiché en
- *  lecture seule avec la raison, même patron que `ChampInerte` dans `EcranParametrageAtelier.tsx`
- *  (dupliqué plutôt que partagé — pas assez de matière commune pour un composant générique). */
-function ChampInerte({ libelle, raison }: { readonly libelle: string; readonly raison: string }) {
-  return (
-    <div className="flex items-center gap-2 rounded-md border border-dashed p-3 texte-corps text-muted-foreground">
-      <Lock className="h-4 w-4 shrink-0" aria-hidden="true" />
-      <span>
-        {libelle} — {raison}
-      </span>
-    </div>
   );
 }

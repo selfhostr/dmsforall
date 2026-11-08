@@ -3,7 +3,7 @@
     "aria": "Navigation principale"
   },
   "entrees": {
-    "aujourdhui": "Aujourd'hui",
+    "aujourdhui": "Tableau de bord",
     "atelier": "Atelier",
     "clientsVehicules": "Clients & véhicules",
     "pieces": "Pièces",
@@ -41,12 +41,14 @@
     "piecesFacturesFournisseur": "Factures fournisseurs",
     "piecesConsignes": "Consignes",
     "facturationFactures": "Factures",
+    "facturationChiffres": "Chiffres",
     "facturationEncaissements": "Encaissements",
     "facturationRelances": "Relances",
     "facturationExportFiduciaire": "Export fiduciaire",
     "ventesDossiers": "Ventes en cours",
     "ventesParc": "Véhicules en stock",
     "ventesSuivi": "Suivi financement & garantie",
+    "reglagesGarage": "Mon garage",
     "reglagesAtelier": "Atelier",
     "reglagesSites": "Sites",
     "reglagesFacturation": "Facturation",
@@ -54,7 +56,9 @@
     "reglagesPieces": "Pièces",
     "reglagesUtilisateurs": "Utilisateurs",
     "reglagesRelances": "Rappels de paiement",
-    "atelierCourtoisie": "Courtoisie"
+    "atelierCourtoisie": "Courtoisie",
+    "reglagesModules": "Modules",
+    "reglagesEnvoiCourriel": "Envoi des e-mails"
   },
   "liens": {
     "clients": "Clients",
@@ -87,11 +91,34 @@
     "agrandir": "Agrandir la barre latérale"
   },
   "theme": {
-    "passerClair": "Passer en thème clair",
-    "passerSombre": "Passer en thème sombre"
+    "titre": "Thème",
+    "clair": "Clair",
+    "sombre": "Sombre",
+    "systeme": "Système"
   },
   "pied": {
-    "version": "Version {info}",
-    "versionInconnue": "inconnue"
+    "version": "Version {info}"
+  },
+  "configurer": {
+    "entree": "Configurer le garage",
+    "pastille": "Garage à configurer"
+  },
+  "signalement": {
+    "entree": "Signaler un problème"
+  },
+  "taille": {
+    "titre": "Taille du texte",
+    "auto": "Automatique",
+    "compacte": "Compacte",
+    "aeree": "Aérée"
+  },
+  "version": {
+    "installee": "Version {version}",
+    "disponible": "Version {version} disponible",
+    "pastille": "Nouvelle version disponible"
+  },
+  "externes": {
+    "documentation": "Documentation",
+    "codeSource": "Code source (GitHub)"
   }
 }

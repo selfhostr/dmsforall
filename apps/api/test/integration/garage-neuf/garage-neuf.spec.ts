@@ -177,8 +177,10 @@ describe('n° TVA', () => {
     expect(bon.status).toBe(200);
     expect(bon.body).toEqual({
       raisonSociale: 'Garage Neuf Test',
+      assujettiTva: true,
       numeroTva: 'CHE-116.281.710 TVA',
       delaiPaiementJoursDefaut: 30,
+      modeSignalement: 'via_site',
     });
 
     const relu = await ctx.requete.get('/api/v1/parametres-entreprise').set(entetes(cookie));
@@ -194,6 +196,14 @@ describe('n° TVA', () => {
 
 describe('facture au comptoir sans bloc créancier', () => {
   it('est émise, sans QR, avec l’avertissement FACTURE_SANS_QR', async () => {
+    // Un garage neuf est assujetti (défaut) : sa facture exige son n° TVA (`TVA_NUMERO_REQUIS`).
+    // Le test précédent l'a effacé ; on le ressaisit, comme le ferait le garagiste.
+    const saisie = await ctx.requete
+      .patch('/api/v1/parametres-entreprise')
+      .set(entetes(cookie))
+      .send({ numeroTva: 'CHE-116.281.710 TVA' });
+    expect(saisie.status).toBe(200);
+
     const creationClient = await ctx.requete
       .post('/api/v1/clients')
       .set(entetes(cookie))

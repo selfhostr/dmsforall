@@ -235,7 +235,13 @@ export function construireEcritureDocument(
   if (totalDebitCentimes !== totalCreditCentimes) {
     throw new ErreurEcritureDesequilibree(
       `Écriture déséquilibrée pour le document ${numero} : débit=${totalDebitCentimes.toString()}, crédit=${totalCreditCentimes.toString()} — EXPORT_ECRITURES_DESEQUILIBREES.`,
-      { reference: numero, documentId: document.id, totalDebitCentimes, totalCreditCentimes },
+      {
+        reference: numero,
+        documentId: document.id,
+        pieces: [numero],
+        totalDebitCentimes,
+        totalCreditCentimes,
+      },
     );
   }
 

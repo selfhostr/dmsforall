@@ -17,10 +17,8 @@
     "aucun": "Nessun vano indicato",
     "dialogue": {
       "titre": "Vano di stoccaggio",
-      "description": "Scaffale e cassetto sono facoltativi — un complemento strutturato al testo libero già presente, che resta utilizzabile per i casi particolari.",
       "rayon": "Scaffale",
       "tiroir": "Cassetto",
-      "aide": "«B3», «b3» e «B 3» indicano lo stesso scaffale: maiuscole e spazi non contano.",
       "libreActuel": "Testo libero attuale per questa ubicazione: {emplacement}",
       "libreAucun": "Nessun testo libero indicato per questa ubicazione."
     }
@@ -205,7 +203,6 @@
       "action": "Soglia di riordino",
       "actionAria": "Imposta la soglia di riordino — {nomSite}",
       "champ": "Nuova soglia",
-      "champAide": "Il valore attuale non è visualizzato qui. Se questo articolo è già sotto la sua soglia, questa è visibile e modificabile nella schermata Riordino. Salvare qui imposta o sostituisce la soglia per questo sito.",
       "erreurVide": "Inserisca una quantità, oppure usi «Rimuovi la soglia» per non impostarne una.",
       "erreurInvalide": "Quantità non valida. Una soglia pari a zero non è possibile — per non riordinare mai questo articolo, usi «Rimuovi la soglia».",
       "retirer": "Rimuovi la soglia",
@@ -392,6 +389,7 @@
     },
     "actions": {
       "creer": "Crea ordine",
+      "creerInfobulle": "Crea un ordine fornitore",
       "envoyer": "Invia",
       "receptionner": "Registra ricezione",
       "annulerReliquat": "Annulla importo in sospeso",
@@ -399,7 +397,6 @@
     },
     "reception": {
       "titre": "Ricezione",
-      "description": "Indicare cosa e stato effettivamente consegnato, riga per riga.",
       "ligneNumero": "Riga {numero}",
       "aucuneLigne": "Selezionare almeno una riga ricevuta.",
       "referenceLibellee": "Riferimento consegnato",
@@ -559,7 +556,6 @@
   "facturesFournisseur": {
     "titre": "Fatture fornitore",
     "titreDepot": "Carica una fattura fornitore",
-    "sousTitreDepot": "Carichi il PDF ricevuto dal fornitore: viene letto automaticamente e riconciliato con l'ordine corrispondente.",
     "deposeeLe": "Caricata il {date}",
     "sansNumero": "Fattura senza numero letto",
     "vide": {
@@ -678,6 +674,7 @@
     },
     "actions": {
       "deposer": "Carica una fattura",
+      "deposerInfobulle": "Carica una fattura fornitore",
       "voirDocument": "Visualizza il documento",
       "valider": "Convalida la fattura del fornitore",
       "rejeter": "Respingi",

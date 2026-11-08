@@ -10,6 +10,7 @@ import { messageErreur } from '@/api/erreurs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { AideContextuelle } from '@/composants/AideContextuelle';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { TableComptoir, type ColonneComptoir } from '@/composants/comptoir/TableComptoir';
 import { EtatVidePremierUsage } from '@/composants/motifs/EtatVidePremierUsage';
@@ -135,13 +136,20 @@ export function SectionMotifsRendezVous({ peutEcrire }: Props) {
   return (
     <Card id={ID_SECTION_MOTIFS_RDV} ref={carte}>
       <CardHeader>
-        <CardTitle className="texte-titre-section">{t('parametrage:motifsRdv.titre')}</CardTitle>
+        <CardTitle className="texte-titre-section">
+          {t('parametrage:motifsRdv.titre')}
+          <span aria-hidden="true" className="ml-0.5">
+            *
+          </span>
+          <span className="sr-only"> ({t('parametrage:obligatoire.sr')})</span>
+        </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex items-center justify-between gap-4">
-          <p className="texte-corps text-muted-foreground">
-            {t('parametrage:motifsRdv.explication')}
-          </p>
+          <AideContextuelle
+            sujet={t('parametrage:motifsRdv.titre')}
+            texte={t('aide:parametrage.motifsRdv')}
+          />
           {motifs.length > 0 ? boutonNouveau : null}
         </div>
 

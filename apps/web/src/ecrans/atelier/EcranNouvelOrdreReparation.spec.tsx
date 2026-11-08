@@ -196,10 +196,15 @@ function rendre(routeInitiale: string) {
   );
 }
 
-// Garage à deux sites : en mono-site le site est implicite (`useSiteImplicite`), rien à demander.
+// Garage à deux sites SANS site principal : en mono-site le site est implicite, et avec un site
+// principal c'est lui le défaut (`useSitePrincipal`) — seul ce cas oblige à demander le site.
 const SESSION_DEUX_SITES = {
   ...SESSION_TEST,
-  sites: [...SESSION_TEST.sites, { id: 'site-2', code: 'S2', nom: 'Second site', actif: true }],
+  sitePrincipalId: null,
+  sites: [
+    ...SESSION_TEST.sites,
+    { id: 'site-2', code: 'S2', codeCourt: 'S2', nom: 'Second site', actif: true },
+  ],
 };
 
 describe('EcranNouvelOrdreReparation', () => {
@@ -223,7 +228,7 @@ describe('EcranNouvelOrdreReparation', () => {
   });
 
   describe("le site n'est jamais inventé, mais son absence se résout SANS quitter l'écran", () => {
-    it("sans `?site=`, l'écran DEMANDE explicitement un site plutôt que d'en choisir un par défaut, même si `clientId` est connu", async () => {
+    it("sans `?site=` ni site principal, l'écran DEMANDE explicitement un site plutôt que d'en choisir un, même si `clientId` est connu", async () => {
       // Le client GET peut être déclenché (le hook est appelé inconditionnellement), mais l'écran
       // ne doit JAMAIS afficher le formulaire de création — ouvrir un OR sur un site incorrect ne
       // se découvre qu'à la facturation (voir l'en-tête du composant).
@@ -244,6 +249,26 @@ describe('EcranNouvelOrdreReparation', () => {
       expect(screen.queryByRole('link', { name: "Retour à l'accueil" })).not.toBeInTheDocument();
       expect(screen.getByRole('combobox', { name: 'Site' })).toBeInTheDocument();
       expect(screen.queryByRole('radiogroup')).not.toBeInTheDocument();
+    });
+
+    it('sans `?site=` mais avec un site principal : ce site est le défaut, aucun sélecteur', async () => {
+      server.use(
+        http.get(`/api/v1/clients/${CLIENT_ID}`, () => HttpResponse.json(CLIENT)),
+        http.get('/api/v1/auth/moi', () =>
+          HttpResponse.json({ ...SESSION_DEUX_SITES, sitePrincipalId: 'site-2' }),
+        ),
+        http.get(`/api/v1/clients/${CLIENT_ID}/vehicules`, () =>
+          HttpResponse.json({
+            donnees: [VEHICULE],
+            curseurSuivant: null,
+            limite: 50,
+          } satisfies PageCurseur<VehiculeResume>),
+        ),
+      );
+      rendre(`/ordres-reparation/nouveau?parcours=classique&clientId=${CLIENT_ID}`);
+
+      expect(await screen.findByRole('radiogroup')).toBeInTheDocument();
+      expect(screen.queryByText('Site non sélectionné')).not.toBeInTheDocument();
     });
 
     it('choisir un site dans le sélecteur inline complète `?site=` SANS perdre `clientId` et révèle le choix du véhicule', async () => {

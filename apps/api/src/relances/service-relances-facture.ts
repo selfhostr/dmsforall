@@ -565,6 +565,7 @@ export class ServiceRelancesFacture {
 
     try {
       const resultat = await this.serviceCourriel.envoyer({
+        ctx,
         destinataires: [contenu.destinataire],
         sujet: contenu.sujet,
         corpsTexte: contenu.texte,
@@ -783,7 +784,7 @@ export class ServiceRelancesFacture {
            ${claim.destinataireCible}, ${claim.langue}, ${contenuFige}, 'echoue',
            null, ${erreurTexte}, now())
       `);
-      const statutSuivant = statutApresEchecEnvoi(claim.tentative);
+      const statutSuivant = statutApresEchecEnvoi(claim.tentative, reponse.raison);
       await tx
         .update(relancePlanifiee)
         .set({ statut: statutSuivant })

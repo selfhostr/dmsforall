@@ -57,6 +57,7 @@ import {
   type ParametresListeArticles,
 } from './schemas';
 import { ServiceArticle } from './service-article';
+import { ExigerModule } from '../common/droits/garde-module';
 
 /**
  * CRUD du référentiel article (RP-01 → RP-08, priorité 1 du lot). Pas de `DELETE` : un article se
@@ -64,6 +65,7 @@ import { ServiceArticle } from './service-article';
  */
 @ApiTags('Pièces — Articles')
 @ApiCookieAuth()
+@ExigerModule('pieces')
 @Controller({ path: 'articles', version: '1' })
 @UseGuards(GardeDroit)
 export class ArticleController {

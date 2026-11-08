@@ -81,3 +81,35 @@ describe('délai de paiement par défaut', () => {
     expect(schema.safeParse({ delaiPaiementJoursDefaut: 10.5 }).success).toBe(false);
   });
 });
+
+describe('raison sociale', () => {
+  const schema = schemaModificationParametresEntreprise;
+  it('retire les espaces de bord et accepte 1 à 200 caractères', () => {
+    expect(schema.parse({ raisonSociale: '  Garage Martin Sàrl ' })).toEqual({
+      raisonSociale: 'Garage Martin Sàrl',
+    });
+    expect(schema.safeParse({ raisonSociale: 'x'.repeat(200) }).success).toBe(true);
+  });
+  it('refuse vide, blanche ou trop longue', () => {
+    expect(schema.safeParse({ raisonSociale: '' }).success).toBe(false);
+    expect(schema.safeParse({ raisonSociale: '   ' }).success).toBe(false);
+    expect(schema.safeParse({ raisonSociale: 'x'.repeat(201) }).success).toBe(false);
+    expect(schema.safeParse({ raisonSociale: null }).success).toBe(false);
+  });
+});
+
+describe('assujettissement à la TVA', () => {
+  const schema = schemaModificationParametresEntreprise;
+  it('booléen facultatif (rétrocompatible : un corps sans le champ reste valide)', () => {
+    expect(schema.parse({ assujettiTva: false })).toEqual({ assujettiTva: false });
+    expect(schema.parse({ assujettiTva: true })).toEqual({ assujettiTva: true });
+    expect(schema.parse({ delaiPaiementJoursDefaut: 30 })).toEqual({
+      delaiPaiementJoursDefaut: 30,
+    });
+  });
+  it('refuse tout ce qui n’est pas un booléen', () => {
+    expect(schema.safeParse({ assujettiTva: 'non' }).success).toBe(false);
+    expect(schema.safeParse({ assujettiTva: null }).success).toBe(false);
+    expect(schema.safeParse({ assujettiTva: 0 }).success).toBe(false);
+  });
+});

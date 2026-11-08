@@ -1022,6 +1022,18 @@
         ],
         "type": "object"
       },
+      "CauseEchecEnvoiCourriel": {
+        "description": "`null` si le test a réussi.",
+        "enum": [
+          "authentification",
+          "connexion",
+          "tls",
+          "refuse",
+          "hote_interdit",
+          "inconnue"
+        ],
+        "type": "string"
+      },
       "ChampScanneBooleenDto": {
         "properties": {
           "confiance": {
@@ -2452,6 +2464,35 @@
         ],
         "type": "object"
       },
+      "DernierTestEnvoiCourrielDto": {
+        "properties": {
+          "cause": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CauseEchecEnvoiCourriel"
+              }
+            ],
+            "description": "`null` si le test a réussi.",
+            "example": null,
+            "nullable": true
+          },
+          "le": {
+            "description": "Horodatage UTC (ISO 8601).",
+            "example": "2026-11-08T09:30:00.000Z",
+            "type": "string"
+          },
+          "succes": {
+            "example": true,
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "le",
+          "succes",
+          "cause"
+        ],
+        "type": "object"
+      },
       "DesignationPrestationDto": {
         "properties": {
           "de": {
@@ -2975,6 +3016,13 @@
       },
       "EcritureDesequilibreeDto": {
         "properties": {
+          "pieces": {
+            "description": "N° des factures concernées (vide pour une avance).",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
           "reference": {
             "type": "string"
           },
@@ -2989,6 +3037,7 @@
         },
         "required": [
           "reference",
+          "pieces",
           "totalDebitCentimes",
           "totalCreditCentimes"
         ],
@@ -3376,7 +3425,7 @@
             "type": "boolean"
           },
           "coordonnees": {
-            "description": "Nom, rue, NPA et localité du bloc créancier renseignés.",
+            "description": "Nom, rue, n° de rue, NPA, localité et pays du bloc créancier renseignés (mêmes champs requis que l’émission d’une facture).",
             "type": "boolean"
           },
           "iban": {
@@ -3388,7 +3437,7 @@
             "type": "boolean"
           },
           "numeroTva": {
-            "description": "Numéro TVA du garage saisi.",
+            "description": "Étape TVA faite : le garage est non assujetti, ou assujetti avec son numéro de TVA saisi.",
             "type": "boolean"
           },
           "premierCollaborateur": {
@@ -6847,6 +6896,7 @@
               "VENTE_REPRISE_VALEUR_NEGOCIEE_REQUISE",
               "VENTE_REPRISE_DEJA_EXISTANTE",
               "DOCUMENT_DOSSIER_VENTE_RATTACHEMENT_REFUSE",
+              "DOCUMENT_DOSSIER_VENTE_PRIX_REQUIS",
               "CONNECTEUR_TYPE_INDISPONIBLE",
               "CONNECTEUR_IDENTIFIANTS_MANQUANTS",
               "CONNECTEUR_ACTIVATION_TRANSITION_INTERDITE",
@@ -6868,7 +6918,20 @@
               "REPRISE_PLAN_NON_VALIDABLE",
               "REPRISE_AJUSTEMENT_ELEMENT_INCONNU",
               "AUTH_JETON_REINITIALISATION_INVALIDE",
-              "FACTURE_DESTINATAIRE_COURRIEL_ABSENT"
+              "FACTURE_DESTINATAIRE_COURRIEL_ABSENT",
+              "TVA_NON_ASSUJETTI_TAUX_INTERDIT",
+              "TVA_NUMERO_REQUIS",
+              "FACTURE_DEJA_CORRIGEE",
+              "FACTURE_CORRECTION_REGLEMENT_EXISTANT",
+              "MODULE_DESACTIVE",
+              "COURRIEL_NON_CONFIGURE",
+              "COURRIEL_CLE_CHIFFREMENT_ABSENTE",
+              "COURRIEL_AUTHENTIFICATION_ECHEC",
+              "COURRIEL_CONNEXION_ECHEC",
+              "COURRIEL_TLS_ECHEC",
+              "COURRIEL_ENVOI_ECHEC",
+              "AUTH_CHANGEMENT_MOT_DE_PASSE_REQUIS",
+              "SERVICE_LECTURE_INDISPONIBLE"
             ],
             "type": "string"
           },
@@ -7015,6 +7078,7 @@
               "VENTE_REPRISE_VALEUR_NEGOCIEE_REQUISE",
               "VENTE_REPRISE_DEJA_EXISTANTE",
               "DOCUMENT_DOSSIER_VENTE_RATTACHEMENT_REFUSE",
+              "DOCUMENT_DOSSIER_VENTE_PRIX_REQUIS",
               "CONNECTEUR_TYPE_INDISPONIBLE",
               "CONNECTEUR_IDENTIFIANTS_MANQUANTS",
               "CONNECTEUR_ACTIVATION_TRANSITION_INTERDITE",
@@ -7036,7 +7100,20 @@
               "REPRISE_PLAN_NON_VALIDABLE",
               "REPRISE_AJUSTEMENT_ELEMENT_INCONNU",
               "AUTH_JETON_REINITIALISATION_INVALIDE",
-              "FACTURE_DESTINATAIRE_COURRIEL_ABSENT"
+              "FACTURE_DESTINATAIRE_COURRIEL_ABSENT",
+              "TVA_NON_ASSUJETTI_TAUX_INTERDIT",
+              "TVA_NUMERO_REQUIS",
+              "FACTURE_DEJA_CORRIGEE",
+              "FACTURE_CORRECTION_REGLEMENT_EXISTANT",
+              "MODULE_DESACTIVE",
+              "COURRIEL_NON_CONFIGURE",
+              "COURRIEL_CLE_CHIFFREMENT_ABSENTE",
+              "COURRIEL_AUTHENTIFICATION_ECHEC",
+              "COURRIEL_CONNEXION_ECHEC",
+              "COURRIEL_TLS_ECHEC",
+              "COURRIEL_ENVOI_ECHEC",
+              "AUTH_CHANGEMENT_MOT_DE_PASSE_REQUIS",
+              "SERVICE_LECTURE_INDISPONIBLE"
             ],
             "type": "string"
           },
@@ -7190,6 +7267,74 @@
           "signature",
           "plafondDefautCentimes",
           "plafondAvoirReceptionnaireCentimes"
+        ],
+        "type": "object"
+      },
+      "ReglageEnvoiCourrielDto": {
+        "properties": {
+          "adresseExpediteur": {
+            "example": "atelier@garage-martin.ch",
+            "type": "string"
+          },
+          "adresseReponse": {
+            "example": "contact@garage-martin.ch",
+            "nullable": true,
+            "type": "string"
+          },
+          "dernierTest": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DernierTestEnvoiCourrielDto"
+              }
+            ],
+            "description": "`null` : aucun test depuis la dernière modification du réglage.",
+            "nullable": true,
+            "type": "object"
+          },
+          "hote": {
+            "example": "mail.infomaniak.com",
+            "type": "string"
+          },
+          "motDePasseDefini": {
+            "description": "Le mot de passe est enregistré (chiffré). Il n’est jamais renvoyé par l’API.",
+            "example": true,
+            "type": "boolean"
+          },
+          "nomAffiche": {
+            "example": "Garage Martin",
+            "nullable": true,
+            "type": "string"
+          },
+          "port": {
+            "example": 587,
+            "maximum": 65535,
+            "minimum": 1,
+            "type": "number"
+          },
+          "securite": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SecuriteSmtp"
+              }
+            ],
+            "example": "starttls"
+          },
+          "utilisateur": {
+            "example": "atelier@garage-martin.ch",
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "hote",
+          "port",
+          "securite",
+          "utilisateur",
+          "motDePasseDefini",
+          "adresseExpediteur",
+          "nomAffiche",
+          "adresseReponse",
+          "dernierTest"
         ],
         "type": "object"
       },
@@ -7677,9 +7822,18 @@
           },
           "factureRemplacement": {
             "$ref": "#/components/schemas/ReponseDocumentVenteDto"
+          },
+          "mode": {
+            "description": "`remplacement` : `factureRemplacement` est une facture émise. `brouillon` : c'est un brouillon (sans numéro) à modifier puis émettre.",
+            "enum": [
+              "remplacement",
+              "brouillon"
+            ],
+            "type": "string"
           }
         },
         "required": [
+          "mode",
           "avoir",
           "factureRemplacement"
         ],
@@ -8736,7 +8890,8 @@
               "reprise",
               "financement_vente",
               "vehicule_travail_reporte",
-              "depot_pneus"
+              "depot_pneus",
+              "tenant"
             ],
             "type": "string"
           },
@@ -8768,6 +8923,58 @@
           "apres",
           "motif",
           "confirmations"
+        ],
+        "type": "object"
+      },
+      "ReponseEnvoiCourrielDto": {
+        "properties": {
+          "chiffrementDisponible": {
+            "description": "`false` : la clé de chiffrement du serveur est absente, enregistrer un mot de passe est refusé.",
+            "example": true,
+            "type": "boolean"
+          },
+          "configure": {
+            "description": "`false` : aucun envoi possible (`source = aucune`).",
+            "example": true,
+            "type": "boolean"
+          },
+          "instanceDisponible": {
+            "description": "Le serveur fournit un envoi de repli (SMTP_*).",
+            "example": false,
+            "type": "boolean"
+          },
+          "modeCapture": {
+            "description": "`true` hors production : les e-mails sont capturés et jamais remis (seul l’e-mail d’essai part réellement).",
+            "example": false,
+            "type": "boolean"
+          },
+          "reglage": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ReglageEnvoiCourrielDto"
+              }
+            ],
+            "description": "Réglage propre au garage ; `null` s’il n’en a pas saisi.",
+            "nullable": true,
+            "type": "object"
+          },
+          "source": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SourceEnvoiCourriel"
+              }
+            ],
+            "description": "Ce qui sert réellement à envoyer : `garage` (son réglage), `instance` (variables SMTP_* du serveur) ou `aucune`.",
+            "example": "garage"
+          }
+        },
+        "required": [
+          "reglage",
+          "source",
+          "configure",
+          "modeCapture",
+          "instanceDisponible",
+          "chiffrementDisponible"
         ],
         "type": "object"
       },
@@ -9648,6 +9855,56 @@
         ],
         "type": "object"
       },
+      "ReponseModulesDto": {
+        "properties": {
+          "modulesActifs": {
+            "description": "Modules effectivement actifs (choix du garage et dépendances). Les écritures des autres répondent `403 MODULE_DESACTIVE`.",
+            "items": {
+              "enum": [
+                "atelier",
+                "planning",
+                "pointage",
+                "tablettes",
+                "pieces",
+                "ventes",
+                "pneus",
+                "courtoisie",
+                "relances",
+                "export_fiduciaire"
+              ],
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "modulesDesactives": {
+            "description": "Modules retirés par le garage (son choix). Un module dont une dépendance est retirée est inactif sans figurer ici.",
+            "example": [
+              "pneus"
+            ],
+            "items": {
+              "enum": [
+                "atelier",
+                "planning",
+                "pointage",
+                "tablettes",
+                "pieces",
+                "ventes",
+                "pneus",
+                "courtoisie",
+                "relances",
+                "export_fiduciaire"
+              ],
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "modulesDesactives",
+          "modulesActifs"
+        ],
+        "type": "object"
+      },
       "ReponseMotifRendezVousDto": {
         "properties": {
           "actif": {
@@ -9944,7 +10201,7 @@
           },
           "pret": {
             "additionalProperties": true,
-            "description": "Prêt de véhicule de courtoisie lié. Toujours `null` au lot 1 (module lot 5).",
+            "description": "Prêt de véhicule de courtoisie lié (même représentation que `GET /courtoisie/prets`) : le prêt réservé/en cours, sinon le plus récent ; `null` seulement si aucun prêt n’est lié à cet OR.",
             "nullable": true,
             "type": "object"
           },
@@ -10271,6 +10528,11 @@
       },
       "ReponseParametresEntrepriseDto": {
         "properties": {
+          "assujettiTva": {
+            "description": "Le garage est-il assujetti à la TVA ? `false` : aucune TVA sur ses documents (taux 0, régime « exclu »), mention « Non assujetti à la TVA », `numeroTva` toujours `null`. `true` par défaut (comportement historique) ; une facture ne peut être émise sans `numeroTva` quand il vaut `true`.",
+            "example": true,
+            "type": "boolean"
+          },
           "delaiPaiementJoursDefaut": {
             "description": "Délai de paiement par défaut des factures, en jours, pour un client sans condition de paiement propre.",
             "example": 30,
@@ -10278,8 +10540,18 @@
             "minimum": 0,
             "type": "number"
           },
+          "modeSignalement": {
+            "description": "Réglage « Signalements » : `via_site` (défaut) ouvre le site pour terminer le signalement, `copie_seule` ne propose que la copie du rapport, `desactive` retire le bouton « Signaler un problème ».",
+            "enum": [
+              "via_site",
+              "copie_seule",
+              "desactive"
+            ],
+            "example": "via_site",
+            "type": "string"
+          },
           "numeroTva": {
-            "description": "N° IDE avec mention TVA (CHE-123.456.789 TVA, MWST ou IVA), clé de contrôle vérifiée. `null` : garage non assujetti ou numéro pas encore saisi.",
+            "description": "N° IDE avec mention TVA (CHE-123.456.789 TVA, MWST ou IVA), clé de contrôle vérifiée. `null` : numéro pas encore saisi, ou garage non assujetti.",
             "example": "CHE-116.281.710 TVA",
             "nullable": true,
             "type": "string"
@@ -10291,8 +10563,10 @@
         },
         "required": [
           "raisonSociale",
+          "assujettiTva",
           "numeroTva",
-          "delaiPaiementJoursDefaut"
+          "delaiPaiementJoursDefaut",
+          "modeSignalement"
         ],
         "type": "object"
       },
@@ -11218,6 +11492,19 @@
           "montantCentimes",
           "valideDuLe",
           "valideAuLe"
+        ],
+        "type": "object"
+      },
+      "ReponseTestEnvoiCourrielDto": {
+        "properties": {
+          "envoyeLe": {
+            "description": "Horodatage UTC (ISO 8601).",
+            "example": "2026-11-08T09:30:00.000Z",
+            "type": "string"
+          }
+        },
+        "required": [
+          "envoyeLe"
         ],
         "type": "object"
       },
@@ -12418,6 +12705,14 @@
         ],
         "type": "object"
       },
+      "SecuriteSmtp": {
+        "enum": [
+          "tls_implicite",
+          "starttls",
+          "aucune"
+        ],
+        "type": "string"
+      },
       "SessionCouranteDto": {
         "properties": {
           "actions": {
@@ -12443,6 +12738,34 @@
             "format": "date-time",
             "type": "string"
           },
+          "modulesActifs": {
+            "description": "Modules effectivement actifs pour le garage (Réglages > Modules). Le front masque menus, routes et raccourcis des autres ; le serveur refuse leurs écritures (`MODULE_DESACTIVE`).",
+            "items": {
+              "enum": [
+                "atelier",
+                "planning",
+                "pointage",
+                "tablettes",
+                "pieces",
+                "ventes",
+                "pneus",
+                "courtoisie",
+                "relances",
+                "export_fiduciaire"
+              ],
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "motDePasseAChanger": {
+            "description": "true tant que le mot de passe temporaire n’a pas été remplacé : toute route métier répond 403 AUTH_CHANGEMENT_MOT_DE_PASSE_REQUIS.",
+            "type": "boolean"
+          },
+          "sitePrincipalId": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
           "siteRattachementId": {
             "format": "uuid",
             "nullable": true,
@@ -12466,8 +12789,10 @@
           "tenant",
           "sites",
           "siteRattachementId",
+          "sitePrincipalId",
           "actions",
           "capacites",
+          "modulesActifs",
           "expireLe"
         ],
         "type": "object"
@@ -12533,6 +12858,11 @@
             "example": "SION",
             "type": "string"
           },
+          "codeCourt": {
+            "description": "Étiquette compacte, 1 à 5 caractères A-Z/0-9.",
+            "example": "SION",
+            "type": "string"
+          },
           "id": {
             "format": "uuid",
             "type": "string"
@@ -12545,10 +12875,20 @@
         "required": [
           "id",
           "code",
+          "codeCourt",
           "nom",
           "actif"
         ],
         "type": "object"
+      },
+      "SourceEnvoiCourriel": {
+        "description": "Ce qui sert réellement à envoyer : `garage` (son réglage), `instance` (variables SMTP_* du serveur) ou `aucune`.",
+        "enum": [
+          "garage",
+          "instance",
+          "aucune"
+        ],
+        "type": "string"
       },
       "StockArticleDto": {
         "properties": {
@@ -12746,6 +13086,9 @@
       },
       "TenantCourantDto": {
         "properties": {
+          "assujettiTva": {
+            "type": "boolean"
+          },
           "id": {
             "format": "uuid",
             "type": "string"
@@ -12755,6 +13098,14 @@
               "fr",
               "de",
               "it"
+            ],
+            "type": "string"
+          },
+          "modeSignalement": {
+            "enum": [
+              "via_site",
+              "copie_seule",
+              "desactive"
             ],
             "type": "string"
           },
@@ -12771,7 +13122,9 @@
           "id",
           "slug",
           "raisonSociale",
-          "langueDefaut"
+          "langueDefaut",
+          "modeSignalement",
+          "assujettiTva"
         ],
         "type": "object"
       },
@@ -13032,6 +13385,11 @@
             "example": "technicien",
             "type": "string"
           },
+          "sitePrincipalId": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
           "sites": {
             "items": {
               "$ref": "#/components/schemas/SiteAffecteResumeDto"
@@ -13057,6 +13415,7 @@
           "capacites",
           "statut",
           "sites",
+          "sitePrincipalId",
           "derniereConnexionLe",
           "creeLe"
         ],
@@ -13510,6 +13869,33 @@
           "montantCentimes"
         ],
         "type": "object"
+      },
+      "VersionSystemeDto": {
+        "properties": {
+          "actuelle": {
+            "example": "0.3.0",
+            "type": "string"
+          },
+          "derniere": {
+            "example": "0.4.0",
+            "nullable": true,
+            "type": "string"
+          },
+          "miseAJourDisponible": {
+            "type": "boolean"
+          },
+          "urlNotes": {
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "actuelle",
+          "derniere",
+          "miseAJourDisponible",
+          "urlNotes"
+        ],
+        "type": "object"
       }
     },
     "securitySchemes": {
@@ -13524,7 +13910,7 @@
     "contact": {},
     "description": "API du DMS (Dealer Management System) pour garages et concessions suisses. Contrat d'erreur unique application/problem+json (schéma ProblemeDetailCommunDto, code machine stable). Le tenant est toujours résolu depuis la session — aucun endpoint n'accepte de tenantId en paramètre.",
     "title": "API dmsforall (DFA)",
-    "version": "0.1.0-dev+inconnu"
+    "version": "0.2.0-dev+inconnu"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -16094,6 +16480,163 @@
           }
         },
         "summary": "Session courante de l’utilisateur authentifié.",
+        "tags": [
+          "Authentification"
+        ]
+      }
+    },
+    "/auth/moi/langue": {
+      "patch": {
+        "operationId": "AuthController_changerLangue",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "defaut": {
+                  "value": {
+                    "langue": "de"
+                  }
+                }
+              },
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "langue": {
+                    "enum": [
+                      "fr",
+                      "de",
+                      "it"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "langue"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Langue enregistrée."
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailDto"
+                }
+              }
+            },
+            "description": "VALIDATION_ECHOUEE."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailDto"
+                }
+              }
+            },
+            "description": "AUTH_SESSION_ABSENTE ou AUTH_SESSION_EXPIREE."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailDto"
+                }
+              }
+            },
+            "description": "AUTH_CHANGEMENT_MOT_DE_PASSE_REQUIS."
+          }
+        },
+        "summary": "Enregistre la langue d’interface dans le profil de la personne connectée.",
+        "tags": [
+          "Authentification"
+        ]
+      }
+    },
+    "/auth/mot-de-passe/changement": {
+      "post": {
+        "description": "Exige le mot de passe actuel. Lève le blocage AUTH_CHANGEMENT_MOT_DE_PASSE_REQUIS. Les autres sessions de la personne sont révoquées.",
+        "operationId": "AuthController_changerMotDePasse",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "defaut": {
+                  "value": {
+                    "motDePasseActuel": "mot-de-passe-temporaire",
+                    "nouveauMotDePasse": "un-nouveau-mot-de-passe-solide"
+                  }
+                }
+              },
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "motDePasseActuel": {
+                    "maxLength": 256,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "nouveauMotDePasse": {
+                    "maxLength": 256,
+                    "minLength": 12,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "motDePasseActuel",
+                  "nouveauMotDePasse"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Mot de passe changé."
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailDto"
+                }
+              }
+            },
+            "description": "VALIDATION_ECHOUEE."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailDto"
+                }
+              }
+            },
+            "description": "AUTH_SESSION_ABSENTE ou AUTH_SESSION_EXPIREE."
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailDto"
+                }
+              }
+            },
+            "description": "AUTH_TROP_DE_TENTATIVES."
+          }
+        },
+        "summary": "Changement du mot de passe de la personne connectée.",
         "tags": [
           "Authentification"
         ]
@@ -22109,7 +22652,6 @@
                       "required": [
                         "type",
                         "designation",
-                        "tauxTvaPourmille",
                         "datePrestation"
                       ],
                       "type": "object"
@@ -22432,7 +22974,7 @@
     },
     "/documents-vente/{factureId}/corriger": {
       "post": {
-        "description": "`Idempotency-Key` obligatoire — c'est une création de facture, donc une création sensible. Une facture ÉMISE ne se modifie JAMAIS (MD-20) : ce geste produit TROIS documents immuables — un avoir TOTAL (déjà émis, sans retour physique de stock) créditant la facture d'origine (qui bascule `annule_par_avoir`), et une facture de remplacement (déjà émise) reprenant les mêmes lignes avec l'en-tête corrigé (`champsCorriges` : désignation et/ou adresse de facturation uniquement — une erreur de montant ou de taux se corrige par un avoir libre, `POST /documents-vente/{factureId}/avoirs`, jamais par ce geste). Droit DÉDIÉ, périmètre volontairement PLUS ÉTROIT qu'émettre un avoir simple : `direction`/`comptable` SEULS (ni `receptionnaire`, ni `admin`, RF-115).",
+        "description": "`Idempotency-Key` obligatoire — c'est une création de facture, donc une création sensible. Une facture ÉMISE ne se modifie JAMAIS (MD-20) : ce geste produit TROIS documents immuables — un avoir TOTAL (déjà émis, sans retour physique de stock) créditant la facture d'origine (qui bascule `annule_par_avoir`), et une facture de remplacement (déjà émise) reprenant les mêmes lignes avec l'en-tête corrigé (`champsCorriges` : désignation et/ou adresse de facturation uniquement — une erreur de montant ou de taux se corrige par un avoir libre, `POST /documents-vente/{factureId}/avoirs`, jamais par ce geste). `mode` (défaut `remplacement`, comportement historique) : avec `mode = 'brouillon'`, la facture de remplacement n'est PAS émise — elle est créée en BROUILLON (mêmes lignes, TVA recalculée au régime ACTUEL du garage), `champsCorriges` est alors interdit et la réponse porte `mode = 'brouillon'` ; `factureRemplacement.id` est le brouillon à ouvrir, modifier puis émettre. Refusé en mode brouillon : facture déjà annulée par un avoir (`FACTURE_DEJA_CORRIGEE`) ou déjà réglée en tout ou partie (`FACTURE_CORRECTION_REGLEMENT_EXISTANT`). Droit DÉDIÉ, périmètre volontairement PLUS ÉTROIT qu'émettre un avoir simple : `direction`/`comptable` SEULS (ni `receptionnaire`, ni `admin`, RF-115).",
         "operationId": "DocumentVenteTransitionsController_corriger",
         "parameters": [
           {
@@ -22546,6 +23088,14 @@
                     "default": true,
                     "type": "boolean"
                   },
+                  "mode": {
+                    "default": "remplacement",
+                    "enum": [
+                      "remplacement",
+                      "brouillon"
+                    ],
+                    "type": "string"
+                  },
                   "motif": {
                     "enum": [
                       "erreur_adresse",
@@ -22565,8 +23115,7 @@
                   }
                 },
                 "required": [
-                  "motif",
-                  "champsCorriges"
+                  "motif"
                 ],
                 "type": "object"
               }
@@ -22633,7 +23182,7 @@
                 }
               }
             },
-            "description": "DOCUMENT_TRANSITION_INTERDITE (facture non émise ou déjà corrigée/annulée) ou IDEMPOTENCE_CONFLIT."
+            "description": "DOCUMENT_TRANSITION_INTERDITE (facture non émise), FACTURE_DEJA_CORRIGEE et FACTURE_CORRECTION_REGLEMENT_EXISTANT (mode brouillon), TVA_NUMERO_REQUIS ou IDEMPOTENCE_CONFLIT."
           }
         },
         "security": [
@@ -23115,6 +23664,110 @@
           }
         ],
         "summary": "Annulation — bon de commande uniquement, motif obligatoire.",
+        "tags": [
+          "Documents de vente — transitions"
+        ]
+      }
+    },
+    "/documents-vente/{id}/annuler-accord": {
+      "post": {
+        "operationId": "DocumentVenteTransitionsController_annulerAccord",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "defaut": {
+                  "value": {}
+                }
+              },
+              "schema": {
+                "additionalProperties": false,
+                "properties": {},
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnveloppeDocumentVenteDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Type de document invalide (seul un devis a un accord)."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Document introuvable pour ce tenant."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "DOCUMENT_TRANSITION_INTERDITE (le devis n’est pas accepté) ou DOCUMENT_SOURCE_DEJA_TRANSFORME (un OR ou un document en est issu)."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Annuler l'accord du client — devis uniquement (devis.accepte → emis), tant qu'aucun OR ni document n'en est issu.",
         "tags": [
           "Documents de vente — transitions"
         ]
@@ -23765,7 +24418,6 @@
                 "required": [
                   "type",
                   "designation",
-                  "tauxTvaPourmille",
                   "datePrestation"
                 ],
                 "type": "object"
@@ -24223,7 +24875,7 @@
                 }
               }
             },
-            "description": "DOCUMENT_PDF_INDISPONIBLE — le document n'est ni un devis ni une facture émise."
+            "description": "DOCUMENT_PDF_INDISPONIBLE — le document n'est ni un devis, ni une facture ou un avoir émis."
           }
         },
         "security": [
@@ -24231,7 +24883,7 @@
             "cookie": []
           }
         ],
-        "summary": "PDF d’une facture émise (avec bulletin QR) ou d’un devis (sans QR).",
+        "summary": "PDF d’une facture émise (avec bulletin QR), d’un avoir émis ou d’un devis (sans QR).",
         "tags": [
           "Documents de vente"
         ]
@@ -36045,7 +36697,7 @@
         ]
       },
       "patch": {
-        "description": "Format IDE suisse `CHE-123.456.789 TVA` (`MWST`/`IVA` acceptés), clé de contrôle modulo 11 vérifiée. `numeroTva: null` efface le numéro (garage non assujetti). Corps vide : aucun effet.",
+        "description": "`raisonSociale` : 1 à 200 caractères (espaces de bord retirés), journalisée dans le journal d'audit (avant/après). Le slug du garage ne change jamais. Les documents déjà émis gardent leur raison sociale ; les suivants prennent la nouvelle (sauf si le bloc créancier porte son propre nom, qui reste prioritaire et se change dans la facturation). Format IDE suisse `CHE-123.456.789 TVA` (`MWST`/`IVA` acceptés), clé de contrôle modulo 11 vérifiée. `numeroTva: null` efface le numéro. `assujettiTva: false` déclare le garage non assujetti : le numéro est vidé et les documents émis ensuite n’ont aucune TVA ; `assujettiTva: false` avec un `numeroTva` non nul (ou un numéro envoyé à un garage non assujetti) est refusé (`VALIDATION_ECHOUEE`, `erreurs[0].champ = numeroTva`). `assujettiTva: true` sans numéro est accepté, mais l’émission d’une facture exige alors le numéro (`TVA_NUMERO_REQUIS`). Chaque changement de raison sociale, d'assujettissement ou de numéro est journalisé (avant/après). `modeSignalement` (`via_site`, `copie_seule`, `desactive`) règle le bouton « Signaler un problème » ; son changement est journalisé. Corps vide : aucun effet.",
         "operationId": "ParametresEntrepriseController_modifier",
         "parameters": [],
         "requestBody": {
@@ -36054,22 +36706,39 @@
               "examples": {
                 "defaut": {
                   "value": {
-                    "numeroTva": "CHE-116.281.710 TVA"
+                    "numeroTva": "CHE-116.281.710 TVA",
+                    "raisonSociale": "Garage Martin SA"
                   }
                 }
               },
               "schema": {
                 "properties": {
+                  "assujettiTva": {
+                    "type": "boolean"
+                  },
                   "delaiPaiementJoursDefaut": {
                     "maximum": 365,
                     "minimum": 0,
                     "type": "integer"
+                  },
+                  "modeSignalement": {
+                    "enum": [
+                      "via_site",
+                      "copie_seule",
+                      "desactive"
+                    ],
+                    "type": "string"
                   },
                   "numeroTva": {
                     "type": [
                       "string",
                       "null"
                     ]
+                  },
+                  "raisonSociale": {
+                    "maxLength": 200,
+                    "minLength": 1,
+                    "type": "string"
                   }
                 },
                 "type": "object"
@@ -36097,7 +36766,7 @@
                 }
               }
             },
-            "description": "VALIDATION_ECHOUEE — format ou clé de contrôle du n° TVA invalide."
+            "description": "VALIDATION_ECHOUEE — raison sociale vide ou trop longue, format ou clé de contrôle du n° TVA invalide."
           },
           "401": {
             "content": {
@@ -36125,7 +36794,348 @@
             "cookie": []
           }
         ],
-        "summary": "Saisit ou efface le n° TVA du garage.",
+        "summary": "Modifie la raison sociale, l’assujettissement à la TVA, le n° TVA ou le délai de paiement du garage.",
+        "tags": [
+          "Paramétrage"
+        ]
+      }
+    },
+    "/parametres-entreprise/envoi-courriel": {
+      "get": {
+        "description": "Priorité : réglage du garage > serveur de l’instance (SMTP_*) > aucun envoi. `source` dit ce qui sert réellement ; `configure: false` = « non configuré ». Le mot de passe n’est jamais renvoyé, seulement `reglage.motDePasseDefini`. `reglage.dernierTest` garde le résultat du dernier e-mail d’essai (remis à `null` à chaque modification).",
+        "operationId": "EnvoiCourrielController_obtenir",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReponseEnvoiCourrielDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "DROIT_INSUFFISANT — réservé à la direction et à l’administrateur."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Serveur d’envoi des e-mails du garage et état courant.",
+        "tags": [
+          "Paramétrage"
+        ]
+      },
+      "patch": {
+        "description": "Création au premier appel : `hote`, `port`, `securite` et `adresseExpediteur` sont alors obligatoires (`VALIDATION_ECHOUEE` sinon). Ensuite, seuls les champs envoyés changent. `securite` : `tls_implicite` (port 465 en général), `starttls` (587) ou `aucune` (réseau de confiance uniquement). `motDePasse` absent = inchangé, `null` = effacé, texte = remplacé ; il est chiffré au repos (`COURRIEL_CLE_CHIFFREMENT_ABSENTE` si le serveur n’a pas de clé). Changer `hote` ou `utilisateur` sans renvoyer `motDePasse` efface l’ancien mot de passe. Chaque changement est journalisé (avant/après, jamais le secret) et remet le dernier test à zéro. En production, un hôte sur réseau privé est refusé à l’envoi sauf `COURRIEL_RESEAU_PRIVE_AUTORISE`.",
+        "operationId": "EnvoiCourrielController_modifier",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "defaut": {
+                  "value": {
+                    "adresseExpediteur": "atelier@garage-martin.ch",
+                    "hote": "mail.infomaniak.com",
+                    "motDePasse": "mot-de-passe-du-compte",
+                    "nomAffiche": "Garage Martin",
+                    "port": 587,
+                    "securite": "starttls",
+                    "utilisateur": "atelier@garage-martin.ch"
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "adresseExpediteur": {
+                    "allOf": [
+                      {
+                        "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+                      },
+                      {
+                        "pattern": "^[^\\r\\n]*$"
+                      }
+                    ],
+                    "maxLength": 320,
+                    "minLength": 3,
+                    "type": "string"
+                  },
+                  "adresseReponse": {
+                    "anyOf": [
+                      {
+                        "allOf": [
+                          {
+                            "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+                          },
+                          {
+                            "pattern": "^[^\\r\\n]*$"
+                          }
+                        ],
+                        "maxLength": 320,
+                        "minLength": 3,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "hote": {
+                    "maxLength": 253,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "motDePasse": {
+                    "anyOf": [
+                      {
+                        "maxLength": 512,
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "nomAffiche": {
+                    "anyOf": [
+                      {
+                        "maxLength": 100,
+                        "minLength": 1,
+                        "pattern": "^[^\\r\\n]*$",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "port": {
+                    "maximum": 65535,
+                    "minimum": 1,
+                    "type": "integer"
+                  },
+                  "securite": {
+                    "enum": [
+                      "tls_implicite",
+                      "starttls",
+                      "aucune"
+                    ],
+                    "type": "string"
+                  },
+                  "utilisateur": {
+                    "anyOf": [
+                      {
+                        "maxLength": 320,
+                        "minLength": 1,
+                        "pattern": "^[^\\r\\n]*$",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReponseEnvoiCourrielDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "VALIDATION_ECHOUEE — champ invalide ou réglage incomplet."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "DROIT_INSUFFISANT."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "COURRIEL_CLE_CHIFFREMENT_ABSENTE — impossible de stocker un mot de passe."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Enregistre le serveur d’envoi du garage (hôte, port, sécurité, identifiants, expéditeur).",
+        "tags": [
+          "Paramétrage"
+        ]
+      }
+    },
+    "/parametres-entreprise/envoi-courriel/test": {
+      "post": {
+        "description": "Teste le réglage ENREGISTRÉ (enregistrer d’abord). L’envoi est réel même hors production : geste explicite de la direction, vers la seule adresse indiquée. La langue du message est celle de la personne connectée. Le résultat est conservé (`reglage.dernierTest`). Échecs en problem+json 422 : `COURRIEL_AUTHENTIFICATION_ECHEC`, `COURRIEL_CONNEXION_ECHEC` (serveur injoignable ou hôte interdit), `COURRIEL_TLS_ECHEC`, `COURRIEL_ENVOI_ECHEC` (message refusé) ; 409 `COURRIEL_NON_CONFIGURE` s’il n’y a pas de réglage. Jamais le message brut du serveur.",
+        "operationId": "EnvoiCourrielController_tester",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "defaut": {
+                  "value": {
+                    "destinataire": "direction@garage-martin.ch"
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "destinataire": {
+                    "allOf": [
+                      {
+                        "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+                      },
+                      {
+                        "pattern": "^[^\\r\\n]*$"
+                      }
+                    ],
+                    "maxLength": 320,
+                    "minLength": 3,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "destinataire"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReponseTestEnvoiCourrielDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "VALIDATION_ECHOUEE — adresse du destinataire invalide."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "DROIT_INSUFFISANT."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "COURRIEL_NON_CONFIGURE — aucun réglage enregistré."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "COURRIEL_AUTHENTIFICATION_ECHEC, COURRIEL_CONNEXION_ECHEC, COURRIEL_TLS_ECHEC ou COURRIEL_ENVOI_ECHEC."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Envoie un e-mail d’essai avec le réglage enregistré du garage.",
         "tags": [
           "Paramétrage"
         ]
@@ -36172,10 +37182,26 @@
       },
       "get": {
         "operationId": "LogoEntrepriseController_lire",
-        "parameters": [],
+        "parameters": [
+          {
+            "description": "Sans paramètre : 404 quand aucun logo n’est déposé (comportement historique). `absence=vide` : 204 sans corps, pour qu’un client qui demande « y a-t-il un logo ? » ne produise pas d’erreur.",
+            "in": "query",
+            "name": "absence",
+            "required": false,
+            "schema": {
+              "enum": [
+                "vide"
+              ],
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "L’image, avec son Content-Type."
+          },
+          "204": {
+            "description": "Aucun logo déposé, et `absence=vide` demandé."
           },
           "401": {
             "content": {
@@ -36235,7 +37261,7 @@
                 }
               }
             },
-            "description": "RESSOURCE_INTROUVABLE — aucun logo déposé."
+            "description": "RESSOURCE_INTROUVABLE — aucun logo déposé (sans `absence=vide`)."
           }
         },
         "security": [
@@ -36329,6 +37355,154 @@
           }
         ],
         "summary": "Dépose ou remplace le logo du garage (PNG, JPEG ou SVG, 1 Mo maximum).",
+        "tags": [
+          "Paramétrage"
+        ]
+      }
+    },
+    "/parametres-entreprise/modules": {
+      "get": {
+        "description": "`modulesDesactives` : le choix du garage. `modulesActifs` : ce qui fonctionne réellement (pointage dépend de atelier, tablettes de pointage). Les mêmes `modulesActifs` sont dans `GET /auth/moi`.",
+        "operationId": "ModulesController_obtenir",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReponseModulesDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "DROIT_INSUFFISANT."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Modules retirés et modules actifs du garage.",
+        "tags": [
+          "Paramétrage"
+        ]
+      },
+      "patch": {
+        "description": "`modulesDesactives` est la liste COMPLÈTE des modules retirés (`[]` : tout est actif). Les écritures d’un module retiré, ou dont une dépendance est retirée, répondent ensuite `403 MODULE_DESACTIVE` ; les lectures restent possibles. Aucune donnée n’est supprimée : réactiver restaure tout. Le changement est journalisé (avant/après).",
+        "operationId": "ModulesController_modifier",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "defaut": {
+                  "value": {
+                    "modulesDesactives": [
+                      "pneus",
+                      "ventes"
+                    ]
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "modulesDesactives": {
+                    "items": {
+                      "enum": [
+                        "atelier",
+                        "planning",
+                        "pointage",
+                        "tablettes",
+                        "pieces",
+                        "ventes",
+                        "pneus",
+                        "courtoisie",
+                        "relances",
+                        "export_fiduciaire"
+                      ],
+                      "type": "string"
+                    },
+                    "maxItems": 10,
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "modulesDesactives"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReponseModulesDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "VALIDATION_ECHOUEE — module inconnu."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "DROIT_INSUFFISANT."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Remplace la liste des modules retirés par le garage.",
         "tags": [
           "Paramétrage"
         ]
@@ -42662,6 +43836,116 @@
         "tags": [
           "Socle"
         ]
+      },
+      "patch": {
+        "description": "Code court : 1 à 5 caractères A-Z/0-9, unique dans le garage. Même droit que les réglages par site.",
+        "operationId": "SiteController_modifier",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "siteId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "defaut": {
+                  "value": {
+                    "codeCourt": "MART"
+                  }
+                }
+              },
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "codeCourt": {
+                    "pattern": "^[A-Z0-9]{1,5}$",
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SiteResumeDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Corps invalide (code court hors format)."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Droit insuffisant (parametrage.atelier.modifier)."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Site introuvable pour ce tenant."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "CONFLIT — ce code court est déjà utilisé par un autre site."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Modifier un site (code court)",
+        "tags": [
+          "Socle"
+        ]
       }
     },
     "/sites/{siteId}/hangar-pneus": {
@@ -42977,6 +44261,44 @@
         "summary": "Articles sous leur stock minimum, par site (RP-12).",
         "tags": [
           "Pièces — Stock"
+        ]
+      }
+    },
+    "/systeme/version": {
+      "get": {
+        "description": "`derniere` vaut `null` si la vérification est désactivée (`VERIFIER_MISE_A_JOUR=false`) ou si GitHub ne répond pas. Résultat mis en cache 12 h côté serveur.",
+        "operationId": "SystemeController_obtenir",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersionSystemeDto"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "Session absente ou expirée."
+          }
+        },
+        "security": [
+          {
+            "cookie": []
+          }
+        ],
+        "summary": "Version installée et dernière version publiée.",
+        "tags": [
+          "Système"
         ]
       }
     },
@@ -43345,6 +44667,11 @@
                     "maxItems": 50,
                     "minItems": 1,
                     "type": "array"
+                  },
+                  "sitePrincipalId": {
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                    "type": "string"
                   }
                 },
                 "required": [
@@ -43487,6 +44814,11 @@
                     "maxItems": 50,
                     "minItems": 1,
                     "type": "array"
+                  },
+                  "sitePrincipalId": {
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                    "type": "string"
                   }
                 },
                 "type": "object"

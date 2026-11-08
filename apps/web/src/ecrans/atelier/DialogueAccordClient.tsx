@@ -2,15 +2,8 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { PanneauLateral } from '@/composants/PanneauLateral';
 import { ApercuPhotosLignes } from '@/composants/photos/ApercuPhotosLignes';
 import { Label, LegendeChampsObligatoires } from '@/components/ui/label';
 import {
@@ -84,91 +77,86 @@ export function DialogueAccordClient({
   }
 
   return (
-    <Dialog open={ouvert} onOpenChange={changerOuverture}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{t('or:accordClient.titre')}</DialogTitle>
-          <DialogDescription>
-            {t('or:accordClient.description', { count: ligneIds.length })}
-          </DialogDescription>
-        </DialogHeader>
+    <PanneauLateral
+      ouvert={ouvert}
+      onOuvertChange={changerOuverture}
+      titre={t('or:accordClient.titre')}
+      pied={
+        <>
+          <Button type="button" variant="outline" onClick={() => changerOuverture(false)}>
+            {t('commun:actions.annuler')}
+          </Button>
+          <Button type="submit" form="or-accord-formulaire" enChargement={accord.isPending}>
+            {t('or:accordClient.enregistrer')}
+          </Button>
+        </>
+      }
+    >
+      <form
+        id="or-accord-formulaire"
+        noValidate
+        className="flex flex-col gap-4"
+        onSubmit={(evenement) => {
+          evenement.preventDefault();
+          enregistrer();
+        }}
+      >
+        <ApercuPhotosLignes orId={orId} ligneIds={ligneIds} />
 
-        <form
-          noValidate
-          className="flex flex-col gap-4"
-          onSubmit={(evenement) => {
-            evenement.preventDefault();
-            enregistrer();
-          }}
-        >
-          <ApercuPhotosLignes orId={orId} ligneIds={ligneIds} />
+        <LegendeChampsObligatoires>
+          {t('commun:formulaires.champsObligatoiresLegende')}
+        </LegendeChampsObligatoires>
 
-          <LegendeChampsObligatoires>
-            {t('commun:formulaires.champsObligatoiresLegende')}
-          </LegendeChampsObligatoires>
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="or-accord-nom" requis>
+            {t('or:accordClient.nom')}
+          </Label>
+          <Input
+            id="or-accord-nom"
+            value={nom}
+            maxLength={200}
+            aria-required="true"
+            aria-invalid={erreurNom ? true : undefined}
+            autoComplete="off"
+            onChange={(evenement) => setNom(evenement.target.value)}
+          />
+          {erreurNom ? <p className="texte-libelle text-destructive">{erreurNom}</p> : null}
+        </div>
 
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="or-accord-nom" requis>
-              {t('or:accordClient.nom')}
-            </Label>
-            <Input
-              id="or-accord-nom"
-              value={nom}
-              maxLength={200}
-              aria-required="true"
-              aria-invalid={erreurNom ? true : undefined}
-              autoComplete="off"
-              onChange={(evenement) => setNom(evenement.target.value)}
-            />
-            {erreurNom ? <p className="texte-libelle text-destructive">{erreurNom}</p> : null}
+        <div className="flex flex-col gap-1.5">
+          <Label id="or-accord-mode-libelle">{t('or:accordClient.mode.libelle')}</Label>
+          <div
+            role="group"
+            aria-labelledby="or-accord-mode-libelle"
+            className="inline-flex self-start overflow-hidden rounded-md border"
+          >
+            {MODES_ACCORD_CLIENT.map((valeur) => (
+              <button
+                key={valeur}
+                type="button"
+                aria-pressed={mode === valeur}
+                onClick={() => setMode(valeur)}
+                className={cn(
+                  'h-11 px-4 texte-corps font-medium transition-colors',
+                  mode === valeur
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-background text-foreground hover:bg-muted',
+                )}
+              >
+                {t(`or:accordClient.mode.${valeur}`)}
+              </button>
+            ))}
           </div>
+        </div>
 
-          <div className="flex flex-col gap-1.5">
-            <Label id="or-accord-mode-libelle">{t('or:accordClient.mode.libelle')}</Label>
-            <div
-              role="group"
-              aria-labelledby="or-accord-mode-libelle"
-              className="inline-flex self-start overflow-hidden rounded-md border"
-            >
-              {MODES_ACCORD_CLIENT.map((valeur) => (
-                <button
-                  key={valeur}
-                  type="button"
-                  aria-pressed={mode === valeur}
-                  onClick={() => setMode(valeur)}
-                  className={cn(
-                    'h-11 px-4 texte-corps font-medium transition-colors',
-                    mode === valeur
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-background text-foreground hover:bg-muted',
-                  )}
-                >
-                  {t(`or:accordClient.mode.${valeur}`)}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <p className="texte-libelle text-muted-foreground">{t('or:accordClient.horodatage')}</p>
-
-          {accord.isError
-            ? messagesErreurMutation(accord.error, t).map((message, index) => (
-                <p key={index} role="alert" className="texte-libelle text-destructive">
-                  {message}
-                </p>
-              ))
-            : null}
-
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => changerOuverture(false)}>
-              {t('commun:actions.annuler')}
-            </Button>
-            <Button type="submit" enChargement={accord.isPending}>
-              {t('or:accordClient.enregistrer')}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+        {accord.isError
+          ? messagesErreurMutation(accord.error, t).map((message, index) => (
+              <p key={index} role="alert" className="texte-libelle text-destructive">
+                {message}
+              </p>
+            ))
+          : null}
+      </form>
+    </PanneauLateral>
   );
 }

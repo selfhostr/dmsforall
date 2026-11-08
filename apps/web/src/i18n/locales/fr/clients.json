@@ -1,6 +1,7 @@
 {
   "titre": "Clients",
   "nouveau": "Nouveau client",
+  "creerInfobulle": "Créer un client",
   "actions": {
     "creer": "Créer le client"
   },
@@ -150,7 +151,6 @@
   },
   "doublonsEcran": {
     "titre": "Doublons clients",
-    "description": "Recherchez un client par nom, NPA, e-mail, téléphone ou numéro d'entreprise avant d'en créer un nouveau, ou pour vérifier si deux fiches désignent la même personne.",
     "champs": {
       "nom": "Nom ou raison sociale",
       "npa": "NPA",
@@ -220,6 +220,7 @@
     "filtreDescription": "Modifiez ou effacez les filtres actifs."
   },
   "formulaireNouveau": {
+    "adresse": "Adresse",
     "brouillon": {
       "ignorer": "Ignorer le brouillon"
     },

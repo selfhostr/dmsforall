@@ -1,6 +1,5 @@
 {
   "titre": "Scanner un permis de circulation",
-  "sousTitre": "Photographiez le permis, vérifiez, puis validez.",
   "echappement": {
     "message": "Vue simplifiée pour téléphone : seul le scan est accessible ici.",
     "action": "Ouvrir l'application complète"
@@ -48,6 +47,7 @@
     "enCours": "Lecture du permis en cours…"
   },
   "erreurs": {
+    "saisieManuelle": "Saisir le véhicule à la main",
     "titre": "La photo n'a pas pu être utilisée",
     "photoIllisible": "Cette photo n'a pas pu être ouverte. Reprenez-la avec l'appareil photo, bien à plat et bien éclairée.",
     "heicNonPrisEnCharge": "Ce format de photo n'est pas pris en charge sur cet appareil. Reprenez la photo avec le bouton « Prendre la photo » plutôt que depuis la pellicule."

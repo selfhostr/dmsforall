@@ -1,7 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { Badge } from '@/components/ui/badge';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { messageErreur } from '@/api/erreurs';
 import { EtatChargement } from '@/composants/commun/EtatChargement';
@@ -20,6 +27,7 @@ import {
 import { useListePointages } from '@/hooks/pointage/useListePointages';
 import { useSession } from '@/hooks/useSession';
 
+import { BadgeAnomaliePointage, BadgeEnCoursPointage } from './BadgeStatutPointage';
 import { peutVoirEquipePointage } from './droits';
 
 type Periode = 'jour' | 'semaine';
@@ -112,63 +120,59 @@ export function VueJournalPointage({ siteId }: Props) {
         description={t('pointage:jour.vide.description')}
       />
     ) : (
-      <div className="overflow-x-auto rounded-lg border">
-        <table className="w-full text-left">
-          <thead className="bg-muted/50 texte-libelle">
-            <tr>
-              <th className="p-3">{t('pointage:jour.colonnes.technicien')}</th>
-              <th className="p-3 text-right">{t('pointage:jour.colonnes.productif')}</th>
-              <th className="p-3 text-right">{t('pointage:jour.colonnes.indirect')}</th>
-              <th className="p-3 text-right">{t('pointage:jour.colonnes.presence')}</th>
-              <th className="p-3 text-right">{t('pointage:jour.colonnes.anomalies')}</th>
-            </tr>
-          </thead>
-          <tbody>
+      <div>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>{t('pointage:jour.colonnes.technicien')}</TableHead>
+              <TableHead className="text-right">{t('pointage:jour.colonnes.productif')}</TableHead>
+              <TableHead className="text-right">{t('pointage:jour.colonnes.indirect')}</TableHead>
+              <TableHead className="text-right">{t('pointage:jour.colonnes.presence')}</TableHead>
+              <TableHead className="text-right">{t('pointage:jour.colonnes.anomalies')}</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {cumuls.map((cumul) => (
-              <tr key={cumul.technicienId} className="border-t">
-                <td className="p-3">
+              <TableRow key={cumul.technicienId}>
+                <TableCell>
                   <span className="font-medium">{cumul.technicienNomAffiche}</span>
-                  {cumul.enCours ? (
-                    <Badge variant="secondary" className="ml-2">
-                      {t('pointage:jour.enCoursBadge')}
-                    </Badge>
-                  ) : null}
-                </td>
-                <td className="p-3 text-right tabular-nums">
+                  {cumul.enCours ? <BadgeEnCoursPointage className="ml-2" /> : null}
+                </TableCell>
+                <TableCell className="text-right tabular-nums">
                   {formaterDureeLisible(cumul.productifSecondes)}
-                </td>
-                <td className="p-3 text-right tabular-nums">
+                </TableCell>
+                <TableCell className="text-right tabular-nums">
                   {formaterDureeLisible(cumul.indirectSecondes)}
-                </td>
-                <td className="p-3 text-right font-medium tabular-nums">
+                </TableCell>
+                <TableCell className="text-right font-medium tabular-nums">
                   {formaterDureeLisible(cumul.presenceSecondes)}
-                </td>
-                <td className="p-3 text-right">
+                </TableCell>
+                <TableCell className="text-right">
                   {cumul.nombreAnomalies > 0 ? (
-                    <Badge variant="destructive">{cumul.nombreAnomalies}</Badge>
+                    <BadgeAnomaliePointage>{cumul.nombreAnomalies}</BadgeAnomaliePointage>
                   ) : null}
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             ))}
-            <tr className="border-t bg-muted/30 font-semibold">
-              <td className="p-3">{t('pointage:jour.total')}</td>
-              <td className="p-3 text-right tabular-nums">
+            <TableRow className="bg-muted/30 font-semibold">
+              <TableCell>{t('pointage:jour.total')}</TableCell>
+              <TableCell className="text-right tabular-nums">
                 {formaterDureeLisible(total.productifSecondes)}
-              </td>
-              <td className="p-3 text-right tabular-nums">
+              </TableCell>
+              <TableCell className="text-right tabular-nums">
                 {formaterDureeLisible(total.indirectSecondes)}
-              </td>
-              <td className="p-3 text-right tabular-nums">
+              </TableCell>
+              <TableCell className="text-right tabular-nums">
                 {formaterDureeLisible(total.presenceSecondes)}
-              </td>
-              <td className="p-3 text-right">
+              </TableCell>
+              <TableCell className="text-right">
                 {total.nombreAnomalies > 0 ? (
-                  <Badge variant="destructive">{total.nombreAnomalies}</Badge>
+                  <BadgeAnomaliePointage>{total.nombreAnomalies}</BadgeAnomaliePointage>
                 ) : null}
-              </td>
-            </tr>
-          </tbody>
-        </table>
+              </TableCell>
+            </TableRow>
+          </TableBody>
+        </Table>
       </div>
     );
 

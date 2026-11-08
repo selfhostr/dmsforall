@@ -11,8 +11,6 @@ import {
 } from '@dfa/shared';
 
 import { messageErreur } from '@/api/erreurs';
-import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -139,11 +137,12 @@ export function EcranListeFournisseurs() {
   // active « Fournisseurs » (`navigation-modele.ts`, `ONGLETS_PIECES`, vue « fournisseurs » de
   // l'onglet Approvisionnement) : `GabaritEcran` le détecte lui-même (§3 du contrat du chantier
   // « titres doublés », 17.08.2026), plus besoin de le faire à la main ici.
-  const boutonAjouter = peutEcrireFournisseur(actions) ? (
-    <Button onClick={() => setFormulaireOuvert(true)}>
-      {t('pieces:fournisseurs.actions.ajouter')}
-    </Button>
-  ) : undefined;
+  const actionAjouter = peutEcrireFournisseur(actions)
+    ? {
+        libelle: t('pieces:fournisseurs.actions.ajouter'),
+        onClick: () => setFormulaireOuvert(true),
+      }
+    : undefined;
 
   let contenuVide: ReactNode;
   if (q.trim() !== '') {
@@ -166,22 +165,19 @@ export function EcranListeFournisseurs() {
       <EtatVidePremierUsage
         titre={t('pieces:fournisseurs.vide.premierUsage.titre')}
         description={t('pieces:fournisseurs.vide.premierUsage.description')}
-        action={boutonAjouter}
       />
     );
   }
 
   return (
-    <GabaritEcran titre={t('pieces:fournisseurs.titre')} actions={boutonAjouter}>
+    <GabaritEcran titre={t('pieces:fournisseurs.titre')}>
       <BarreFiltres
+        actionCreer={actionAjouter}
         q={qSaisie}
         onChangeQ={setQSaisie}
         placeholderRecherche={t('pieces:fournisseurs.filtres.rechercherPlaceholder')}
-        filtresActifs={q.trim() !== '' || statut !== undefined}
-        onEffacerFiltres={effacerFiltres}
       >
         <div className="flex flex-col gap-champ">
-          <Label htmlFor="filtre-statut-fournisseur">{t('pieces:fournisseurs.statut')}</Label>
           <Select
             value={statut ?? 'tous'}
             onValueChange={(valeur) =>
@@ -190,6 +186,7 @@ export function EcranListeFournisseurs() {
           >
             <SelectTrigger
               id="filtre-statut-fournisseur"
+              className="w-auto min-w-28"
               aria-label={t('pieces:fournisseurs.statut')}
             >
               <SelectValue />

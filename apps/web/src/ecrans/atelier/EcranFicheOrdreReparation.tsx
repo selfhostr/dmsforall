@@ -156,12 +156,14 @@ export function EcranFicheOrdreReparation() {
         </CardHeader>
         <CardContent>
           <div className="flex flex-col gap-3">
-            <PanneauActionsOr or={or} />
-            {ouvertAuxTravaux && peutPreterCourtoisie(actions) ? (
-              <div className="flex flex-wrap gap-2">
-                <BoutonVehiculeCourtoisieOr orId={or.id} clientId={or.client.id} />
-              </div>
-            ) : null}
+            <PanneauActionsOr
+              or={or}
+              complements={
+                ouvertAuxTravaux && peutPreterCourtoisie(actions) ? (
+                  <BoutonVehiculeCourtoisieOr orId={or.id} clientId={or.client.id} />
+                ) : null
+              }
+            />
             <BlocPretCourtoisieOr orId={or.id} />
           </div>
         </CardContent>
@@ -275,7 +277,6 @@ export function EcranFicheOrdreReparation() {
               />
             ) : documentsLies.length === 0 ? (
               <EtatVide
-                titre={t('or:fiche.documentsVente.titre')}
                 description={
                   // Issue #105 (rapport terrain) : « OR restitué + clôturé, aucune facture liée,
                   // bug ? » — non, `cloturer()` ne vérifie jamais l'existence d'un document

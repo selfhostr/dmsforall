@@ -15,14 +15,6 @@ import {
 
 import { Button } from '@/components/ui/button';
 import { DateInput } from '@/components/ui/date-input';
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -33,6 +25,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { PanneauLateral } from '@/composants/PanneauLateral';
 import { AvertissementConfirmable } from '@/composants/motifs/AvertissementConfirmable';
 import { IdentiteClient } from '@/composants/identite/IdentiteClient';
 import { IdentiteVehicule } from '@/composants/identite/IdentiteVehicule';
@@ -40,7 +33,6 @@ import type { EtatDepotPneusClient } from '@/hooks/rendez-vous/useDepotsPneusCli
 import { useLangue } from '@/hooks/useLangue';
 
 import { AideContextuelle } from './AideContextuelle';
-
 import { libelleMotif } from './types';
 
 const MOMENTS: readonly MomentRendezVous[] = ['matin', 'apres_midi', 'toute_journee'];
@@ -205,16 +197,34 @@ export function DialogueNouveauRendezVous({
   const etapeChoixSujet = client === null || (vehicule === null && slotSelecteurVehicule);
 
   return (
-    <Dialog open={ouvert} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <div className="flex items-center justify-between gap-controles">
-            <DialogTitle>{t('planning:dialogueNouveau.titre')}</DialogTitle>
-            <AideContextuelle libelle={t('planning:aide.nouveau.libelle')}>
-              <p className="texte-corps">{t('planning:aide.nouveau.texte')}</p>
-            </AideContextuelle>
-          </div>
-        </DialogHeader>
+    <>
+      <PanneauLateral
+        ouvert={ouvert}
+        onOuvertChange={onOpenChange}
+        titre={t('planning:dialogueNouveau.titre')}
+        pied={
+          !etapeChoixSujet ? (
+            <>
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                {t('commun:actions.annuler')}
+              </Button>
+              <Button type="button" disabled={enCours} onClick={gererConfirmer}>
+                {enCours
+                  ? t('planning:dialogueNouveau.enCours')
+                  : t('planning:dialogueNouveau.confirmer')}
+              </Button>
+            </>
+          ) : undefined
+        }
+      >
+        <div className="flex items-center justify-between gap-2">
+          <span className="texte-libelle text-muted-foreground">
+            {t('planning:aide.nouveau.libelle')}
+          </span>
+          <AideContextuelle libelle={t('planning:aide.nouveau.libelle')}>
+            <p className="texte-corps">{t('planning:aide.nouveau.texte')}</p>
+          </AideContextuelle>
+        </div>
 
         {erreur ? (
           <p role="alert" className="texte-corps text-destructive">
@@ -370,22 +380,7 @@ export function DialogueNouveauRendezVous({
             </div>
           </div>
         )}
-
-        {!etapeChoixSujet ? (
-          <DialogFooter>
-            <DialogClose asChild>
-              <Button type="button" variant="outline">
-                {t('commun:actions.annuler')}
-              </Button>
-            </DialogClose>
-            <Button type="button" disabled={enCours} onClick={gererConfirmer}>
-              {enCours
-                ? t('planning:dialogueNouveau.enCours')
-                : t('planning:dialogueNouveau.confirmer')}
-            </Button>
-          </DialogFooter>
-        ) : null}
-      </DialogContent>
+      </PanneauLateral>
 
       {onConfirmerQuandMeme ? (
         <AvertissementConfirmable
@@ -400,7 +395,7 @@ export function DialogueNouveauRendezVous({
           enCours={enCours}
         />
       ) : null}
-    </Dialog>
+    </>
   );
 }
 

@@ -1,4 +1,4 @@
-import { useEffect, useId, useState, type FocusEvent } from 'react';
+import { useEffect, useId, useState, type FocusEvent, type ReactNode } from 'react';
 
 import type { DeviseFacturation } from '@dfa/shared';
 
@@ -15,10 +15,15 @@ export interface ProprietesChampMontant {
    *  jamais une chaîne partielle (voir docs/plan-lot1-frontend-execution.md, F1-U6 « Done »). */
   readonly onChangeCentimes: (centimes: number | null) => void;
   readonly label: string;
+  /** Bulle « ? » à côté du libellé (aide sur demande). */
+  readonly aide?: ReactNode;
   readonly placeholder?: string;
   readonly obligatoire?: boolean;
   readonly disabled?: boolean;
   readonly erreur?: string;
+  /** Nom accessible complet quand plusieurs champs du même libellé coexistent (une ligne par
+   *  article) : remplace le libellé visible pour les lecteurs d'écran. */
+  readonly nomAccessible?: string;
   readonly className?: string;
   /** Devise affichée en préfixe du champ (`CHF` par défaut). Ce champ sert très majoritairement
    *  des saisies qui n'ont structurellement PAS de devise propre — remise, taux horaire, prix
@@ -49,10 +54,12 @@ export function ChampMontant({
   valeurCentimes,
   onChangeCentimes,
   label,
+  aide,
   placeholder,
   obligatoire,
   disabled,
   erreur,
+  nomAccessible,
   className,
   devise = 'CHF',
 }: ProprietesChampMontant) {
@@ -90,9 +97,18 @@ export function ChampMontant({
 
   return (
     <div className={cn('flex flex-col gap-1.5', className)}>
-      <Label htmlFor={idChamp} requis={obligatoire}>
-        {label}
-      </Label>
+      {aide ? (
+        <div className="flex items-center gap-1.5">
+          <Label htmlFor={idChamp} requis={obligatoire}>
+            {label}
+          </Label>
+          {aide}
+        </div>
+      ) : (
+        <Label htmlFor={idChamp} requis={obligatoire}>
+          {label}
+        </Label>
+      )}
       <div className="relative">
         <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 texte-libelle text-muted-foreground">
           {devise}
@@ -105,6 +121,7 @@ export function ChampMontant({
           placeholder={placeholder ?? '0.00'}
           value={saisie}
           disabled={disabled}
+          aria-label={nomAccessible}
           aria-invalid={erreur ? true : undefined}
           aria-describedby={erreur ? idErreur : undefined}
           aria-required={obligatoire || undefined}

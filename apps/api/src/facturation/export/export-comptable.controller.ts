@@ -55,6 +55,7 @@ import { ServiceApercuExport } from './service-apercu-export';
 import { ServiceExportComptable } from './service-export-comptable';
 import { ServiceHistoriqueExport } from './service-historique-export';
 import { ServiceMappingExport } from './service-mapping-export';
+import { ExigerModule } from '../../common/droits/garde-module';
 
 const schemaUuidExport = z.string().uuid();
 
@@ -66,6 +67,7 @@ const schemaUuidExport = z.string().uuid();
  */
 @ApiTags('Facturation — export fiduciaire')
 @ApiCookieAuth()
+@ExigerModule('export_fiduciaire')
 @Controller({ path: 'exports-fiduciaires', version: '1' })
 @UseGuards(GardeDroit)
 export class ExportComptableController {

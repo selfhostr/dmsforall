@@ -26,6 +26,7 @@ import { EnveloppeOrDto } from '../atelier/dto';
 
 import { ReponseRendezVousDto } from './dto';
 import { ServiceRendezVous } from './service-rendez-vous';
+import { ExigerModule } from '../common/droits/garde-module';
 
 const EnveloppeRendezVousDto = EnveloppeOrDto(ReponseRendezVousDto, 'RendezVousTransition');
 
@@ -36,6 +37,7 @@ const EnveloppeRendezVousDto = EnveloppeOrDto(ReponseRendezVousDto, 'RendezVousT
  */
 @ApiTags('Rendez-vous — transitions')
 @ApiCookieAuth()
+@ExigerModule('planning')
 @Controller({ path: 'rendez-vous', version: '1' })
 @UseGuards(GardeDroit)
 export class RendezVousTransitionsController {

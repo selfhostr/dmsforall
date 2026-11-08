@@ -38,7 +38,7 @@ function connecterDirection() {
 }
 
 describe('EcranListeFactures — titre en doublon avec la navigation (retour @laupernoe 17.08.2026)', () => {
-  it('masque le h1 "Factures" en sr-only sur la vraie route /factures, pour un rôle qui voit la rangée d’onglets Facturation', async () => {
+  it('affiche le h1 "Factures" (liste : titre toujours visible) sur la vraie route /factures, pour un rôle qui voit la rangée d’onglets Facturation', async () => {
     connecterDirection();
 
     renduAvecRoutes(routesConfig, { routeInitiale: '/factures' });
@@ -54,7 +54,7 @@ describe('EcranListeFactures — titre en doublon avec la navigation (retour @la
     await waitFor(() => {
       const titre = screen.getByRole('heading', { level: 1, name: 'Factures' });
       expect(titre).toBeInTheDocument();
-      expect(titre.className).toMatch(/\bsr-only\b/);
+      expect(titre.className).not.toMatch(/\bsr-only\b/);
     });
   });
 });

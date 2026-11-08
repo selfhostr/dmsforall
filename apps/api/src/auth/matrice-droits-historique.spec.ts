@@ -1637,6 +1637,10 @@ describe('MATRICE_DROITS — périmètre clos (aucune fuite hors de la liste clo
       'atelier.ligne.photo.supprimer',
       // Accueil — état de mise en route.
       'accueil.demarrage.lire',
+      // Modules activables.
+      'parametrage.modules.modifier',
+      // Envoi des e-mails.
+      'parametrage.envoi_courriel.gerer',
     ];
 
     const actionsAccordees = new Set(Object.values(MATRICE_DROITS).flat());
@@ -2267,6 +2271,11 @@ describe('courtoisie et signalement de travaux reportés', () => {
 
   it('accueil.demarrage.lire : direction et admin seuls', () => {
     expect(rolesAyant('accueil.demarrage.lire')).toEqual(['admin', 'direction']);
+  });
+
+  it('parametrage.modules.modifier : direction et admin seuls, chef d’atelier refusé', () => {
+    expect(rolesAyant('parametrage.modules.modifier')).toEqual(['admin', 'direction']);
+    expect(MATRICE_DROITS.chef_atelier).not.toContain('parametrage.modules.modifier');
   });
 });
 

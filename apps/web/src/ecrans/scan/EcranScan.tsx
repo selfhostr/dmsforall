@@ -1,5 +1,5 @@
 import { AlertCircle, Camera, CheckCircle2, IdCard, Loader2, LogOut, WifiOff } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, Navigate, useSearchParams } from 'react-router';
 
@@ -42,7 +42,6 @@ type EtapeScan =
   | {
       readonly phase: 'refus';
       readonly fichier: File;
-      readonly urlApercu: string;
       readonly zone: RectanglePixels;
       readonly fractions: FractionsCadre;
       readonly motif: MotifRefusPhoto;
@@ -50,7 +49,6 @@ type EtapeScan =
   | {
       readonly phase: 'cadrage';
       readonly fichier: File;
-      readonly urlApercu: string;
       readonly zone: RectanglePixels;
       readonly fractions: FractionsCadre;
     }
@@ -67,6 +65,8 @@ type EtapeScan =
        *  une photo » (qui échouerait de nouveau à l'identique, la session étant partie) par un
        *  lien explicite vers la connexion. Voir la doc de tête, § SESSION. */
       readonly sessionExpiree?: boolean;
+      /** `true` quand le service de lecture (OCR) est injoignable : on propose la saisie manuelle. */
+      readonly lectureIndisponible?: boolean;
     };
 
 /**
@@ -200,18 +200,9 @@ export function EcranScan() {
     setEtape({ phase: 'capture' });
   }
 
-  // L'aperçu affiché en phase `refus` OU `cadrage` (`PanneauRefusPhoto`/`PanneauConfirmationCadrage`)
-  // garde une URL d'objet vivante tant que l'utilisateur regarde ce panneau — jamais plus longtemps :
-  // ce nettoyage se déclenche à CHAQUE changement de `etape` (donc dès qu'on QUITTE l'une de ces
-  // deux phases, quel que soit le chemin — reprendre, envoyer quand même/continuer/photo entière, ou
-  // même une navigation qui démonte l'écran) et ne fait rien les autres fois (aucune URL créée hors
-  // de ces phases). Centraliser ici plutôt que dans chaque gestionnaire de sortie : une seule règle,
-  // jamais oubliable à un futur point de sortie supplémentaire.
-  useEffect(() => {
-    if (etape.phase !== 'refus' && etape.phase !== 'cadrage') return;
-    const url = etape.urlApercu;
-    return () => URL.revokeObjectURL(url);
-  }, [etape]);
+  // L'aperçu des phases `refus` et `cadrage` est dessiné par le panneau qui l'affiche
+  // (`ApercuPhotoFichier`, à partir du `File`) : aucune URL d'objet ne transite par cet état, donc
+  // rien à révoquer ici. Le panneau ferme son bitmap au démontage, quel que soit le chemin de sortie.
 
   /**
    * ÉTAPE 1/2 du traitement d'une photo : contrôle qualité AVANT tout envoi réseau — jamais un
@@ -252,7 +243,6 @@ export function EcranScan() {
       setEtape({
         phase: 'refus',
         fichier,
-        urlApercu: URL.createObjectURL(fichier),
         zone: resultat.zone,
         fractions: resultat.fractions,
         motif: resultat.motifRefus,
@@ -264,7 +254,6 @@ export function EcranScan() {
       setEtape({
         phase: 'cadrage',
         fichier,
-        urlApercu: URL.createObjectURL(fichier),
         zone: resultat.zone,
         fractions: resultat.fractions,
       });
@@ -317,6 +306,8 @@ export function EcranScan() {
         message: messageErreur(cause, t),
         sessionExpiree:
           cause instanceof ErreurApi && cause.probleme.code === 'AUTH_SESSION_EXPIREE',
+        lectureIndisponible:
+          cause instanceof ErreurApi && cause.probleme.code === 'SERVICE_LECTURE_INDISPONIBLE',
       });
     }
   }
@@ -348,7 +339,7 @@ export function EcranScan() {
   // ce n'est PAS le même arbitrage que la borne d'atelier).
   if (sessionEnAttente) {
     return (
-      <GabaritEcran titre={t('scan:titre')} sousTitre={t('scan:sousTitre')}>
+      <GabaritEcran titre={t('scan:titre')}>
         <EtatChargement lignes={4} />
       </GabaritEcran>
     );
@@ -364,7 +355,7 @@ export function EcranScan() {
   // déjà lancé s'afficher normalement, sans jamais l'interrompre pour ce seul motif.
   if (sessionEnErreur && etape.phase === 'capture') {
     return (
-      <GabaritEcran titre={t('scan:titre')} sousTitre={t('scan:sousTitre')}>
+      <GabaritEcran titre={t('scan:titre')}>
         <EtatErreur
           titre={t('scan:session.erreur.titre')}
           description={t('scan:session.erreur.description')}
@@ -380,7 +371,7 @@ export function EcranScan() {
   const sessionPerdueEnCours = session === null && etape.phase !== 'capture';
 
   return (
-    <GabaritEcran titre={t('scan:titre')} sousTitre={t('scan:sousTitre')}>
+    <GabaritEcran titre={t('scan:titre')}>
       <div className="flex flex-col gap-6">
         {sessionPerdueEnCours ? (
           <Alert variant="destructive">
@@ -490,7 +481,7 @@ export function EcranScan() {
 
         {etape.phase === 'refus' ? (
           <PanneauRefusPhoto
-            urlApercu={etape.urlApercu}
+            fichier={etape.fichier}
             fractions={etape.fractions}
             motif={etape.motif}
             onReprendre={recommencer}
@@ -500,7 +491,7 @@ export function EcranScan() {
 
         {etape.phase === 'cadrage' ? (
           <PanneauConfirmationCadrage
-            urlApercu={etape.urlApercu}
+            fichier={etape.fichier}
             fractions={etape.fractions}
             onContinuer={confirmerCadrage}
             onPhotoEntiere={utiliserPhotoEntiere}
@@ -547,9 +538,16 @@ export function EcranScan() {
                 <Link to="/login">{t('scan:session.seReconnecter')}</Link>
               </Button>
             ) : (
-              <Button type="button" onClick={recommencer}>
-                {t('scan:actions.reessayer')}
-              </Button>
+              <>
+                <Button type="button" onClick={recommencer}>
+                  {t('scan:actions.reessayer')}
+                </Button>
+                {etape.lectureIndisponible ? (
+                  <Button type="button" variant="outline" asChild>
+                    <Link to="/vehicules/nouveau">{t('scan:erreurs.saisieManuelle')}</Link>
+                  </Button>
+                ) : null}
+              </>
             )}
           </div>
         ) : null}

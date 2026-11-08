@@ -33,6 +33,7 @@ import { PipeZod } from '../common/validation';
 import { EnveloppeCreationOrdreDepuisDevisDto } from './dto';
 import { etagOrdreReparation } from './ordre-reparation.etag';
 import { ServiceDevisVersOr } from './service-devis-vers-or';
+import { ExigerModule } from '../common/droits/garde-module';
 
 /**
  * Devis -> ordre de réparation. Sous le préfixe `documents-vente` (la ressource de départ est le
@@ -41,6 +42,7 @@ import { ServiceDevisVersOr } from './service-devis-vers-or';
  */
 @ApiTags('Documents de vente')
 @ApiCookieAuth()
+@ExigerModule('atelier')
 @Controller({ path: 'documents-vente', version: '1' })
 @UseGuards(GardeDroit)
 export class DevisVersOrController {

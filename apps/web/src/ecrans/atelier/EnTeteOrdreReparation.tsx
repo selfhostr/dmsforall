@@ -11,6 +11,7 @@ import type {
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { ListeDefinitions } from '@/composants/ListeDefinitions';
 import { BadgeStatutOr } from '@/composants/identite/BadgeStatutOr';
 import { IdentiteClient } from '@/composants/identite/IdentiteClient';
 import { IdentiteVehicule } from '@/composants/identite/IdentiteVehicule';
@@ -242,44 +243,65 @@ export function EnTeteOrdreReparation({ or }: Props) {
          *  localisation, restitution, plafond) est un simple groupe de contenu (paires dt/dd en
          *  lecture seule, aucun comportement propre) : `border` retiré, remplacé par une surface
          *  tonale (même mécanisme que `Card`, jamais cumulée avec un trait). */}
-        <dl className="grid grid-cols-2 gap-x-4 gap-y-2 rounded-md bg-muted/40 p-3 texte-corps sm:grid-cols-3">
-          <dt className="text-muted-foreground">{t('or:bandeau.kmEntree')}</dt>
-          <dd className="col-span-2 sm:col-span-1">
-            {or.kilometrageEntree !== null ? formaterKilometrage(or.kilometrageEntree, 'km') : ''}
-          </dd>
-
-          <dt className="text-muted-foreground">{t('or:bandeau.kmSortie')}</dt>
-          <dd className="col-span-2 sm:col-span-1">
-            {or.kilometrageSortie !== null ? formaterKilometrage(or.kilometrageSortie, 'km') : ''}
-          </dd>
-
-          <dt className="text-muted-foreground">{t('or:bandeau.localisation')}</dt>
-          <dd className="col-span-2 sm:col-span-1">{localisationTexte}</dd>
-
-          <dt className="text-muted-foreground">{t('or:bandeau.restitutionPromise')}</dt>
-          <dd className="col-span-2 sm:col-span-1">
-            {or.restitutionPromiseLe ? formaterDateHeure(or.restitutionPromiseLe) : ''}
-            {restitutionReportee ? (
-              <span className="ml-1 texte-libelle text-statut-attention">
-                ({t('or:bandeau.restitutionReportee')})
-              </span>
-            ) : null}
-          </dd>
-
-          {or.plafondCentimes !== undefined ? (
-            <>
-              <dt className="text-muted-foreground">{t('or:bandeau.plafond')}</dt>
-              <dd className="col-span-2 sm:col-span-1">
-                {formaterMontant(or.plafondCentimes)}
-                {or.plafondAutorisePar ? (
-                  <span className="ml-1 texte-libelle text-muted-foreground">
-                    ({or.plafondAutorisePar})
-                  </span>
-                ) : null}
-              </dd>
-            </>
-          ) : null}
-        </dl>
+        <ListeDefinitions
+          className="rounded-md bg-muted/40 p-3"
+          colonnes={4}
+          elements={[
+            {
+              cle: 'kmEntree',
+              libelle: t('or:bandeau.kmEntree'),
+              valeur:
+                or.kilometrageEntree !== null
+                  ? formaterKilometrage(or.kilometrageEntree, 'km')
+                  : null,
+            },
+            {
+              cle: 'kmSortie',
+              libelle: t('or:bandeau.kmSortie'),
+              valeur:
+                or.kilometrageSortie !== null
+                  ? formaterKilometrage(or.kilometrageSortie, 'km')
+                  : null,
+            },
+            {
+              cle: 'localisation',
+              libelle: t('or:bandeau.localisation'),
+              valeur: localisationTexte,
+            },
+            {
+              cle: 'restitution',
+              libelle: t('or:bandeau.restitutionPromise'),
+              valeur: or.restitutionPromiseLe ? (
+                <>
+                  {formaterDateHeure(or.restitutionPromiseLe)}
+                  {restitutionReportee ? (
+                    <span className="ml-1 texte-libelle text-statut-attention">
+                      ({t('or:bandeau.restitutionReportee')})
+                    </span>
+                  ) : null}
+                </>
+              ) : null,
+            },
+            ...(or.plafondCentimes !== undefined
+              ? [
+                  {
+                    cle: 'plafond',
+                    libelle: t('or:bandeau.plafond'),
+                    valeur: (
+                      <>
+                        {formaterMontant(or.plafondCentimes)}
+                        {or.plafondAutorisePar ? (
+                          <span className="ml-1 texte-libelle text-muted-foreground">
+                            ({or.plafondAutorisePar})
+                          </span>
+                        ) : null}
+                      </>
+                    ),
+                  },
+                ]
+              : []),
+          ]}
+        />
 
         {or.demandes.length > 0 ? (
           <div className="flex flex-col gap-1.5">

@@ -13,9 +13,18 @@ import { creerQueryClientTest } from '@/test/utils';
 
 import { SectionEntreprise } from './SectionEntreprise';
 
+/** Libellé d'un champ obligatoire : l'étoile (aria-hidden) fait partie du texte du <label>. */
+const avecEtoile = (libelle: string) =>
+  new RegExp(`^${libelle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\*?$`);
+
 const CHEMIN = '/api/v1/parametres-entreprise';
 const CHEMIN_LOGO = `${CHEMIN}/logo`;
-const BASE = { raisonSociale: 'G', numeroTva: null, delaiPaiementJoursDefaut: 30 };
+const BASE = {
+  raisonSociale: 'G',
+  assujettiTva: true,
+  numeroTva: null,
+  delaiPaiementJoursDefaut: 30,
+};
 
 function probleme404() {
   return HttpResponse.json(
@@ -41,20 +50,23 @@ function rendre() {
 }
 
 describe('SectionEntreprise', () => {
-  it('affiche la raison sociale en lecture seule et le n° TVA actuel', async () => {
+  it('affiche la raison sociale modifiable et le n° TVA actuel', async () => {
     server.use(
       http.get(CHEMIN, () =>
         HttpResponse.json({
           raisonSociale: 'Garage Martin SA',
+          assujettiTva: true,
           numeroTva: 'CHE-116.281.710 TVA',
           delaiPaiementJoursDefaut: 30,
         }),
       ),
     );
     rendre();
-    const raison = await screen.findByLabelText(i18n.t('parametrage:entreprise.raisonSociale'));
+    const raison = await screen.findByLabelText(
+      avecEtoile(i18n.t('parametrage:entreprise.raisonSociale')),
+    );
     expect(raison).toHaveValue('Garage Martin SA');
-    expect(raison).toHaveAttribute('readonly');
+    expect(raison).not.toHaveAttribute('readonly');
     expect(screen.getByLabelText(i18n.t('parametrage:entreprise.numeroTva'))).toHaveValue(
       'CHE-116.281.710 TVA',
     );
@@ -102,7 +114,12 @@ describe('SectionEntreprise', () => {
     expect(
       await screen.findByText(i18n.t('parametrage:entreprise.enregistrementReussi')),
     ).toBeInTheDocument();
-    expect(corps).toEqual({ numeroTva: 'CHE-116.281.710 TVA', delaiPaiementJoursDefaut: 30 });
+    expect(corps).toEqual({
+      raisonSociale: 'G',
+      assujettiTva: true,
+      numeroTva: 'CHE-116.281.710 TVA',
+      delaiPaiementJoursDefaut: 30,
+    });
   });
 
   it('champ vidé : envoie null (efface le numéro)', async () => {
@@ -120,7 +137,67 @@ describe('SectionEntreprise', () => {
     await userEvent.click(
       screen.getByRole('button', { name: i18n.t('parametrage:entreprise.enregistrer') }),
     );
-    await waitFor(() => expect(corps).toEqual({ numeroTva: null, delaiPaiementJoursDefaut: 30 }));
+    await waitFor(() =>
+      expect(corps).toEqual({
+        raisonSociale: 'G',
+        assujettiTva: true,
+        numeroTva: null,
+        delaiPaiementJoursDefaut: 30,
+      }),
+    );
+  });
+
+  it('raison sociale modifiée : PATCH avec la valeur nettoyée, confirmation affichée', async () => {
+    let corps: unknown;
+    server.use(
+      http.get(CHEMIN, () => HttpResponse.json(BASE)),
+      http.patch(CHEMIN, async ({ request }) => {
+        corps = await request.json();
+        return HttpResponse.json({ ...BASE, raisonSociale: 'Garage Martin Sàrl' });
+      }),
+    );
+    rendre();
+    const champ = await screen.findByLabelText(
+      avecEtoile(i18n.t('parametrage:entreprise.raisonSociale')),
+    );
+    await userEvent.clear(champ);
+    await userEvent.type(champ, '  Garage Martin Sàrl ');
+    await userEvent.click(
+      screen.getByRole('button', { name: i18n.t('parametrage:entreprise.enregistrer') }),
+    );
+    expect(
+      await screen.findByText(i18n.t('parametrage:entreprise.enregistrementReussi')),
+    ).toBeInTheDocument();
+    expect(corps).toEqual({
+      raisonSociale: 'Garage Martin Sàrl',
+      assujettiTva: true,
+      numeroTva: null,
+      delaiPaiementJoursDefaut: 30,
+    });
+    expect(champ).toHaveValue('Garage Martin Sàrl');
+  });
+
+  it('raison sociale vidée : refus local sans appel API', async () => {
+    let appels = 0;
+    server.use(
+      http.get(CHEMIN, () => HttpResponse.json(BASE)),
+      http.patch(CHEMIN, () => {
+        appels += 1;
+        return HttpResponse.json(BASE);
+      }),
+    );
+    rendre();
+    const champ = await screen.findByLabelText(
+      avecEtoile(i18n.t('parametrage:entreprise.raisonSociale')),
+    );
+    await userEvent.clear(champ);
+    await userEvent.click(
+      screen.getByRole('button', { name: i18n.t('parametrage:entreprise.enregistrer') }),
+    );
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      i18n.t('parametrage:entreprise.erreurRaison'),
+    );
+    expect(appels).toBe(0);
   });
 
   it('erreur de chargement : message actionnable avec Réessayer', async () => {
@@ -156,7 +233,14 @@ describe('SectionEntreprise', () => {
     await userEvent.click(
       screen.getByRole('button', { name: i18n.t('parametrage:entreprise.enregistrer') }),
     );
-    await waitFor(() => expect(corps).toEqual({ numeroTva: null, delaiPaiementJoursDefaut: 45 }));
+    await waitFor(() =>
+      expect(corps).toEqual({
+        raisonSociale: 'G',
+        assujettiTva: true,
+        numeroTva: null,
+        delaiPaiementJoursDefaut: 45,
+      }),
+    );
   });
 
   it('délai hors bornes : refusé avant tout appel, saisie conservée', async () => {
@@ -263,5 +347,82 @@ describe('SectionEntreprise', () => {
       await screen.findByText(i18n.t('parametrage:entreprise.logo.aucun')),
     ).toBeInTheDocument();
     expect(supprime).toBe(1);
+  });
+
+  describe('assujettissement à la TVA', () => {
+    const OUI = () => i18n.t('parametrage:entreprise.assujetti.oui');
+    const NON = () => i18n.t('parametrage:entreprise.assujetti.non');
+
+    it('assujetti : la question est posée, « Oui » coché, le champ n° TVA est visible', async () => {
+      server.use(http.get(CHEMIN, () => HttpResponse.json(BASE)));
+      rendre();
+      const groupe = await screen.findByRole('group', {
+        name: i18n.t('parametrage:entreprise.assujetti.legende'),
+      });
+      expect(groupe).toBeInTheDocument();
+      expect(screen.getByRole('radio', { name: OUI() })).toBeChecked();
+      expect(screen.getByRole('radio', { name: NON() })).not.toBeChecked();
+      expect(screen.getByLabelText(i18n.t('parametrage:entreprise.numeroTva'))).toBeVisible();
+    });
+
+    it('« Non » masque le champ n° TVA et n’envoie aucun numéro, assujettiTva: false', async () => {
+      let corps: unknown;
+      server.use(
+        http.get(CHEMIN, () => HttpResponse.json({ ...BASE, numeroTva: 'CHE-116.281.710 TVA' })),
+        http.patch(CHEMIN, async ({ request }) => {
+          corps = await request.json();
+          return HttpResponse.json({ ...BASE, assujettiTva: false });
+        }),
+      );
+      rendre();
+      await userEvent.click(await screen.findByRole('radio', { name: NON() }));
+      expect(screen.queryByLabelText(i18n.t('parametrage:entreprise.numeroTva'))).toBeNull();
+      expect(
+        screen.getByText(i18n.t('parametrage:entreprise.assujetti.nonInfo')),
+      ).toBeInTheDocument();
+      await userEvent.click(
+        screen.getByRole('button', { name: i18n.t('parametrage:entreprise.enregistrer') }),
+      );
+      await waitFor(() =>
+        expect(corps).toEqual({
+          raisonSociale: 'G',
+          assujettiTva: false,
+          delaiPaiementJoursDefaut: 30,
+        }),
+      );
+    });
+
+    it('garage déjà non assujetti : « Non » coché, aucun champ n° TVA ; « Oui » le fait réapparaître', async () => {
+      server.use(http.get(CHEMIN, () => HttpResponse.json({ ...BASE, assujettiTva: false })));
+      rendre();
+      expect(await screen.findByRole('radio', { name: NON() })).toBeChecked();
+      expect(screen.queryByLabelText(i18n.t('parametrage:entreprise.numeroTva'))).toBeNull();
+      await userEvent.click(screen.getByRole('radio', { name: OUI() }));
+      expect(screen.getByLabelText(i18n.t('parametrage:entreprise.numeroTva'))).toBeVisible();
+      expect(
+        screen.getByText(i18n.t('parametrage:entreprise.assujetti.ouiSansNumero')),
+      ).toBeInTheDocument();
+    });
+
+    it('« Non » ignore un numéro mal formé resté dans le champ (rien à valider)', async () => {
+      let appels = 0;
+      server.use(
+        http.get(CHEMIN, () => HttpResponse.json(BASE)),
+        http.patch(CHEMIN, () => {
+          appels += 1;
+          return HttpResponse.json({ ...BASE, assujettiTva: false });
+        }),
+      );
+      rendre();
+      await userEvent.type(
+        await screen.findByLabelText(i18n.t('parametrage:entreprise.numeroTva')),
+        'CHE-123',
+      );
+      await userEvent.click(screen.getByRole('radio', { name: NON() }));
+      await userEvent.click(
+        screen.getByRole('button', { name: i18n.t('parametrage:entreprise.enregistrer') }),
+      );
+      await waitFor(() => expect(appels).toBe(1));
+    });
   });
 });

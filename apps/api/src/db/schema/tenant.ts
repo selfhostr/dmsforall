@@ -6,10 +6,10 @@
  */
 
 import { sql } from 'drizzle-orm';
-import { char, check, integer, pgTable, text, unique } from 'drizzle-orm/pg-core';
+import { boolean, char, check, integer, pgTable, text, unique } from 'drizzle-orm/pg-core';
 
 import { colonneId, colonnesHorodatage } from './colonnes-communes';
-import { langueEnum, statutTenantEnum } from './enums';
+import { langueEnum, modeSignalementEnum, moduleAppEnum, statutTenantEnum } from './enums';
 
 export const tenant = pgTable(
   'tenant',
@@ -32,6 +32,22 @@ export const tenant = pgTable(
      * format arrive avec la facturation (étape 2), là où elle a une conséquence réelle.
      */
     numeroTva: text('numero_tva'),
+
+    /**
+     * Le garage est-il assujetti à la TVA (migration 0090) ? `false` : aucune TVA sur ses
+     * documents (taux 0, régime `exclu`) et mention « Non assujetti à la TVA ». `true` : le n° TVA
+     * est exigé à l'émission d'une facture. `numero_tva` est NULL quand il vaut `false` (CHECK).
+     */
+    assujettiTva: boolean('assujetti_tva').notNull().default(true),
+
+    /**
+     * Modules de l'application que le garage a retirés (migration 0092, Réglages > Modules). Vide :
+     * tout est actif. Les dépendances entre modules ne sont jamais stockées (`modulesActifsDepuis`).
+     */
+    modulesDesactives: moduleAppEnum('modules_desactives')
+      .array()
+      .notNull()
+      .default(sql`'{}'::module_app[]`),
 
     /** Code pays ISO 3166-1 alpha-2. `CH` par défaut : le marché initial. */
     pays: char('pays', { length: 2 }).notNull().default('CH'),
@@ -56,6 +72,9 @@ export const tenant = pgTable(
      */
     delaiPaiementJoursDefaut: integer('delai_paiement_jours_defaut').notNull().default(30),
 
+    /** Réglage « Signalements » (migration 0093) : `via_site` par défaut. */
+    modeSignalement: modeSignalementEnum('mode_signalement').notNull().default('via_site'),
+
     ...colonnesHorodatage(),
   },
   (t) => [
@@ -73,6 +92,12 @@ export const tenant = pgTable(
     check('tenant_raison_sociale_non_vide_chk', sql`length(btrim(${t.raisonSociale})) > 0`),
 
     check('tenant_pays_format_chk', sql`${t.pays} ~ '^[A-Z]{2}$'`),
+
+    // Migration 0090 : un garage non assujetti ne porte jamais de n° TVA.
+    check(
+      'tenant_non_assujetti_sans_numero_tva_chk',
+      sql`${t.assujettiTva} or ${t.numeroTva} is null`,
+    ),
   ],
 );
 

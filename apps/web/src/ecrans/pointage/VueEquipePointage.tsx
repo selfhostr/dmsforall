@@ -5,11 +5,17 @@ import { useTranslation } from 'react-i18next';
 import type { ReponsePointage } from '@dfa/shared';
 
 import { messageErreur } from '@/api/erreurs';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
@@ -28,6 +34,7 @@ import {
 import { useListePointages } from '@/hooks/pointage/useListePointages';
 import { formaterHeure } from '@/lib/formats';
 
+import { BadgeAnomaliePointage, BadgeStatutPointage } from './BadgeStatutPointage';
 import { DialogueCloturePeriode } from './DialogueCloturePeriode';
 import { DialogueCorrectionPointage } from './DialogueCorrectionPointage';
 import { peutCorrigerPointage, peutVerrouillerPeriode } from './droits';
@@ -193,44 +200,42 @@ export function VueEquipePointage({ siteId, actions }: Props) {
       description={t('pointage:equipe.vide.description')}
     />
   ) : (
-    <div className="overflow-x-auto rounded-lg border">
-      <table className="w-full text-left">
-        <thead className="bg-muted/50 texte-libelle">
-          <tr>
-            <th className="p-3">{t('pointage:equipe.colonnes.technicien')}</th>
-            <th className="p-3">{t('pointage:equipe.colonnes.cible')}</th>
-            <th className="p-3">{t('pointage:equipe.colonnes.debut')}</th>
-            <th className="p-3">{t('pointage:equipe.colonnes.fin')}</th>
-            <th className="p-3 text-right">{t('pointage:equipe.colonnes.duree')}</th>
-            <th className="p-3">{t('pointage:equipe.colonnes.statut')}</th>
-            <th className="p-3">{t('pointage:equipe.colonnes.actions')}</th>
-          </tr>
-        </thead>
-        <tbody>
+    <div className="flex flex-col">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>{t('pointage:equipe.colonnes.technicien')}</TableHead>
+            <TableHead>{t('pointage:equipe.colonnes.cible')}</TableHead>
+            <TableHead>{t('pointage:equipe.colonnes.debut')}</TableHead>
+            <TableHead>{t('pointage:equipe.colonnes.fin')}</TableHead>
+            <TableHead className="text-right">{t('pointage:equipe.colonnes.duree')}</TableHead>
+            <TableHead>{t('pointage:equipe.colonnes.statut')}</TableHead>
+            <TableHead>{t('pointage:equipe.colonnes.actions')}</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
           {requeteListe.pointages.map((pointage) => (
-            <tr key={pointage.id} className="border-t">
-              <td className="p-3">{pointage.technicienNomAffiche}</td>
-              <td className="p-3">{libelleCiblePointage(pointage, t)}</td>
-              <td className="p-3 tabular-nums">{formaterHeure(pointage.debutLe)}</td>
-              <td className="p-3 tabular-nums">
+            <TableRow key={pointage.id}>
+              <TableCell>{pointage.technicienNomAffiche}</TableCell>
+              <TableCell>{libelleCiblePointage(pointage, t)}</TableCell>
+              <TableCell className="tabular-nums">{formaterHeure(pointage.debutLe)}</TableCell>
+              <TableCell className="tabular-nums">
                 {pointage.finLe ? formaterHeure(pointage.finLe) : ''}
-              </td>
-              <td className="p-3 text-right tabular-nums">
+              </TableCell>
+              <TableCell className="text-right tabular-nums">
                 {pointage.dureeBruteSecondes !== null
                   ? formaterDureeLisible(pointage.dureeBruteSecondes)
                   : ''}
-              </td>
-              <td className="p-3">
-                <Badge variant={pointage.statut === 'en_cours' ? 'secondary' : 'outline'}>
-                  {t(`pointage:statuts.${pointage.statut}`)}
-                </Badge>
+              </TableCell>
+              <TableCell>
+                <BadgeStatutPointage statut={pointage.statut} />
                 {pointage.anomalie && pointage.anomalie.traiteeLe === null ? (
-                  <Badge variant="destructive" className="ml-1">
+                  <BadgeAnomaliePointage className="ml-1">
                     {t('pointage:anomalies.corriger')}
-                  </Badge>
+                  </BadgeAnomaliePointage>
                 ) : null}
-              </td>
-              <td className="p-3">
+              </TableCell>
+              <TableCell>
                 {peutCorrigerPointage(actions) ? (
                   <Button
                     size="sm"
@@ -240,11 +245,11 @@ export function VueEquipePointage({ siteId, actions }: Props) {
                     {t('pointage:equipe.corriger')}
                   </Button>
                 ) : null}
-              </td>
-            </tr>
+              </TableCell>
+            </TableRow>
           ))}
-        </tbody>
-      </table>
+        </TableBody>
+      </Table>
       <BoutonChargerPlus
         aChargerPlus={Boolean(requeteListe.hasNextPage)}
         enChargement={requeteListe.isFetchingNextPage}
@@ -261,11 +266,9 @@ export function VueEquipePointage({ siteId, actions }: Props) {
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="equipe-recherche-or">
-            {t('pointage:equipe.parOr.rechercherOrLabel')}
-          </Label>
           <Input
             id="equipe-recherche-or"
+            aria-label={t('pointage:equipe.parOr.rechercherOrLabel')}
             value={qSaisie}
             onChange={(evenement) => setQSaisie(evenement.target.value)}
             placeholder={t('pointage:equipe.parOr.rechercherOrPlaceholder')}

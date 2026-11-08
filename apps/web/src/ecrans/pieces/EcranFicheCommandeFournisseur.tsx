@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useParams } from 'react-router';
 
+import { AideContextuelle } from '@/composants/AideContextuelle';
 import { messageErreur } from '@/api/erreurs';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -17,6 +18,7 @@ import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { FilAriane, type SegmentFilAriane } from '@/composants/layout/FilAriane';
 import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
 import { useCommandeFournisseur } from '@/hooks/pieces/useCommandeFournisseur';
+import { useDesignationsArticles } from '@/hooks/pieces/useDesignationsArticles';
 import { useFournisseur } from '@/hooks/pieces/useFournisseur';
 import {
   useAnnulerCommandeFournisseur,
@@ -73,6 +75,10 @@ export function EcranFicheCommandeFournisseur() {
   const requeteCommande = useCommandeFournisseur(session.isLoading || !peutLire ? undefined : id);
   const commande = requeteCommande.data;
   const requeteFournisseur = useFournisseur(commande?.fournisseurId);
+
+  const designations = useDesignationsArticles(
+    commande?.lignes.map((ligne) => ligne.articleId) ?? [],
+  );
 
   const envoyer = useEnvoyerCommandeFournisseur(id ?? '');
   const annuler = useAnnulerCommandeFournisseur(id ?? '');
@@ -305,7 +311,8 @@ export function EcranFicheCommandeFournisseur() {
                   to={`/pieces/articles/${ligne.articleId}`}
                   className="font-medium text-primary underline"
                 >
-                  {t('pieces:commandes.lignes.article')} {ligne.numeroOrdre}
+                  {designations.get(ligne.articleId) ??
+                    `${t('pieces:commandes.lignes.article')} ${ligne.numeroOrdre}`}
                 </Link>
                 {ligne.quantiteReliquatMillieme > 0 &&
                 ligne.reliquatAnnuleLe === null &&
@@ -338,8 +345,12 @@ export function EcranFicheCommandeFournisseur() {
                   </p>
                 </div>
                 <div>
-                  <span className="texte-libelle text-muted-foreground">
+                  <span className="flex items-center gap-1.5 texte-libelle text-muted-foreground">
                     {t('pieces:commandes.lignes.quantiteReliquat')}
+                    <AideContextuelle
+                      sujet={t('pieces:commandes.lignes.quantiteReliquat')}
+                      texte={t('aide:pieces.reliquat')}
+                    />
                   </span>
                   <p className="tabular-nums">
                     {formaterQuantiteMillieme(ligne.quantiteReliquatMillieme)}

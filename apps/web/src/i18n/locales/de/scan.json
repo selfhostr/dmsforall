@@ -1,6 +1,5 @@
 {
   "titre": "Fahrzeugausweis scannen",
-  "sousTitre": "Fahrzeugausweis fotografieren, prüfen, dann bestätigen.",
   "echappement": {
     "message": "Vereinfachte Ansicht für Mobilgeräte: Hier ist nur der Scan verfügbar.",
     "action": "Vollständige Anwendung öffnen"
@@ -48,6 +47,7 @@
     "enCours": "Fahrzeugausweis wird gelesen…"
   },
   "erreurs": {
+    "saisieManuelle": "Fahrzeug von Hand erfassen",
     "titre": "Das Foto konnte nicht verwendet werden",
     "photoIllisible": "Dieses Foto konnte nicht geöffnet werden. Nehmen Sie es erneut mit der Kamera auf, flach hingelegt und gut beleuchtet.",
     "heicNonPrisEnCharge": "Dieses Fotoformat wird auf diesem Gerät nicht unterstützt. Nehmen Sie das Foto erneut über die Schaltfläche „Foto aufnehmen“ auf statt aus der Fotobibliothek."

@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 
+import { AideContextuelle } from '@/composants/AideContextuelle';
 import { messageErreur } from '@/api/erreurs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -146,7 +147,10 @@ export function CarteReprise({
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between gap-3">
-        <CardTitle className="texte-titre-section">{t('ventes:reprise.titre')}</CardTitle>
+        <div className="flex items-center gap-1.5">
+          <CardTitle className="texte-titre-section">{t('ventes:reprise.titre')}</CardTitle>
+          <AideContextuelle sujet={t('ventes:reprise.titre')} texte={t('aide:ventes.reprise')} />
+        </div>
         <BadgeStatutReprise statut={reprise.statut} />
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
@@ -215,9 +219,6 @@ export function CarteReprise({
               ) : reprise.detteFinancementOrganismeNom ? (
                 <> — {reprise.detteFinancementOrganismeNom}</>
               ) : null}
-            </p>
-            <p className="texte-libelle text-muted-foreground">
-              {t('ventes:reprise.champs.detteAide')}
             </p>
           </div>
         ) : null}

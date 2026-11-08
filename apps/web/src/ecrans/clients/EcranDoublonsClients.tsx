@@ -130,12 +130,9 @@ export function EcranDoublonsClients() {
     // Titre laissé à la détection automatique du gabarit (chantier « titres doublés &
     // espacements », 17.08.2026) : cet écran est atteint comme VUE « Doublons » sous l'onglet
     // Clients (`navigation-modele.ts`, ONGLETS_CLIENTS_VEHICULES) — la vue active affiche déjà ce
-    // libellé, le h1 devient `sr-only` (jamais retiré du DOM). La description reste visible via
-    // `sousTitre` : c'est elle qui explique l'écran, pas un titre redondant avec la vue.
-    <GabaritEcran
-      titre={t('clients:doublonsEcran.titre')}
-      sousTitre={t('clients:doublonsEcran.description')}
-    >
+    // libellé, le h1 devient `sr-only` (jamais retiré du DOM). Pas de sous-titre : la vue active
+    // suffit à situer l'écran.
+    <GabaritEcran titre={t('clients:doublonsEcran.titre')}>
       <Card>
         <CardContent className="grid gap-3 pt-6 sm:grid-cols-2 lg:grid-cols-5">
           <div className="space-y-2">

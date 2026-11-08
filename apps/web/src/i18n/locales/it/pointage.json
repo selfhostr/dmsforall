@@ -285,5 +285,13 @@
       "action": "Sblocca",
       "resultat": "{count, plural, one {# timbratura sbloccata.} other {# timbrature sbloccate.}}"
     }
+  },
+  "borne": {
+    "comptePersonnel": {
+      "titre": "Terminale d’officina",
+      "titreVide": "Terminale d’officina",
+      "description": "Il codice PIN serve solo sul terminale condiviso. Con il suo account timbra senza codice.",
+      "action": "Il mio lavoro"
+    }
   }
 }

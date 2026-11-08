@@ -1,0 +1,40 @@
+{
+  "titre": "Problem melden",
+  "intro": "Melden Sie hier einen Fehler von dmsforall: ein Bildschirm, der abstürzt, eine falsche Berechnung, eine Schaltfläche, die nichts tut. Das ist kein Support: Fragen zur Bedienung, Konfiguration oder Buchhaltung werden nicht beantwortet. Die Meldung wird zu einem öffentlichen Ticket auf GitHub: Geben Sie keinen Kundennamen, kein Kontrollschild und keinen Betrag an.",
+  "champs": {
+    "constat": "Was nicht funktioniert",
+    "etapes": "Was Sie unmittelbar davor getan haben",
+    "attendu": "Was Sie erwartet haben"
+  },
+  "erreurs": {
+    "constat": "Beschreiben Sie, was nicht funktioniert."
+  },
+  "diagnostic": {
+    "joindre": "Technische Diagnose beifügen",
+    "apercu": "Ansehen, was gesendet wird",
+    "apercuAide": "Version, Browser, letzte Fehler. Nichts von dem, was Sie in der Software eingegeben haben.",
+    "apercuAria": "Genauer Inhalt der Meldung"
+  },
+  "actions": {
+    "continuer": "Weiter auf der Website",
+    "copier": "Bericht kopieren"
+  },
+  "envoi": {
+    "explication": "Sie schliessen das Senden auf der Website ab, ohne GitHub-Konto.",
+    "copieSeule": "Kopieren Sie den Bericht und geben Sie ihn von Hand weiter."
+  },
+  "copie": {
+    "reussie": "Bericht kopiert.",
+    "echec": "Kopieren nicht möglich: kopieren Sie den Text unten.",
+    "rapport": "Zu kopierender Bericht",
+    "fiche": "Kein Internet hier? Fügen Sie den Bericht in ein Ticket ein:",
+    "lien": "neues GitHub-Ticket"
+  },
+  "markdown": {
+    "constat": "Was nicht funktioniert",
+    "etapes": "Was der Benutzer unmittelbar davor getan hat",
+    "attendu": "Was der Benutzer erwartet hat",
+    "diagnostic": "Diagnose",
+    "aucun": "(nicht angegeben)"
+  }
+}

@@ -19,10 +19,14 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   CODES_ERREUR,
   LANGUES,
+  MODULES_APP,
+  MODES_SIGNALEMENT,
+  type ModeSignalement,
   ROLES_UTILISATEUR,
   type CodeErreur,
   type ErreurChamp,
   type Langue,
+  type ModuleApp,
   type ProblemeDetail,
   type RoleUtilisateur,
   type SessionCourante,
@@ -63,6 +67,12 @@ export class TenantCourantDto implements TenantCourant {
 
   @ApiProperty({ enum: LANGUES })
   langueDefaut!: Langue;
+
+  @ApiProperty({ enum: MODES_SIGNALEMENT })
+  modeSignalement!: ModeSignalement;
+
+  @ApiProperty()
+  assujettiTva!: boolean;
 }
 
 export class SiteResumeDto implements SiteResume {
@@ -71,6 +81,9 @@ export class SiteResumeDto implements SiteResume {
 
   @ApiProperty()
   code!: string;
+
+  @ApiProperty({ description: 'Étiquette compacte (1 à 5 caractères A-Z/0-9), ex. MART.' })
+  codeCourt!: string;
 
   @ApiProperty()
   nom!: string;
@@ -82,6 +95,13 @@ export class SiteResumeDto implements SiteResume {
 export class SessionCouranteDto implements SessionCourante {
   @ApiProperty({ type: UtilisateurCourantDto })
   utilisateur!: UtilisateurCourantDto;
+
+  @ApiProperty({
+    required: false,
+    description:
+      'true tant que le mot de passe temporaire n’a pas été remplacé : toute route métier répond 403 AUTH_CHANGEMENT_MOT_DE_PASSE_REQUIS.',
+  })
+  motDePasseAChanger?: boolean;
 
   @ApiProperty({ type: TenantCourantDto })
   tenant!: TenantCourantDto;
@@ -102,6 +122,10 @@ export class SessionCouranteDto implements SessionCourante {
   @ApiProperty({ format: 'uuid', nullable: true, type: String })
   siteRattachementId!: string | null;
 
+  /** Site principal de la personne : défaut des filtres de site (jamais un droit). */
+  @ApiProperty({ format: 'uuid', nullable: true, type: String })
+  sitePrincipalId!: string | null;
+
   @ApiProperty({
     type: [String],
     description:
@@ -116,6 +140,14 @@ export class SessionCouranteDto implements SessionCourante {
       "Grille de capacités du compte (niveaux par domaine, encadrer, options). Pour l'affichage ; la décision reste `actions`.",
   })
   capacites!: CapacitesPersonneDto;
+
+  @ApiProperty({
+    enum: MODULES_APP,
+    isArray: true,
+    description:
+      'Modules effectivement actifs pour le garage (Réglages > Modules). Le front masque menus, routes et raccourcis des autres ; le serveur refuse leurs écritures (`MODULE_DESACTIVE`).',
+  })
+  modulesActifs!: readonly ModuleApp[];
 
   @ApiProperty({ format: 'date-time' })
   expireLe!: string;

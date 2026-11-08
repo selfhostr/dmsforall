@@ -19,7 +19,7 @@ import {
 } from '@/components/ui/dialog';
 import { DateInput } from '@/components/ui/date-input';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Label, LegendeChampsObligatoires } from '@/components/ui/label';
 import { ChampMontant } from '@/composants/comptoir/ChampMontant';
 import { useCreerTauxHoraire } from '@/hooks/parametrage/useCreerTauxHoraire';
 import { useModifierTauxHoraire } from '@/hooks/parametrage/useModifierTauxHoraire';
@@ -143,13 +143,17 @@ export function DialogueTauxHoraire({ ouvert, onOuvertChange, tauxHoraire }: Pro
         </DialogHeader>
 
         <form onSubmit={soumettre} noValidate className="flex flex-col gap-4">
+          <LegendeChampsObligatoires>
+            {t('parametrage:obligatoire.legende')}
+          </LegendeChampsObligatoires>
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="th-code">
+              <Label htmlFor="th-code" requis>
                 {t('parametrage:referentiels.tauxHoraires.champs.code')}
               </Label>
               <Input
                 id="th-code"
+                aria-required="true"
                 readOnly={estModification || enCours}
                 aria-invalid={form.formState.errors.code ? true : undefined}
                 aria-describedby={form.formState.errors.code ? 'th-code-erreur' : undefined}
@@ -167,11 +171,12 @@ export function DialogueTauxHoraire({ ouvert, onOuvertChange, tauxHoraire }: Pro
               ) : null}
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="th-libelle">
+              <Label htmlFor="th-libelle" requis>
                 {t('parametrage:referentiels.tauxHoraires.champs.libelle')}
               </Label>
               <Input
                 id="th-libelle"
+                aria-required="true"
                 readOnly={enCours}
                 aria-invalid={form.formState.errors.libelle ? true : undefined}
                 aria-describedby={form.formState.errors.libelle ? 'th-libelle-erreur' : undefined}
@@ -203,7 +208,7 @@ export function DialogueTauxHoraire({ ouvert, onOuvertChange, tauxHoraire }: Pro
 
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="th-valide-du">
+              <Label htmlFor="th-valide-du" requis>
                 {t('parametrage:referentiels.tauxHoraires.champs.valideDuLe')}
               </Label>
               <Controller
@@ -212,6 +217,7 @@ export function DialogueTauxHoraire({ ouvert, onOuvertChange, tauxHoraire }: Pro
                 render={({ field }) => (
                   <DateInput
                     id="th-valide-du"
+                    aria-required="true"
                     disabled={enCours}
                     erreur={form.formState.errors.valideDuLe ? t('validation:requis') : undefined}
                     value={field.value}

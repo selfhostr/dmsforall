@@ -1,7 +1,7 @@
 import { Pencil } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate, useSearchParams } from 'react-router';
+import { useNavigate } from 'react-router';
 
 import type { LigneReapprovisionnement } from '@dfa/shared';
 
@@ -18,6 +18,8 @@ import { EtatVidePremierUsage } from '@/composants/motifs/EtatVidePremierUsage';
 import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
 import { useModifierStockSite } from '@/hooks/pieces/useModifierStockSite';
 import { useReapprovisionnement } from '@/hooks/pieces/useReapprovisionnement';
+import { FiltreSite } from '@/composants/commun/FiltreSite';
+import { useFiltreSite } from '@/hooks/site/useFiltreSite';
 import { useSession } from '@/hooks/useSession';
 import { chemins } from '@/routes/chemins';
 
@@ -45,8 +47,8 @@ import {
 export function EcranReapprovisionnement() {
   const { t } = useTranslation(['pieces', 'commun']);
   const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
-  const site = searchParams.get('site') ?? undefined;
+  const filtreSite = useFiltreSite('pieces.reapprovisionnement', { siteObligatoire: true });
+  const site = filtreSite.siteId;
   const { data: session } = useSession();
   const peutCommander = peutEcrireCommandeFournisseur(session?.actions);
   // Seuil de réapprovisionnement (#121) — LES DEUX emplacements envisagés se justifient, pas un
@@ -190,7 +192,7 @@ export function EcranReapprovisionnement() {
     return (
       <GabaritEcran titre={t('pieces:stock.reapprovisionnement.titre')}>
         <div className="mx-auto w-full max-w-lg">
-          <SelecteurSiteRequis onChoisir={(siteId) => setSearchParams({ site: siteId })} />
+          <SelecteurSiteRequis onChoisir={(siteId) => filtreSite.choisir(siteId)} />
         </div>
       </GabaritEcran>
     );
@@ -232,7 +234,10 @@ export function EcranReapprovisionnement() {
   // sa propre ligne, alignée à droite, juste au-dessus du tableau.
   return (
     <GabaritEcran titre={t('pieces:stock.reapprovisionnement.titre')}>
-      {actionCommander ? <div className="flex justify-end">{actionCommander}</div> : null}
+      <div className="flex flex-wrap items-center justify-between gap-controles">
+        <FiltreSite filtre={filtreSite} />
+        {actionCommander}
+      </div>
       <TableComptoir
         colonnes={colonnes}
         lignes={lignes}

@@ -44,6 +44,11 @@ import { ServiceMouvement } from '../../pieces/service-mouvement';
 import { motifFragment } from '../../recherche/utilitaires-recherche';
 import { neGarderQueChampsEnvoyes, PipeZod } from '../../common/validation';
 
+import {
+  chargerSituationTva,
+  normaliserTauxEtRegime,
+  REGIME_NON_ASSUJETTI,
+} from './assujettissement';
 import { calculerLigneDocument, calculerTotauxDocument } from './calcul-document';
 import {
   chargerDocument,
@@ -67,6 +72,7 @@ import {
   chargerClientLigne,
   chargerConditionsPaiementEnVigueur,
   chargerDossierVentePourRattachement,
+  chargerPrixVehiculeDuDossier,
   chargerPlaqueVehiculeCourante,
   chargerResumeUtilisateur,
   nomAfficheClient,
@@ -131,6 +137,30 @@ export class ServiceDocumentsVente {
         if (entree.dossierVenteId) {
           await chargerDossierVentePourRattachement(tx, ctx, entree.dossierVenteId);
         }
+        // Recette #64 : depuis un dossier de vente, un document SANS ligne reprend le prix du
+        // véhicule (une ligne, TVA normale) ; sans véhicule ni prix → 422, jamais un document à 0.00.
+        let lignesAInserer = entree.lignes;
+        if (entree.dossierVenteId && entree.lignes.length === 0) {
+          const vehiculeDossier = await chargerPrixVehiculeDuDossier(
+            tx,
+            ctx,
+            entree.dossierVenteId,
+          );
+          const situationTva = await chargerSituationTva(tx, ctx);
+          lignesAInserer = [
+            {
+              type: 'forfait',
+              designation: vehiculeDossier.designation,
+              quantiteMillieme: 1000,
+              prixUnitaireTtcCentimes: vehiculeDossier.prixTtcCentimes,
+              regimeTva: 'normal',
+              tauxTvaPourmille: situationTva.assujetti ? 81 : 0,
+              datePrestation: (
+                entree.dateDocument ?? this.horloge.maintenant().toISOString()
+              ).slice(0, 10),
+            },
+          ];
+        }
 
         if (entree.documentSourceId) {
           await this.transformerSource(tx, ctx, entree.documentSourceId, entree.typeDocument);
@@ -190,7 +220,7 @@ export class ServiceDocumentsVente {
           );
 
         let numeroOrdre = 1;
-        for (const ligneEntree of entree.lignes) {
+        for (const ligneEntree of lignesAInserer) {
           await this.inserterLigne(tx, ctx, principal.role, doc.id, numeroOrdre++, ligneEntree);
         }
 
@@ -554,7 +584,23 @@ export class ServiceDocumentsVente {
       await this.refuserSiLigneStockLiee(tx, ctx, ligneId);
 
       const ligneActuelle = await chargerLignePourEcriture(tx, ctx, documentId, ligneId);
-      const fusionnee = this.fusionnerLigne(ligneActuelle, entree);
+      const fusionneeBrute = this.fusionnerLigne(ligneActuelle, entree);
+      // Assujettissement : aligné sur la création (`inserterLigne`). Non assujetti : taux absent
+      // = 0, taux > 0 refusé (TVA_NON_ASSUJETTI_TAUX_INTERDIT), régime « hors champ ». On lit le
+      // taux ENVOYÉ (pas celui hérité de la ligne) : une ligne ancienne à 8,1 % rouvre à 0.
+      const situationTva = await chargerSituationTva(tx, ctx);
+      const normalise = normaliserTauxEtRegime(
+        situationTva,
+        { tauxTvaPourmille: entree.tauxTvaPourmille, regimeTva: fusionneeBrute.regimeTva },
+        ligneActuelle.numeroOrdre,
+      );
+      const fusionnee = situationTva.assujetti
+        ? fusionneeBrute
+        : {
+            ...fusionneeBrute,
+            tauxTvaPourmille: normalise.tauxTvaPourmille ?? 0,
+            regimeTva: normalise.regimeTva,
+          };
       const montants = calculerLigneDocument({
         prixUnitaireTtcCentimes: fusionnee.prixUnitaireTtcCentimes,
         quantiteMillieme: fusionnee.quantiteMillieme,
@@ -789,13 +835,31 @@ export class ServiceDocumentsVente {
     numeroOrdre: number,
     entree: EntreeCreationLigneDocument,
   ): Promise<LigneLigneDocument> {
+    // Assujettissement : un garage non assujetti n'a pas à saisir de taux (0 par défaut) et ses
+    // lignes à 0 ‰ portent le régime « hors champ » ; un assujetti doit toujours fournir le taux.
+    const situationTva = await chargerSituationTva(tx, ctx);
+    const tauxTvaPourmille = entree.tauxTvaPourmille ?? (situationTva.assujetti ? null : 0);
+    if (tauxTvaPourmille === null) {
+      throw new ErreurMetier('VALIDATION_ECHOUEE', 'Le taux de TVA de la ligne est requis.', {
+        erreurs: [
+          {
+            champ: 'tauxTvaPourmille',
+            code: 'champ_requis',
+            message: 'Indiquez le taux de TVA de la ligne.',
+          },
+        ],
+      });
+    }
+    const regimeTva =
+      !situationTva.assujetti && tauxTvaPourmille === 0 ? REGIME_NON_ASSUJETTI : entree.regimeTva;
+
     const montants = calculerLigneDocument({
       prixUnitaireTtcCentimes: entree.prixUnitaireTtcCentimes ?? null,
       quantiteMillieme: entree.quantiteMillieme,
       remisePourmille: entree.remisePourmille ?? null,
       remiseMontantCentimes: entree.remiseMontantCentimes ?? null,
       remiseGlobaleRepartieCentimes: 0,
-      tauxTvaPourmille: entree.tauxTvaPourmille,
+      tauxTvaPourmille,
     });
 
     const [ligne] = await tx
@@ -811,8 +875,8 @@ export class ServiceDocumentsVente {
         // Δ-RF40 (§0.2) : toute ligne saisie directement en facturation est TOUJOURS 'ttc' — champ
         // même pas exposé en entrée (voir la note de `ligne.ts` côté contrat), fixé ici.
         modeCalculTva: 'ttc',
-        regimeTva: entree.regimeTva,
-        tauxTvaPourmille: entree.tauxTvaPourmille,
+        regimeTva,
+        tauxTvaPourmille,
         datePrestation: entree.datePrestation,
         quantiteMillieme: entree.quantiteMillieme,
         prixUnitaireCentimes: entree.prixUnitaireTtcCentimes ?? 0,

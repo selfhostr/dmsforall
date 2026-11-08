@@ -74,6 +74,7 @@
       "tempsBareme": "Temps forfaitaire",
       "tempsPointe": "Temps pointé",
       "prixUnitaire": "Prix unitaire HT",
+      "prixUnitaireAide": "Prix hors TVA. Dans un devis, le prix se saisit TVA comprise : divisez par 1 + taux pour reprendre un prix de devis.",
       "rabais": "Rabais",
       "payeur": "Qui paie",
       "technicien": "Technicien",
@@ -172,6 +173,7 @@
       "choisi": "Choisi depuis le magasin",
       "changer": "Chercher une autre pièce",
       "prixConverti": "Prix catalogue {prixTtc} TTC, converti en HT (TVA {taux} %).",
+      "prixSansTva": "Prix catalogue {prixTtc} TTC, repris tel quel (votre garage ne facture pas de TVA).",
       "parcours": {
         "aide": "Tapez pour chercher une référence précise, ou choisissez directement dans le catalogue ci-dessous.",
         "vide": "Aucun article actif au catalogue de ce site pour le moment. Vous pouvez saisir la pièce manuellement ci-dessous."
@@ -338,7 +340,7 @@
   "liste": {
     "titre": "Ordres de réparation",
     "actions": {
-      "nouveau": "Créer un OR"
+      "creer": "Créer un ordre de réparation"
     },
     "colonnes": {
       "numero": "N° OR",
@@ -550,10 +552,8 @@
       "surPlace": "Sur place",
       "email": "E-mail"
     },
-    "horodatage": "La date et l'heure sont enregistrées maintenant.",
     "enregistrer": "Enregistrer l'accord",
     "action": "Accord du client",
-    "description": "{count, plural, one {Le client a donné son accord pour # travail. Il sera validé.} other {Le client a donné son accord pour # travaux. Ils seront validés.}}",
     "pourTous": "{count, plural, one {Accord du client pour le travail proposé} other {Accord du client pour les # travaux proposés}}"
   },
   "lignesEnAttente": {

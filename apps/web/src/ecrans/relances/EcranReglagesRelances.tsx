@@ -13,7 +13,7 @@ import {
 import { messageErreur } from '@/api/erreurs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { EtatChargement } from '@/composants/commun/EtatChargement';
@@ -32,6 +32,9 @@ import { PALIERS_PREREGLAGE_FACTURE, PREREGLAGE_FACTURE_ECHUE } from './preregla
 const TYPE_RELANCE_FACTURE_ECHUE = 'facture_echue' as const;
 
 const CANAUX_FORMULAIRE = ['sms', 'email'] as const satisfies readonly CanalMessageClient[];
+/** Canaux réellement câblés côté serveur : le SMS n'a pas encore de prestataire (issue #64), il
+ *  est affiché « bientôt » et ne peut être ni choisi ni conservé dans une règle. */
+const CANAUX_DISPONIBLES: readonly CanalMessageClient[] = ['email'];
 
 /**
  * Écran de RÉGLAGE des relances automatiques — paliers, canaux, préréglage (§4.5 de la refonte
@@ -47,7 +50,7 @@ export function EcranReglagesRelances() {
   const requete = useReglesRelance();
 
   return (
-    <GabaritEcran titre={t('relances:reglages.titre')} sousTitre={t('relances:reglages.sousTitre')}>
+    <GabaritEcran titre={t('relances:reglages.titre')}>
       {requete.isPending ? (
         <EtatChargement lignes={6} />
       ) : requete.isError ? (
@@ -111,7 +114,6 @@ function BlocRegleFactureEchue({ regle }: PropsBlocRegle) {
     <Card>
       <CardHeader>
         <CardTitle className="texte-titre-section">{t('relances:regles.titre')}</CardTitle>
-        <CardDescription>{t('relances:regles.description')}</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         {regle === undefined ? (
@@ -222,7 +224,7 @@ function valeursFormulaireDepuisRegle(
   return {
     actif: regle.actif,
     delaisJours: [...regle.delaisJours],
-    canaux: [...regle.canaux],
+    canaux: regle.canaux.filter((canal) => CANAUX_DISPONIBLES.includes(canal)),
   };
 }
 
@@ -286,16 +288,10 @@ function FormulaireRegleFactureEchue({ regle, onAnnuler, onEnregistre }: PropsFo
           </label>
         )}
       />
-      <p className="-mt-2 texte-libelle text-muted-foreground">
-        {t('relances:regles.formulaire.actifAide')}
-      </p>
 
       <div className="flex flex-col gap-2">
         <p className="texte-libelle font-medium text-foreground">
           {t('relances:regles.formulaire.paliersLabel')}
-        </p>
-        <p className="texte-libelle text-muted-foreground">
-          {t('relances:regles.formulaire.paliersAide')}
         </p>
         <Controller
           control={form.control}
@@ -364,6 +360,7 @@ function FormulaireRegleFactureEchue({ regle, onAnnuler, onEnregistre }: PropsFo
                 <label key={canal} className="flex items-center gap-2 texte-corps">
                   <Checkbox
                     checked={field.value.includes(canal)}
+                    disabled={!CANAUX_DISPONIBLES.includes(canal) || upserter.isPending}
                     onCheckedChange={(coche) => {
                       field.onChange(
                         coche === true
@@ -371,9 +368,13 @@ function FormulaireRegleFactureEchue({ regle, onAnnuler, onEnregistre }: PropsFo
                           : field.value.filter((valeur) => valeur !== canal),
                       );
                     }}
-                    disabled={upserter.isPending}
                   />
                   {t(`relances:regles.canaux.${canal}`)}
+                  {CANAUX_DISPONIBLES.includes(canal) ? null : (
+                    <span className="texte-libelle text-muted-foreground">
+                      {t('relances:regles.canaux.bientot')}
+                    </span>
+                  )}
                 </label>
               ))}
             </div>
@@ -392,7 +393,7 @@ function FormulaireRegleFactureEchue({ regle, onAnnuler, onEnregistre }: PropsFo
         </p>
       ) : null}
 
-      <div className="flex gap-2">
+      <div className="flex gap-3">
         <Button type="button" variant="outline" onClick={onAnnuler} disabled={upserter.isPending}>
           {t('relances:regles.actions.annuler')}
         </Button>

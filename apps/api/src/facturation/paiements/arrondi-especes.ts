@@ -136,3 +136,33 @@ export function verifierArrondiEspeces(c: ContexteVerificationArrondi): void {
     );
   }
 }
+
+/**
+ * Un encaissement en espèces CHF est une somme de pièces et de billets réellement remis : multiple
+ * de 5 centimes, SANS EXCEPTION quand l'arrondi espèces est actif (recette #64 : 100.03 en espèces
+ * acceptés en acompte partiel). Un solde qui finit par 1-4 ou 6-9 s'encaisse en espèces arrondies
+ * (+ imputation `arrondi`), jamais au centime. Autres moyens, autres devises ou arrondi désactivé :
+ * aucune contrainte ici.
+ */
+export function verifierEspecesMultiple5(c: {
+  readonly moyenPaiement: MoyenPaiement;
+  readonly devise: string;
+  readonly arrondiEspecesActif: boolean;
+  readonly montantCentimes: bigint;
+}): void {
+  if (c.moyenPaiement !== 'especes' || c.devise !== 'CHF' || !c.arrondiEspecesActif) return;
+  if (c.montantCentimes % 5n === 0n) return;
+  throw new ErreurMetier(
+    'VALIDATION_ECHOUEE',
+    `Un encaissement en espèces doit être un multiple de 5 centimes (reçu ${c.montantCentimes} ct) : il n'existe pas de pièce de 1 ou 2 centimes. Encaissez le montant arrondi au 5 centimes.`,
+    {
+      erreurs: [
+        {
+          champ: 'montantCentimes',
+          code: 'especes_pas_multiple_5_centimes',
+          message: 'Le montant en espèces doit être un multiple de 0.05.',
+        },
+      ],
+    },
+  );
+}

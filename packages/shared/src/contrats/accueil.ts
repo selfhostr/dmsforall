@@ -4,9 +4,11 @@
  *
  * Chaque étape est un booléen DÉFINITIF (le serveur lit toujours toutes ses sources — l'état
  * « inconnu » de l'écran ne naît que d'un échec de l'appel lui-même) :
- *  - `coordonnees` : nom, rue, NPA et localité du bloc créancier renseignés ;
+ *  - `coordonnees` : nom, rue, n° de rue, NPA, localité et pays du bloc créancier renseignés — les
+ *    mêmes champs requis que l'émission d'une facture (`CHAMPS_REQUIS_BLOC_CREANCIER`) ;
  *  - `iban` : IBAN ou QR-IBAN renseigné ;
- *  - `numeroTva` : numéro TVA du garage saisi ;
+ *  - `numeroTva` : étape TVA faite — garage non assujetti (`assujettiTva = false`), ou assujetti
+ *    avec son numéro TVA saisi ;
  *  - `tauxHoraire` : au moins un taux horaire existe ;
  *  - `motifsRdv` : au moins un motif de rendez-vous actif ;
  *  - `premierCollaborateur` : un compte de personne (hors compte de service) autre que l'appelant,

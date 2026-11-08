@@ -36,6 +36,7 @@ import { PipeZod } from '../common/validation';
 
 import { FinancementAvecAvertissementsDto } from './dto';
 import { ServiceFinancement } from './service-financement';
+import { ExigerModule } from '../common/droits/garde-module';
 
 /**
  * Financement/leasing (RV-39→RV-45) — sous-ressource COLLECTION d'un dossier, APPEND-ONLY (CV-03).
@@ -45,6 +46,7 @@ import { ServiceFinancement } from './service-financement';
  */
 @ApiTags('Financement')
 @ApiCookieAuth()
+@ExigerModule('ventes')
 @Controller({ path: 'dossiers-vente/:dossierVenteId/financements', version: '1' })
 @UseGuards(GardeDroit)
 export class FinancementController {

@@ -1,6 +1,17 @@
-import { ChevronsUpDown, LogOut, PanelLeftClose, PanelLeftOpen, Settings } from 'lucide-react';
+import {
+  BookOpen,
+  Bug,
+  ChevronsUpDown,
+  CircleArrowUp,
+  Code,
+  LogOut,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Settings,
+  SlidersHorizontal,
+} from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { Link, useLocation, useSearchParams } from 'react-router';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -8,10 +19,13 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { SelecteurLangueMenu } from '@/composants/SelecteurLangueMenu';
-import { useSiteCourant } from '@/hooks/site/ContexteSiteCourant';
+import { demanderOuvertureAssistant } from '@/hooks/assistant/etat-assistant';
+import { ouvrirSignalement } from '@/hooks/signalement/etat-signalement';
+import { useMiseAJourDisponible } from '@/hooks/useMiseAJourDisponible';
+import { usePastilleAssistant } from '@/hooks/assistant/usePastilleAssistant';
 import { useDeconnexion } from '@/hooks/useDeconnexion';
 import { useSession } from '@/hooks/useSession';
 import { cleTraductionRole } from '@/lib/roles';
@@ -26,7 +40,17 @@ import {
   trouverCorrespondance,
   type EntreeMenu,
 } from './navigation-modele';
+import { HAUTEUR_ENTETE_COLONNE } from './hauteur-entete-colonne';
+import { PastilleConfiguration } from './PastilleConfiguration';
+import { RechercheGlobale } from './RechercheGlobale';
+import { PreferencesMenuCompte } from './PreferencesMenuCompte';
 import type { UtiliserRepliBarreLaterale } from './useRepliBarreLaterale';
+
+/** Au-delà, le nom du garage passe d'un cran de police plus petit. */
+const NOM_LONG = 18;
+
+const URL_DOCUMENTATION = 'https://dmsforall.selfhostr.io/docs/';
+const URL_CODE_SOURCE = 'https://github.com/selfhostr/dmsforall';
 
 /**
  * Numéro de version affiché collé au bouton Réglages (demande produit explicite, 17.08.2026 :
@@ -53,6 +77,14 @@ import type { UtiliserRepliBarreLaterale } from './useRepliBarreLaterale';
 function infoVersionBrute(): string {
   const brut = import.meta.env.VITE_DFA_VERSION_INFO;
   return typeof brut === 'string' && brut.trim() !== '' ? brut : '';
+}
+
+/** « v0.2.0 » : le numéro de version de `apps/web/package.json` seul (avant le premier « + »,
+ *  qui introduit hash Git et marqueur « modifié » — gardés dans l'infobulle pour le support).
+ *  Vide si l'information n'est pas disponible (valeur « inconnu » de `vite.config.ts` comprise). */
+export function versionAffichee(brut: string): string {
+  const numero = brut.split('+')[0]?.trim() ?? '';
+  return /^\d+\.\d+\.\d+/.test(numero) ? `v${numero}` : '';
 }
 
 interface Props {
@@ -155,13 +187,12 @@ interface Props {
  * palier, son nom complet n'était accessible qu'au survol une fois repliée — inatteignable au
  * tactile). Deux défauts mesurés du sélecteur ont été corrigés au passage (désynchronisation de la
  * préférence de site, collision de libellé « Aucun site choisi » / « Tous les sites » pour le même
- * état `undefined` — détail dans `BarreOutilsSuperieure.tsx` et `SelecteurSiteEntete.tsx`). Le PIED
+ * état `undefined` — ce sélecteur d'en-tête a depuis été retiré : le site se filtre par écran, `FiltreSite`). Le PIED
  * COMPTE (point 2), lui, NE BOUGE PAS — @laupernoe l'a tranché explicitement, il reste ici.
  */
 export function BarreLaterale({ className, repli }: Props) {
   const { t } = useTranslation(['navigation', 'auth']);
   const [searchParams] = useSearchParams();
-  const { preferenceSiteId } = useSiteCourant();
   // CORRECTIF issue #91 (« le logiciel oublie mon choix dès que je change d'écran ») : l'URL reste
   // la source qui FAIT FOI (doctrine ci-dessous, inchangée), mais quand elle n'en porte AUCUN, on
   // retombe sur la dernière préférence connue (`hooks/site/ContexteSiteCourant.tsx`) plutôt que sur
@@ -169,15 +200,20 @@ export function BarreLaterale({ className, repli }: Props) {
   // sans que l'utilisateur ait rien changé, quand un écran hors de ce périmètre construisait un lien
   // interne sans propager `?site=`. Une fois CE lien cliqué, l'URL suivante porte à nouveau le site,
   // qui redevient alors la source pour la navigation suivante.
-  const site = searchParams.get('site') ?? preferenceSiteId;
+  const site = searchParams.get('site') ?? undefined;
   const { pathname } = useLocation();
   const { data: session } = useSession();
   const sujet = sujetNavigation(session);
   const deconnexion = useDeconnexion();
+  const navigate = useNavigate();
+  const garageAConfigurer = usePastilleAssistant();
   // Numéro de version — voir la doc de `infoVersionBrute` en tête de fichier. Repli traduit
   // (« inconnue ») posé ICI, pas dans `infoVersionBrute`, pour rester une fonction pure sans
   // dépendance à `t`.
-  const infoVersion = infoVersionBrute() || t('navigation:pied.versionInconnue');
+  const infoBrute = infoVersionBrute();
+  const infoVersion = infoBrute;
+  // Version absente : aucune ligne (jamais un « inconnue » affiché).
+  const versionCourte = versionAffichee(infoBrute);
 
   // Identité du pied compte (§2 du lot ci-dessus) — repris à l'identique de l'ancien
   // `MenuUtilisateur.tsx` (initiales, nom complet, libellé de rôle traduit).
@@ -186,6 +222,20 @@ export function BarreLaterale({ className, repli }: Props) {
   const initiales = session
     ? `${session.utilisateur.prenom.charAt(0)}${session.utilisateur.nom.charAt(0)}`.toUpperCase()
     : '';
+
+  const miseAJour = useMiseAJourDisponible(session?.utilisateur.role);
+  const cheminReglages = reglagesVisibles(sujet)
+    ? (cheminEntree(ENTREE_REGLAGES, sujet, site) ?? undefined)
+    : undefined;
+
+  const nomCompte = [
+    libelleCompte,
+    libelleRole,
+    garageAConfigurer ? t('navigation:configurer.pastille') : null,
+    miseAJour ? t('navigation:version.pastille') : null,
+  ]
+    .filter((partie) => partie !== null)
+    .join(' — ');
 
   // `repli` absent (tiroir mobile) => jamais replié, quelle que soit la préférence mémorisée par
   // ailleurs : la lecture de cette préférence est entièrement du ressort de l'appelant desktop.
@@ -281,23 +331,27 @@ export function BarreLaterale({ className, repli }: Props) {
         // affirmer de faux pendant le chargement (même doctrine que le reste du fichier, « le menu
         // s'enrichit, il ne clignote pas »).
         <div
-          className={cn(
-            'flex shrink-0 flex-col gap-2 border-b p-3',
-            replie ? 'items-center gap-3 p-2' : undefined,
-          )}
+          className={cn('flex shrink-0 flex-col overflow-hidden border-b', HAUTEUR_ENTETE_COLONNE)}
         >
           <div
             className={cn(
-              'flex w-full items-center gap-2',
-              replie ? 'flex-col' : 'justify-between',
+              'flex min-h-0 flex-1 items-center gap-2',
+              replie ? 'justify-center px-2' : 'justify-between px-3',
             )}
           >
             {session && !replie ? (
+              // Même retrait que les entrées du menu dessous (`px-3` de l'entrée), deux lignes au
+              // plus avec coupure aux mots, jamais d'ellipse sur une ligne. Hauteur FIXE (celle des
+              // onglets) : un nom long baisse d'un cran de police plutôt que d'agrandir le bloc.
+              // Aucun emplacement de logo ici. Replié : rien (les initiales du compte sont plus bas).
               <p
-                className="min-w-0 flex-1 truncate texte-corps font-semibold tracking-tight"
+                className={cn(
+                  'flex min-w-0 flex-1 items-center px-3 font-semibold leading-tight tracking-tight',
+                  session.tenant.raisonSociale.length > NOM_LONG ? 'texte-libelle' : 'texte-corps',
+                )}
                 title={session.tenant.raisonSociale}
               >
-                {session.tenant.raisonSociale}
+                <span className="line-clamp-2 break-words">{session.tenant.raisonSociale}</span>
               </p>
             ) : null}
             {repli ? (
@@ -307,6 +361,7 @@ export function BarreLaterale({ className, repli }: Props) {
                 type="button"
                 variant="ghost"
                 size="icon"
+                className="shrink-0"
                 onClick={repli.basculer}
                 aria-expanded={!replie}
                 aria-label={t(replie ? 'navigation:repli.agrandir' : 'navigation:repli.reduire')}
@@ -330,6 +385,12 @@ export function BarreLaterale({ className, repli }: Props) {
       <ul className={cn('flex flex-1 flex-col gap-1', replie ? 'p-2' : 'p-3', className)}>
         {entrees.map((entree) => rendreEntree(entree))}
       </ul>
+
+      {/* Recherche globale : champ en bas de colonne, juste au-dessus du filet du pied compte, à la
+          même place sur tous les écrans (Ctrl/⌘+K aussi). */}
+      <div className={cn('shrink-0 pb-3', replie ? 'px-2' : 'px-3')}>
+        <RechercheGlobale replie={replie} raccourciClavier={repli !== undefined} />
+      </div>
 
       {/*
        * PIED COMPTE — identité + Réglages + déconnexion, voir le §2 du lot « cadre applicatif » en
@@ -370,11 +431,6 @@ export function BarreLaterale({ className, repli }: Props) {
               même besoin que le sélecteur de site (atteignable SANS ouvrir le tiroir sur
               tablette), tranché explicitement par @laupernoe. Le pied compte, lui, NE bouge PAS — seul
               déclencheur restant ici. */}
-          {/* Réglages en accès direct, toujours visible : un garage neuf ne doit pas chercher la
-              porte de configuration dans le menu du compte (qui la propose encore). */}
-          {reglagesVisibles(sujet) ? (
-            <ul className="mb-1">{rendreEntree(ENTREE_REGLAGES)}</ul>
-          ) : null}
           <div className="min-w-0">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -384,14 +440,18 @@ export function BarreLaterale({ className, repli }: Props) {
                     'anneau-focus flex h-11 w-full items-center rounded-md texte-corps font-medium transition-colors hover:bg-muted',
                     replie ? 'justify-center px-2' : 'gap-3 px-3',
                   )}
-                  aria-label={`${libelleCompte} — ${libelleRole}`}
-                  title={replie ? `${libelleCompte} — ${libelleRole}` : undefined}
+                  aria-label={nomCompte}
+                  title={replie ? nomCompte : undefined}
                 >
                   <span
-                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary texte-petit font-semibold text-primary-foreground"
+                    className="relative flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary texte-petit font-semibold text-primary-foreground"
                     aria-hidden="true"
                   >
                     {initiales}
+                    {garageAConfigurer ? (
+                      <PastilleConfiguration className="-right-1 -top-1" />
+                    ) : null}
+                    {miseAJour ? <PastilleConfiguration className="-bottom-0.5 -right-1" /> : null}
                   </span>
                   {!replie ? (
                     <>
@@ -411,34 +471,85 @@ export function BarreLaterale({ className, repli }: Props) {
                 <DropdownMenuLabel className="truncate font-normal text-muted-foreground">
                   {libelleCompte} — {libelleRole}
                 </DropdownMenuLabel>
-                {reglagesVisibles(sujet) ? (
+                {garageAConfigurer ? (
+                  <DropdownMenuItem
+                    onSelect={() => {
+                      demanderOuvertureAssistant();
+                      void navigate('/');
+                    }}
+                  >
+                    <SlidersHorizontal className="h-4 w-4 shrink-0" aria-hidden="true" />
+                    {t('navigation:configurer.entree')}
+                  </DropdownMenuItem>
+                ) : null}
+                {cheminReglages !== undefined ? (
                   <DropdownMenuItem asChild>
-                    <Link to={cheminEntree(ENTREE_REGLAGES, sujet, site) ?? ''}>
-                      <Settings className="h-4 w-4" aria-hidden="true" />
+                    <Link to={cheminReglages}>
+                      <Settings className="h-4 w-4 shrink-0" aria-hidden="true" />
                       {t('navigation:entrees.reglages')}
                     </Link>
                   </DropdownMenuItem>
                 ) : null}
+                <DropdownMenuSeparator />
+                <PreferencesMenuCompte />
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <a href={URL_DOCUMENTATION} target="_blank" rel="noopener noreferrer">
+                    <BookOpen className="h-4 w-4 shrink-0" aria-hidden="true" />
+                    {t('navigation:externes.documentation')}
+                  </a>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <a href={URL_CODE_SOURCE} target="_blank" rel="noopener noreferrer">
+                    <Code className="h-4 w-4 shrink-0" aria-hidden="true" />
+                    {t('navigation:externes.codeSource')}
+                  </a>
+                </DropdownMenuItem>
+                {session?.tenant.modeSignalement !== 'desactive' ? (
+                  <DropdownMenuItem onSelect={ouvrirSignalement}>
+                    <Bug className="h-4 w-4 shrink-0" aria-hidden="true" />
+                    {t('navigation:signalement.entree')}
+                  </DropdownMenuItem>
+                ) : null}
+                {miseAJour ? (
+                  <DropdownMenuItem asChild>
+                    <a
+                      href={miseAJour.urlNotes ?? URL_CODE_SOURCE}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <CircleArrowUp className="h-4 w-4 shrink-0" aria-hidden="true" />
+                      {t('navigation:version.disponible', { version: miseAJour.derniere })}
+                    </a>
+                  </DropdownMenuItem>
+                ) : null}
+                {versionCourte ? (
+                  <DropdownMenuLabel className="texte-libelle select-text font-normal text-muted-foreground">
+                    {t('navigation:version.installee', { version: versionCourte })}
+                  </DropdownMenuLabel>
+                ) : null}
+                <DropdownMenuSeparator />
                 <DropdownMenuItem
                   onSelect={() => deconnexion.mutate()}
                   disabled={deconnexion.isPending}
                 >
-                  <LogOut className="h-4 w-4" aria-hidden="true" />
+                  <LogOut className="h-4 w-4 shrink-0" aria-hidden="true" />
                   {t('auth:deconnexion.action')}
                 </DropdownMenuItem>
-                <SelecteurLangueMenu />
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
-          <p
-            className={cn(
-              'texte-libelle select-text text-muted-foreground',
-              replie ? 'hidden' : 'mt-1 px-3',
-            )}
-            title={t('navigation:pied.version', { info: infoVersion })}
-          >
-            {infoVersion}
-          </p>
+          {versionCourte ? (
+            <p
+              className={cn(
+                'texte-libelle select-text text-muted-foreground',
+                replie ? 'hidden' : 'mt-1 px-3',
+              )}
+              title={t('navigation:pied.version', { info: infoVersion })}
+            >
+              {versionCourte}
+            </p>
+          ) : null}
         </div>
       ) : null}
     </nav>

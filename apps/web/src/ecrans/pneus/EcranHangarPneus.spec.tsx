@@ -507,7 +507,17 @@ describe('EcranHangarPneus', () => {
       async () => {
         const utilisateur = userEvent.setup();
         server.use(
-          http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)),
+          http.get('/api/v1/auth/moi', () =>
+            HttpResponse.json({
+              ...SESSION_TEST,
+              // Deux sites et aucun site principal : seul cas où le hangar réclame un site.
+              sitePrincipalId: null,
+              sites: [
+                ...SESSION_TEST.sites,
+                { id: 'site-2', code: 'S2', codeCourt: 'S2', nom: 'Second site', actif: true },
+              ],
+            }),
+          ),
           http.get('/api/v1/depots-pneus/a-relancer', ({ request }) => {
             // Preuve que la vue est bien tenant entier : aucun `siteId` envoyé.
             expect(new URL(request.url).searchParams.get('siteId')).toBeNull();
@@ -607,8 +617,8 @@ describe('EcranHangarPneus', () => {
      * « Actifs »), effaçable en un geste.
      */
     it(
-      'filtre localement par repère (`codeCase`) et « Effacer les filtres » le vide, sans perdre ' +
-        'les jeux qui ne correspondaient plus',
+      'filtre localement par repère (`codeCase`) ; vider la recherche rend tous les jeux, sans ' +
+        'bouton « Effacer les filtres »',
       async () => {
         const utilisateur = userEvent.setup();
         const AUTRE_DEPOT_A_RELANCER: ReponseDepotPneus = {
@@ -632,20 +642,20 @@ describe('EcranHangarPneus', () => {
         expect(await screen.findByText('Rack 7')).toBeInTheDocument();
         expect(screen.getByText('Rack 12')).toBeInTheDocument();
 
-        const boutonEffacer = screen.getByRole('button', { name: 'Effacer les filtres' });
-        expect(boutonEffacer).toBeDisabled();
+        expect(
+          screen.queryByRole('button', { name: 'Effacer les filtres' }),
+        ).not.toBeInTheDocument();
 
-        await utilisateur.type(screen.getByRole('searchbox'), 'Rack 7');
+        const recherche = screen.getByRole('searchbox');
+        await utilisateur.type(recherche, 'Rack 7');
 
         expect(screen.getByText('Rack 7')).toBeInTheDocument();
         expect(screen.queryByText('Rack 12')).not.toBeInTheDocument();
-        expect(boutonEffacer).toBeEnabled();
 
-        await utilisateur.click(boutonEffacer);
+        await utilisateur.clear(recherche);
 
         expect(await screen.findByText('Rack 12')).toBeInTheDocument();
         expect(screen.getByText('Rack 7')).toBeInTheDocument();
-        expect(boutonEffacer).toBeDisabled();
       },
     );
   });

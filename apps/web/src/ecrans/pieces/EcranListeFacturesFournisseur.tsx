@@ -10,8 +10,6 @@ import {
 } from '@dfa/shared';
 
 import { messageErreur } from '@/api/erreurs';
-import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -92,7 +90,6 @@ export function EcranListeFacturesFournisseur() {
     fetchNextPage,
   } = useListeFacturesFournisseur(filtres, !session.isLoading && peutLire);
 
-  const filtresActifs = q.trim() !== '' || statut !== undefined;
   function effacerFiltres() {
     // Levier de reset (choix produit 26.08.2026) : `effacerFiltres` est un geste de reprise en
     // main, pas une frappe — `q` doit refléter la case vide immédiatement, pas après le même
@@ -102,11 +99,12 @@ export function EcranListeFacturesFournisseur() {
     setStatut(undefined);
   }
 
-  const boutonDeposer = peutDeposerFactureFournisseur(actions) ? (
-    <Button onClick={() => navigate('/pieces/factures-fournisseur/deposer')}>
-      {t('pieces:facturesFournisseur.actions.deposer')}
-    </Button>
-  ) : undefined;
+  const actionDeposer = peutDeposerFactureFournisseur(actions)
+    ? {
+        libelle: t('pieces:facturesFournisseur.actions.deposerInfobulle'),
+        onClick: () => navigate('/pieces/factures-fournisseur/deposer'),
+      }
+    : undefined;
 
   const colonnes: ColonneComptoir<ReponseFactureFournisseur>[] = [
     {
@@ -230,24 +228,19 @@ export function EcranListeFacturesFournisseur() {
       <EtatVidePremierUsage
         titre={t('pieces:facturesFournisseur.vide.premierUsage.titre')}
         description={t('pieces:facturesFournisseur.vide.premierUsage.description')}
-        action={boutonDeposer}
       />
     );
   }
 
   return (
-    <GabaritEcran titre={t('pieces:facturesFournisseur.titre')} actions={boutonDeposer}>
+    <GabaritEcran titre={t('pieces:facturesFournisseur.titre')}>
       <BarreFiltres
+        actionCreer={actionDeposer}
         q={qSaisie}
         onChangeQ={setQSaisie}
         placeholderRecherche={t('pieces:facturesFournisseur.filtres.rechercherPlaceholder')}
-        filtresActifs={filtresActifs}
-        onEffacerFiltres={effacerFiltres}
       >
         <div className="flex flex-col gap-champ">
-          <Label htmlFor="filtre-statut-facture">
-            {t('pieces:facturesFournisseur.colonnes.statut')}
-          </Label>
           <Select
             value={statut ?? 'tous'}
             onValueChange={(valeur) =>
@@ -256,6 +249,7 @@ export function EcranListeFacturesFournisseur() {
           >
             <SelectTrigger
               id="filtre-statut-facture"
+              className="w-auto min-w-28"
               aria-label={t('pieces:facturesFournisseur.colonnes.statut')}
             >
               <SelectValue />

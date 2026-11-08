@@ -66,7 +66,7 @@ describe.each(THEMES)(
         'marque-doux',
         'texte sur surlignage de marque (élément de menu actif)',
       ],
-      // Sarcelle/cyan de marque posée directement sur `--background` et `--muted` à de nombreux
+      // Orange de marque posé directement sur `--background` et `--muted` à de nombreux
       // endroits réels du produit (`text-primary`), pas seulement à travers `--primary-foreground`/
       // `--primary` (le bouton plein) déjà couvert ci-dessus.
       ['marque', 'background', 'texte de marque directement sur fond de page (text-primary)'],
@@ -273,73 +273,47 @@ describe.each(THEMES)(
   },
 );
 
-describe("marque (clair, sarcelle 186°) — écart de teinte avec les statuts d'OR, une couleur = une seule signification", () => {
-  // Écart angulaire sur le cercle chromatique (0-360°), plus court des deux sens.
-  function ecartTeinte(h1: number, h2: number): number {
-    const d = Math.abs(h1 - h2) % 360;
-    return d > 180 ? 360 - d : d;
-  }
-
-  // Sentinelle de régression : si `--marque` ou un `--statut-*` change de teinte sans que
-  // personne ne revérifie l'écart, ce test précis doit rougir avant qu'un badge de statut et un
-  // bouton de marque ne deviennent confondables à l'œil. Seuil à 30° — pris directement de la
-  // décision de conception (« vérifie cet écart sur les valeurs finales »), sous les écarts mesurés
-  // (31° au bleu, 44° au vert) mais assez haut pour capter une dérive accidentelle.
-  //
-  // LIGHT-ONLY : en sombre, cette même règle ne tient PAS — voir le bloc dédié plus bas, qui la
-  // remplace par l'exception écrite (arbitrage 1, DESIGN.md).
-  const SEUIL_ECART_MIN = 30;
-
-  it.each(['statut-info', 'statut-attention', 'statut-succes', 'statut-danger'])(
-    'la teinte de --marque reste à ≥ 30° de --%s',
-    (statut) => {
-      const teinteMarque = analyserHsl(valeurHslJeton('marque', 'clair')).h;
-      const teinteStatut = analyserHsl(valeurHslJeton(statut, 'clair')).h;
-      expect(ecartTeinte(teinteMarque, teinteStatut)).toBeGreaterThanOrEqual(SEUIL_ECART_MIN);
-    },
-  );
-
-  it('la teinte de --marque reste dans la fourchette 182–190° fixée par @laupernoe', () => {
-    const teinteMarque = analyserHsl(valeurHslJeton('marque', 'clair')).h;
-    expect(teinteMarque).toBeGreaterThanOrEqual(182);
-    expect(teinteMarque).toBeLessThanOrEqual(190);
-  });
-});
-
 /**
- * Marque (sombre, cyan 190°) — l'CHOIX PRODUIT ÉCRIT (DESIGN.md, « La marque en sombre casse une
- * doctrine ») en version exécutable. La règle générale à ≥ 30° tient pour trois statuts sur quatre ;
- * `--statut-info` (« en cours ») est l'EXCEPTION ASSUMÉE, à 20° seulement. Ce n'est pas un défaut à
- * corriger : c'est le seul choix qui garde une marque à la fois identique dans les deux thèmes ET
- * lisible en texte sur fond sombre (voir DESIGN.md, « Jetons sombres »). La condition qui rend cet
- * écart acceptable — forme + icône + mot obligatoires sur chaque badge — n'est pas mesurable par un
- * test de couleur ; ce test-ci vérifie seulement que l'écart RÉEL ne se dégrade pas sous la valeur
- * déjà mesurée (20°), pas qu'il atteive 30°.
+ * Interface monochrome (décision de @laupernoe) : la marque n'a AUCUNE teinte, la couleur est
+ * réservée aux `--statut-*`. Sentinelle de saturation + ratios nommés du bouton primaire, du lien
+ * (`text-primary`) et du focus, dans les deux thèmes.
  */
-describe("marque (sombre, cyan 190°) — écart de teinte avec les statuts d'OR, exception écrite (arbitrage 1)", () => {
-  function ecartTeinte(h1: number, h2: number): number {
-    const d = Math.abs(h1 - h2) % 360;
-    return d > 180 ? 360 - d : d;
-  }
-
-  it.each(['statut-attention', 'statut-succes', 'statut-danger'])(
-    'la teinte de --marque (sombre) reste à ≥ 30° de --%s (sombre)',
-    (statut) => {
-      const teinteMarque = analyserHsl(valeurHslJeton('marque', 'sombre')).h;
-      const teinteStatut = analyserHsl(valeurHslJeton(statut, 'sombre')).h;
-      expect(ecartTeinte(teinteMarque, teinteStatut)).toBeGreaterThanOrEqual(30);
+describe.each(THEMES)('marque sans saturation ($nom)', ({ cle }) => {
+  it.each(['marque', 'marque-fort', 'marque-doux', 'marque-doux-foreground', 'primary-foreground'])(
+    '--%s a une saturation nulle',
+    (jeton) => {
+      expect(analyserHsl(valeurHslJeton(jeton, cle)).s).toBe(0);
     },
   );
 
-  it("l'écart marque/statut-info (sombre) ne descend pas sous 20° — exception écrite, compensée par forme+icône+mot obligatoires (DESIGN.md)", () => {
-    const teinteMarque = analyserHsl(valeurHslJeton('marque', 'sombre')).h;
-    const teinteInfo = analyserHsl(valeurHslJeton('statut-info', 'sombre')).h;
-    expect(ecartTeinte(teinteMarque, teinteInfo)).toBeGreaterThanOrEqual(20);
+  it('--primary-foreground est neutre aussi ; --ring et --primary résolvent --marque', () => {
+    expect(valeurHslJeton('ring', cle)).toBe(valeurHslJeton('marque', cle));
+    expect(valeurHslJeton('primary', cle)).toBe(valeurHslJeton('marque', cle));
   });
 
-  it('la teinte de --marque (sombre) reste dans la fourchette 186–194° (famille cyan-11 Radix)', () => {
-    const teinteMarque = analyserHsl(valeurHslJeton('marque', 'sombre')).h;
-    expect(teinteMarque).toBeGreaterThanOrEqual(186);
-    expect(teinteMarque).toBeLessThanOrEqual(194);
+  it('bouton primaire : texte sur --primary atteint AAA (7:1)', () => {
+    expect(ratio('primary-foreground', 'primary', cle)).toBeGreaterThanOrEqual(7);
+  });
+
+  it('lien (text-primary) sur background, card et muted atteint AAA (7:1)', () => {
+    for (const fond of ['background', 'card', 'muted']) {
+      expect(ratio('primary', fond, cle)).toBeGreaterThanOrEqual(7);
+    }
+  });
+
+  it('focus : --ring sur background, card et popover atteint 3:1 (WCAG 1.4.11 / 2.4.13)', () => {
+    for (const fond of ['background', 'card', 'popover']) {
+      expect(ratio('ring', fond, cle)).toBeGreaterThanOrEqual(SEUIL_AA_COMPOSANT_UI);
+    }
+  });
+
+  it('survol : texte sur --primary-fort atteint 4.5:1', () => {
+    expect(ratio('primary-foreground', 'primary-fort', cle)).toBeGreaterThanOrEqual(
+      SEUIL_AA_TEXTE_NORMAL,
+    );
+  });
+
+  it('surlignage : se détache du fond de page (>= 1.1:1, renfort non textuel)', () => {
+    expect(ratio('marque-doux', 'background', cle)).toBeGreaterThanOrEqual(1.1);
   });
 });

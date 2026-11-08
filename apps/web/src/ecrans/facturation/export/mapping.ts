@@ -8,25 +8,16 @@ import {
 } from '@dfa/shared';
 
 /**
- * Repli WinBIZ quand l'API ne propose rien (elle n'invente pas les codes du logiciel du garage) :
- * compte d'arrondi usuel du plan PME et code TVA du taux normal 8.1 %. Jamais appliqué sans geste
- * explicite, et le dialogue rappelle de valider avec la fiduciaire.
+ * Suggestions : celles de l'API seule (elle connaît les codes de chaque logiciel). Aucun repli
+ * côté écran. Les codes TVA WinBIZ (N81, R26, H38) sont une convention
+ * modifiable, non confirmée par une fiduciaire (comme le compte d'arrondi 3809).
  */
-const REPLI_WINBIZ_COMPTES: Readonly<Record<string, string>> = { 'arrondi:defaut': '3809' };
-const REPLI_WINBIZ_CODES_TVA: Readonly<Record<string, string>> = { 'normal:81': 'N81' };
-
-/** Suggestion d'un compte : celle de l'API, sinon le repli de la cible. */
-export function compteSuggere(cible: CibleExport, c: PosteCompteMapping): string | null {
-  if (c.compteParDefaut) return c.compteParDefaut;
-  return cible === 'winbiz' ? (REPLI_WINBIZ_COMPTES[`${c.usage}:${c.categorie}`] ?? null) : null;
+export function compteSuggere(_cible: CibleExport, c: PosteCompteMapping): string | null {
+  return c.compteParDefaut ?? null;
 }
 
-/** Suggestion d'un code TVA : celle de l'API, sinon le repli de la cible. */
-export function codeTvaSuggere(cible: CibleExport, c: PosteCodeTvaMapping): string | null {
-  if (c.codeParDefaut) return c.codeParDefaut;
-  return cible === 'winbiz'
-    ? (REPLI_WINBIZ_CODES_TVA[`${c.regimeTva}:${String(c.tauxPourmille)}`] ?? null)
-    : null;
+export function codeTvaSuggere(_cible: CibleExport, c: PosteCodeTvaMapping): string | null {
+  return c.codeParDefaut ?? null;
 }
 
 /** Brouillon de saisie : clé de poste -> texte saisi. Jamais perdu tant que la boîte est ouverte. */

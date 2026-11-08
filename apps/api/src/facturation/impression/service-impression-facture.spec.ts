@@ -6,13 +6,14 @@ import type { AccesBase, ContexteTenant } from '../../db';
 import { site, tenant } from '../../db/schema';
 import type { ServiceDocumentsVente } from '../documents/service-documents';
 
-import { genererPdfDevis, genererPdfFacture } from './generation-pdf-facture';
+import { genererPdfAvoir, genererPdfDevis, genererPdfFacture } from './generation-pdf-facture';
 import { ServiceImpressionFacture } from './service-impression-facture';
 import type { StockagePdf } from './stockage-pdf';
 
 vi.mock('./generation-pdf-facture', () => ({
   genererPdfFacture: vi.fn(),
   genererPdfDevis: vi.fn(),
+  genererPdfAvoir: vi.fn(),
 }));
 
 const CTX: ContexteTenant = { tenantId: 't-1', utilisateurId: 'u-1', requeteId: 'req-1' };
@@ -146,6 +147,7 @@ function accesBaseFake(
       localite: 'Sion',
     },
   ],
+  assujettiTva = true,
 ): AccesBase & { readonly misAJour: { cle: string; sha256: string }[] } {
   const misAJour: { cle: string; sha256: string }[] = [];
   return {
@@ -157,7 +159,9 @@ function accesBaseFake(
             where: () => ({
               limit: async () => {
                 if (table === tenant)
-                  return [{ raisonSociale: 'Garage Martin SA', numeroTva: numeroTvaTenant }];
+                  return [
+                    { raisonSociale: 'Garage Martin SA', numeroTva: numeroTvaTenant, assujettiTva },
+                  ];
                 if (table === site)
                   return [{ rue: 'Rue du Site', npa: '1000', localite: 'Lausanne' }];
                 return blocCreancier;
@@ -208,6 +212,7 @@ describe('ServiceImpressionFacture', () => {
         npa: '1950',
         localite: 'Sion',
         numeroTva: 'CHE-114.873.733 TVA',
+        nonAssujettiTva: false,
       },
       null, // pas de logo déposé
     );
@@ -252,6 +257,47 @@ describe('ServiceImpressionFacture', () => {
       npa: '1000',
       localite: 'Lausanne',
       numeroTva: 'CHE-114.873.733 TVA',
+      nonAssujettiTva: false,
+    });
+  });
+
+  describe('garage non assujetti à la TVA', () => {
+    function ligne(tauxTvaPourmille: number): ReponseDocumentVente['lignes'][number] {
+      return { tauxTvaPourmille } as unknown as ReponseDocumentVente['lignes'][number];
+    }
+
+    async function expediteurPour(
+      assujettiTva: boolean,
+      lignes: ReponseDocumentVente['lignes'],
+    ): Promise<unknown> {
+      const serviceDocuments = {
+        obtenirComplet: vi.fn().mockResolvedValue(documentFacture({ qr: null, lignes })),
+      } as unknown as ServiceDocumentsVente;
+      vi.mocked(genererPdfFacture).mockResolvedValue(Buffer.from('%PDF-f'));
+      const service = new ServiceImpressionFacture(
+        accesBaseFake(null, [], assujettiTva),
+        new StockagePdfMemoire(),
+        serviceDocuments,
+      );
+      await service.obtenirPdf(CTX, PRINCIPAL, 'doc-1');
+      return vi.mocked(genererPdfFacture).mock.calls.at(-1)?.[1];
+    }
+
+    it('non assujetti ET toutes les lignes à 0 ‰ : le PDF est rendu sans TVA', async () => {
+      expect(await expediteurPour(false, [ligne(0), ligne(0)])).toMatchObject({
+        nonAssujettiTva: true,
+        numeroTva: null,
+      });
+    });
+
+    it('non assujetti mais une ligne taxée (émise quand le garage était assujetti) : TVA conservée', async () => {
+      expect(await expediteurPour(false, [ligne(0), ligne(81)])).toMatchObject({
+        nonAssujettiTva: false,
+      });
+    });
+
+    it('assujetti, lignes à 0 ‰ : jamais de mention « non assujetti »', async () => {
+      expect(await expediteurPour(true, [ligne(0)])).toMatchObject({ nonAssujettiTva: false });
     });
   });
 
@@ -291,11 +337,13 @@ describe('ServiceImpressionFacture', () => {
     });
   });
 
-  it('refuse un avoir (crédite le client, ne se paie pas)', async () => {
+  it('refuse un avoir brouillon (ni numéro ni montants figés)', async () => {
     const serviceDocuments = {
       obtenirComplet: vi
         .fn()
-        .mockResolvedValue(documentFacture({ typeDocument: 'avoir', qr: null })),
+        .mockResolvedValue(
+          documentFacture({ typeDocument: 'avoir', qr: null, statut: 'brouillon' }),
+        ),
     } as unknown as ServiceDocumentsVente;
     const service = new ServiceImpressionFacture(
       accesBaseFake(),
@@ -306,6 +354,30 @@ describe('ServiceImpressionFacture', () => {
     await expect(service.obtenirPdf(CTX, PRINCIPAL, 'doc-1')).rejects.toMatchObject({
       code: 'DOCUMENT_PDF_INDISPONIBLE',
     });
+  });
+
+  it('un avoir émis s’imprime via genererPdfAvoir, nom de fichier Avoir-<numero>.pdf', async () => {
+    vi.mocked(genererPdfAvoir).mockResolvedValue(Buffer.from('%PDF-avoir'));
+    const serviceDocuments = {
+      obtenirComplet: vi.fn().mockResolvedValue(
+        documentFacture({
+          typeDocument: 'avoir',
+          qr: null,
+          numero: '2026-AV-00001',
+          factureAnnuleeId: null,
+        }),
+      ),
+    } as unknown as ServiceDocumentsVente;
+    const service = new ServiceImpressionFacture(
+      accesBaseFake(),
+      new StockagePdfMemoire(),
+      serviceDocuments,
+    );
+
+    const r = await service.obtenirPdf(CTX, PRINCIPAL, 'doc-1');
+    expect(r.nomFichier).toBe('Avoir-2026-AV-00001.pdf');
+    expect(r.buffer.toString()).toBe('%PDF-avoir');
+    expect(vi.mocked(genererPdfAvoir).mock.calls[0]?.[2]).toBeNull();
   });
 
   it('première demande : génère, met en cache (stockage + pdfCle/pdfSha256), renvoie le buffer', async () => {

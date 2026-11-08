@@ -1,6 +1,7 @@
 {
   "titre": "Fahrzeuge",
   "nouveau": "Neues Fahrzeug",
+  "creerInfobulle": "Fahrzeug erstellen",
   "nouveauPourClient": "Dieses Fahrzeug wird {nom} zugeordnet.",
   "creer": "Fahrzeug erstellen",
   "liste": {
@@ -102,7 +103,7 @@
       "recherche": "Suche läuft…",
       "aucunResultat": "Kein Treffer im Referenzverzeichnis — freie Eingabe möglich.",
       "resultats": "{count, plural, one {# Treffer} other {# Treffer}}",
-      "horsReferentiel": "Nicht im Referenzverzeichnis — wird so gespeichert, wie eingegeben.",
+      "horsReferentiel": "Nicht in der Liste: freie Eingabe möglich, wird so gespeichert.",
       "nombreModeles": "{count, plural, one {# Modell} other {# Modelle}}",
       "erreurRecherche": "Vorschläge derzeit nicht verfügbar — freie Eingabe möglich."
     }
@@ -256,7 +257,6 @@
     "reporter": {
       "bouton": "Arbeit zurückstellen",
       "titre": "Arbeit zurückstellen",
-      "description": "Notieren Sie, was beim nächsten Besuch zu erledigen ist: Es erscheint auf der Fahrzeugkarte und beim Öffnen des nächsten Arbeitsauftrags.",
       "designationPlaceholder": "z. B. Zahnriemen",
       "detail": "Details (optional)",
       "enregistrer": "Speichern",

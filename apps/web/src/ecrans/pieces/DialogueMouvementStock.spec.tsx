@@ -22,7 +22,7 @@ beforeAll(() => {
 });
 
 const SITES: readonly SiteResume[] = [
-  { id: 'site-1', code: 'PRINCIPAL', nom: 'Site principal', actif: true },
+  { id: 'site-1', code: 'PRINCIPAL', codeCourt: 'PRINC', nom: 'Site principal', actif: true },
 ];
 
 const CHEMIN_APERCU = '/api/v1/articles/article-1/mouvements/apercu-forcage';

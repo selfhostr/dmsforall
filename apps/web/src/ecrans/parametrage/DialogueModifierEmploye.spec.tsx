@@ -27,6 +27,7 @@ const EMPLOYE: UtilisateurResume = {
     { id: 'site-1', nom: 'Site principal' },
     { id: 'site-ferme', nom: 'Ancien site' },
   ],
+  sitePrincipalId: 'site-1',
   derniereConnexionLe: null,
   creeLe: '2026-08-01T08:00:00.000Z',
 };

@@ -1,7 +1,8 @@
 import { CheckCircle2, Circle } from 'lucide-react';
-import { useState } from 'react';
-import { useForm, type UseFormRegisterReturn } from 'react-hook-form';
+import { useState, type ReactNode } from 'react';
+import { useForm, type UseFormRegisterReturn, type UseFormReturn } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router';
 
 import { ErreurApi, ErreurReseau, messageErreur } from '@/api/erreurs';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -9,45 +10,33 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { AideContextuelle } from '@/composants/AideContextuelle';
 import { useModifierBlocCreancier } from '@/hooks/parametrage/useModifierBlocCreancier';
+import { useParametresEntreprise } from '@/hooks/parametrage/useParametresEntreprise';
 import type {
   BlocCreancier,
   EntreeModificationBlocCreancier,
 } from '@/hooks/parametrage/bloc-creancier.api';
+import { chemins } from '@/routes/chemins';
 import { cn } from '@/lib/utils';
+
+import { adresseGarageComplete } from './FormulaireAdresseGarage';
 
 interface Props {
   readonly blocCreancier: BlocCreancier;
 }
 
-interface ValeursFormulaire {
+/** Nom du bulletin et comptes : l'adresse, elle, se règle dans « Mon garage » (`FormulaireAdresseGarage`).
+ *  Chaque formulaire n'envoie que SES champs (PATCH partiel) : aucun n'écrase l'autre. */
+export interface ValeursFormulaire {
   readonly nom: string;
-  readonly rue: string;
-  readonly numero: string;
-  readonly npa: string;
-  readonly localite: string;
-  readonly pays: string;
   readonly iban: string;
   readonly qrIban: string;
 }
 
-const PAYS_ADMIS = ['CH', 'LI'] as const;
-
 function versValeursFormulaire(bloc: BlocCreancier): ValeursFormulaire {
   return {
     nom: bloc.nom ?? '',
-    rue: bloc.rue ?? '',
-    numero: bloc.numero ?? '',
-    npa: bloc.npa ?? '',
-    localite: bloc.localite ?? '',
-    pays: bloc.pays,
     iban: bloc.iban ?? '',
     qrIban: bloc.qrIban ?? '',
   };
@@ -61,11 +50,6 @@ function versEntree(valeurs: ValeursFormulaire): EntreeModificationBlocCreancier
     valeur.trim() === '' ? null : valeur.trim();
   return {
     nom: videVersNull(valeurs.nom),
-    rue: videVersNull(valeurs.rue),
-    numero: videVersNull(valeurs.numero),
-    npa: videVersNull(valeurs.npa),
-    localite: videVersNull(valeurs.localite),
-    pays: valeurs.pays,
     // IBAN/QR-IBAN : la forme saisie (espaces tolérés, ex. « CH93 0076 2011 6238 5295 7 ») part
     // telle quelle — la normalisation (majuscules, compaction) est faite côté serveur
     // (`facturation/qr/iban.ts`), jamais dupliquée ici.
@@ -90,9 +74,22 @@ export function FormulaireBlocCreancier({ blocCreancier }: Props) {
   const form = useForm<ValeursFormulaire>({ defaultValues: versValeursFormulaire(blocCreancier) });
   const valeurs = form.watch();
 
+  // Un seul nom visible : celui de l'onglet Entreprise (raison sociale). Le bulletin QR reprend ce
+  // nom (70 car. max, limite du standard) ; un nom différent (titulaire du compte sous un autre
+  // nom) reste possible via le lien, et s'ouvre de lui-même si le bloc en porte déjà un autre.
+  const entreprise = useParametresEntreprise();
+  const nomEntreprise = entreprise.data?.raisonSociale.trim().slice(0, 70);
+  const [autreNomDemande, setAutreNomDemande] = useState(false);
+  const nomDejaDifferent =
+    blocCreancier.nom !== null &&
+    blocCreancier.nom.trim() !== '' &&
+    blocCreancier.nom !== nomEntreprise;
+  const nomSepare = nomEntreprise === undefined || autreNomDemande || nomDejaDifferent;
+  const nomEffectif = nomSepare ? valeurs.nom : (nomEntreprise ?? '');
+
   const soumettre = form.handleSubmit((donnees) => {
     setDernierEnregistrementReussi(false);
-    modifier.mutate(versEntree(donnees), {
+    modifier.mutate(versEntree({ ...donnees, nom: nomSepare ? donnees.nom : nomEffectif }), {
       onSuccess: () => setDernierEnregistrementReussi(true),
     });
   });
@@ -106,10 +103,8 @@ export function FormulaireBlocCreancier({ blocCreancier }: Props) {
   const erreurGlobaleAAfficher = erreur && erreursChamp.length === 0;
   const estErreurReseau = erreur instanceof ErreurReseau;
 
-  const nomRempli = valeurs.nom.trim() !== '';
-  const adresseComplete = [valeurs.rue, valeurs.numero, valeurs.npa, valeurs.localite].every(
-    (v) => v.trim() !== '',
-  );
+  const nomRempli = nomEffectif.trim() !== '';
+  const adresseComplete = adresseGarageComplete(blocCreancier);
   const compteRempli = valeurs.iban.trim() !== '' || valeurs.qrIban.trim() !== '';
   const complet = nomRempli && adresseComplete && compteRempli;
 
@@ -132,7 +127,11 @@ export function FormulaireBlocCreancier({ blocCreancier }: Props) {
               <ElementCompletude ok={nomRempli} texte={t('parametrage:creancier.completude.nom')} />
               <ElementCompletude
                 ok={adresseComplete}
-                texte={t('parametrage:creancier.completude.adresse')}
+                texte={
+                  <Link to={chemins.parametrage.garage()} className="underline underline-offset-2">
+                    {t('parametrage:creancier.completude.adresse')}
+                  </Link>
+                }
               />
               <ElementCompletude
                 ok={compteRempli}
@@ -165,126 +164,45 @@ export function FormulaireBlocCreancier({ blocCreancier }: Props) {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
-          <Label htmlFor="bc-nom">{t('parametrage:creancier.identite.nom')}</Label>
-          <Input
-            id="bc-nom"
-            maxLength={70}
-            readOnly={modifier.isPending}
-            {...form.register('nom')}
-          />
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="texte-titre-section">
-            {t('parametrage:creancier.adresse.titre')}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="bc-rue">{t('parametrage:creancier.adresse.rue')}</Label>
-            <Input
-              id="bc-rue"
-              maxLength={70}
-              readOnly={modifier.isPending}
-              {...form.register('rue')}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="bc-numero">{t('parametrage:creancier.adresse.numero')}</Label>
-            <Input
-              id="bc-numero"
-              maxLength={16}
-              readOnly={modifier.isPending}
-              {...form.register('numero')}
-            />
-            <p className="texte-corps text-muted-foreground">
-              {t('parametrage:creancier.adresse.numeroAide')}
-            </p>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-2">
-              <Label htmlFor="bc-npa">{t('parametrage:creancier.adresse.npa')}</Label>
+          {nomSepare ? (
+            <>
+              <Label htmlFor="bc-nom" requis>
+                {t('parametrage:creancier.identite.nomBulletin')}
+              </Label>
               <Input
-                id="bc-npa"
-                maxLength={16}
+                id="bc-nom"
+                maxLength={70}
                 readOnly={modifier.isPending}
-                {...form.register('npa')}
+                aria-required="true"
+                {...form.register('nom')}
               />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="bc-localite">{t('parametrage:creancier.adresse.localite')}</Label>
-              <Input
-                id="bc-localite"
-                maxLength={35}
-                readOnly={modifier.isPending}
-                {...form.register('localite')}
-              />
-            </div>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="bc-pays">{t('parametrage:creancier.adresse.pays')}</Label>
-            <Select
-              value={form.watch('pays')}
-              onValueChange={(valeur) => form.setValue('pays', valeur)}
-              disabled={modifier.isPending}
-            >
-              <SelectTrigger
-                id="bc-pays"
-                aria-label={t('parametrage:creancier.adresse.pays')}
-                className="w-40"
+              <p className="texte-corps text-muted-foreground">
+                {t('parametrage:creancier.identite.nomBulletinAide')}
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="texte-corps">
+                {t('parametrage:creancier.identite.nomRepris', { nom: nomEntreprise })}
+              </p>
+              <Button
+                type="button"
+                variant="link"
+                className="h-auto p-0"
+                onClick={() => setAutreNomDemande(true)}
               >
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {PAYS_ADMIS.map((code) => (
-                  <SelectItem key={code} value={code}>
-                    {code}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+                {t('parametrage:creancier.identite.nomDifferent')}
+              </Button>
+            </>
+          )}
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="texte-titre-section">
-            {t('parametrage:creancier.comptes.titre')}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <p className="texte-corps text-muted-foreground">
-            {t('parametrage:creancier.comptes.explication')}
-          </p>
-
-          <ChampCompte
-            id="bc-iban"
-            champ="iban"
-            libelle={t('parametrage:creancier.comptes.iban')}
-            aide={t('parametrage:creancier.comptes.ibanAide')}
-            lectureSeule={modifier.isPending}
-            register={form.register('iban')}
-            invalide={Boolean(erreurPourChamp('iban'))}
-            erreur={erreurPourChamp('iban')}
-            t={t}
-          />
-
-          <ChampCompte
-            id="bc-qr-iban"
-            champ="qrIban"
-            libelle={t('parametrage:creancier.comptes.qrIban')}
-            aide={t('parametrage:creancier.comptes.qrIbanAide')}
-            lectureSeule={modifier.isPending}
-            register={form.register('qrIban')}
-            invalide={Boolean(erreurPourChamp('qrIban'))}
-            erreur={erreurPourChamp('qrIban')}
-            t={t}
-          />
-        </CardContent>
-      </Card>
+      <SectionComptesBancaires
+        form={form}
+        lectureSeule={modifier.isPending}
+        erreurPourChamp={erreurPourChamp}
+      />
 
       <div className="flex items-center gap-3">
         <Button type="submit" disabled={modifier.isPending}>
@@ -303,7 +221,73 @@ export function FormulaireBlocCreancier({ blocCreancier }: Props) {
   );
 }
 
-function ElementCompletude({ ok, texte }: { readonly ok: boolean; readonly texte: string }) {
+interface PropsSectionBloc {
+  readonly form: UseFormReturn<ValeursFormulaire>;
+  readonly lectureSeule: boolean;
+}
+
+interface PropsSectionComptes extends PropsSectionBloc {
+  readonly erreurPourChamp: (champ: 'iban' | 'qrIban') => { readonly code: string } | undefined;
+}
+
+/** Comptes bancaires — « un sur deux » : IBAN OU QR-IBAN suffit. Le groupe porte l'obligation
+ *  (légende `fieldset` + `aria-describedby`), pas chaque champ : `aria-required` sur les deux
+ *  dirait qu'il faut remplir les deux. */
+export function SectionComptesBancaires({
+  form,
+  lectureSeule,
+  erreurPourChamp,
+}: PropsSectionComptes) {
+  const { t } = useTranslation(['parametrage', 'erreurs']);
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="texte-titre-section">
+          {t('parametrage:creancier.comptes.titre')}
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <fieldset className="space-y-4" aria-describedby="bc-comptes-groupe">
+          <legend className="texte-corps font-medium text-foreground">
+            {t('parametrage:creancier.comptes.groupe')}
+            <span aria-hidden="true" className="ml-0.5">
+              *
+            </span>
+          </legend>
+          <p id="bc-comptes-groupe" className="texte-corps text-muted-foreground">
+            {t('parametrage:creancier.comptes.groupeAide')}
+          </p>
+
+          <ChampCompte
+            id="bc-iban"
+            libelle={t('parametrage:creancier.comptes.iban')}
+            lectureSeule={lectureSeule}
+            register={form.register('iban')}
+            erreur={erreurPourChamp('iban')}
+            t={t}
+          />
+
+          <ChampCompte
+            id="bc-qr-iban"
+            libelle={t('parametrage:creancier.comptes.qrIban')}
+            aide={
+              <AideContextuelle
+                sujet={t('parametrage:creancier.comptes.qrIban')}
+                texte={t('aide:parametrage.qrIban')}
+              />
+            }
+            lectureSeule={lectureSeule}
+            register={form.register('qrIban')}
+            erreur={erreurPourChamp('qrIban')}
+            t={t}
+          />
+        </fieldset>
+      </CardContent>
+    </Card>
+  );
+}
+
+function ElementCompletude({ ok, texte }: { readonly ok: boolean; readonly texte: ReactNode }) {
   return (
     <li
       className={cn(
@@ -323,12 +307,10 @@ function ElementCompletude({ ok, texte }: { readonly ok: boolean; readonly texte
 
 interface PropsChampCompte {
   readonly id: string;
-  readonly champ: 'iban' | 'qrIban';
   readonly libelle: string;
-  readonly aide: string;
+  readonly aide?: ReactNode;
   readonly lectureSeule: boolean;
   readonly register: UseFormRegisterReturn;
-  readonly invalide: boolean;
   readonly erreur: { readonly code: string } | undefined;
   readonly t: (cle: string, options?: Record<string, unknown>) => string;
 }
@@ -339,29 +321,22 @@ interface PropsChampCompte {
  *  `QR_IBAN_SANS_IID_RESERVE`) pilote seul le message, jamais le `message` brut du serveur — même
  *  discipline que `messageErreur` pour un refus global. `defaultValue` couvre un code de champ
  *  qu'un futur module d'`iban.ts` ajouterait sans que ce formulaire n'ait encore sa traduction. */
-function ChampCompte({
-  id,
-  libelle,
-  aide,
-  lectureSeule,
-  register,
-  invalide,
-  erreur,
-  t,
-}: PropsChampCompte) {
+function ChampCompte({ id, libelle, aide, lectureSeule, register, erreur, t }: PropsChampCompte) {
   const idErreur = `${id}-erreur`;
   return (
     <div className="space-y-2">
-      <Label htmlFor={id}>{libelle}</Label>
+      <div className="flex items-center gap-1.5">
+        <Label htmlFor={id}>{libelle}</Label>
+        {aide}
+      </div>
       <Input
         id={id}
         maxLength={34}
         readOnly={lectureSeule}
-        aria-invalid={invalide || undefined}
+        aria-invalid={erreur ? true : undefined}
         aria-describedby={erreur ? idErreur : undefined}
         {...register}
       />
-      <p className="texte-corps text-muted-foreground">{aide}</p>
       {erreur ? (
         <p id={idErreur} className="texte-corps text-destructive" role="alert">
           {t(`erreurs:codes.${erreur.code}`, {

@@ -195,7 +195,7 @@ export class ServiceClient {
           // gommés par `normaliser_recherche()`), servi par le même index GIN trigram déjà posé
           // (`client_recherche_idx`, migration 0006 — `gin_trgm_ops` supporte `~~`/`like`, pas
           // seulement `%`, donc aucun index supplémentaire n'est nécessaire).
-          sql`(public.normaliser_recherche(coalesce(c.raison_sociale, c.nom || ' ' || coalesce(c.prenom, ''))) like public.normaliser_recherche(${motif}) or public.normaliser_recherche(coalesce(c.raison_sociale, concat_ws(' ', c.prenom, c.nom))) like public.normaliser_recherche(${motif}))`,
+          sql`(public.normaliser_recherche(coalesce(c.raison_sociale, c.nom || ' ' || coalesce(c.prenom, ''), '')) like public.normaliser_recherche(${motif}) or public.normaliser_recherche(coalesce(c.raison_sociale, coalesce(c.prenom || ' ', '') || c.nom, '')) like public.normaliser_recherche(${motif}))`,
           sql`c.numero ilike ${motif}`,
           sql`c.email ilike ${motif}`,
           sql`c.ide ilike ${motif}`,

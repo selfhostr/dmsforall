@@ -69,6 +69,8 @@ function collecterChemins(routes: readonly RouteObject[], prefixe = ''): string[
  */
 const HORS_MENU: Readonly<Record<string, string>> = {
   '/login': "Écran public, hors coquille applicative — aucun menu n'existe à ce moment-là.",
+  '/changer-mot-de-passe':
+    'Écran hors coquille (issue #58) : atteint par redirection automatique de `RouteProtegee` tant que le mot de passe temporaire n’est pas remplacé.',
   '/console':
     "Console d'exploitation plateforme (palier 1) — HORS de l'arborescence métier par " +
     "construction (pas d'`AppShell`, pas de barre latérale, `docs/conception-console-exploitation-" +

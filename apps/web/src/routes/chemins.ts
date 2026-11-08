@@ -130,6 +130,8 @@ export const chemins = {
     /** `id` est la facture D'ORIGINE à partir de laquelle l'avoir est émis, pas l'avoir lui-même
      *  (qui n'existe pas encore quand cet écran s'ouvre) — voir `routeur.tsx`. */
     avoir: (id: string, site?: string) => construireChemin(`/factures/${id}/avoir`, { site }),
+    /** Page « Chiffres » (`/factures/chiffres`) : CA, encaissements, factures à suivre. */
+    chiffres: (site?: string) => construireChemin('/factures/chiffres', { site }),
     /** Export fiduciaire (`/export-fiduciaire`) — onglet de Facturation. */
     exportFiduciaire: (site?: string) => construireChemin('/export-fiduciaire', { site }),
   },
@@ -146,10 +148,16 @@ export const chemins = {
    *  chaîne qu'avant — aucun appelant existant n'est affecté.
    */
   parametrage: {
+    /** Identité du garage : raison sociale, logo, TVA, adresse (`EcranMonGarage`). */
+    garage: (site?: string) => construireChemin('/parametrage/garage', { site }),
     facturation: (site?: string) => construireChemin('/parametrage/facturation', { site }),
     referentiels: (site?: string) => construireChemin('/parametrage/referentiels', { site }),
     atelier: (site?: string) => construireChemin('/parametrage/atelier', { site }),
     sites: (site?: string) => construireChemin('/parametrage/sites', { site }),
+    /** Réglages > Modules (`GET|PATCH /parametres-entreprise/modules`) : singleton par TENANT. */
+    modules: (site?: string) => construireChemin('/parametrage/modules', { site }),
+    /** Réglages > Envoi des e-mails (`/parametres-entreprise/envoi-courriel`) : singleton par TENANT. */
+    envoiCourriel: (site?: string) => construireChemin('/parametrage/envoi-courriel', { site }),
     /** Singleton par TENANT (`GET|PATCH /parametrage/pieces`), même famille que `atelier`/
      *  `referentiels` ci-dessus — pas de `?site=`. À la différence de ces deux-là, la route est
      *  gardée par `rolesAutorises={ROLES_PARAMETRAGE_PIECES}` (`routeur.tsx`) : la lecture elle-même

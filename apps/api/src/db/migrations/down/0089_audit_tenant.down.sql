@@ -1,0 +1,6 @@
+-- =============================================================================================
+-- 0089_audit_tenant.down.sql — inverse de 0089_audit_tenant.sql.
+--
+-- INTENTIONNELLEMENT VIDE : la montante n'a fait qu'un `ALTER TYPE ... ADD VALUE`, que PostgreSQL
+-- ne sait pas défaire (pas de DROP VALUE). Rien d'autre n'a été créé.
+-- =============================================================================================

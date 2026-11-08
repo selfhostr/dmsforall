@@ -27,5 +27,27 @@ export const handlers = [
       { status: 401, headers: { 'content-type': 'application/problem+json' } },
     ),
   ),
+  // Réglages du garage : refusés par défaut (rôle sans droit) — l'écran qui en dépend retombe sur
+  // son comportement sans régime TVA connu. Un test de régime surcharge via `server.use(...)`.
+  http.get('/api/v1/parametres-entreprise', () =>
+    HttpResponse.json(
+      {
+        type: 'https://docs.dmsforall.example/erreurs/DROIT_INSUFFISANT',
+        title: 'Droit insuffisant',
+        status: 403,
+        code: 'DROIT_INSUFFISANT',
+        instance: 'req-1',
+      },
+      { status: 403, headers: { 'content-type': 'application/problem+json' } },
+    ),
+  ),
   http.get('/api/v1/sante', () => HttpResponse.json({ statut: 'ok', version: VERSION_TEST })),
+  http.get('/api/v1/systeme/version', () =>
+    HttpResponse.json({
+      actuelle: '0.3.0',
+      derniere: '0.3.0',
+      miseAJourDisponible: false,
+      urlNotes: null,
+    }),
+  ),
 ];

@@ -27,6 +27,9 @@ export function useEncaissement(
         void queryClient.invalidateQueries({
           queryKey: clesFacturation.documents.detail(imputation.documentId),
         });
+        void queryClient.invalidateQueries({
+          queryKey: clesFacturation.documents.paiements(imputation.documentId),
+        });
       }
       void queryClient.invalidateQueries({ queryKey: ['facturation', 'documents', 'liste'] });
       if (variables.entree.payeurClientId) {

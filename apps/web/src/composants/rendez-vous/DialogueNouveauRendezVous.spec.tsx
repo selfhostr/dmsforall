@@ -44,6 +44,7 @@ const VEHICULE: VehiculeResume = {
 const SITE = {
   id: '33333333-3333-4333-8333-333333333333',
   code: 'SION',
+  codeCourt: 'SION',
   nom: 'Garage Martin — Sion',
   actif: true,
 };

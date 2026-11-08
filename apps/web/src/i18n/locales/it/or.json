@@ -74,6 +74,7 @@
       "tempsBareme": "Tempo forfettario",
       "tempsPointe": "Tempo registrato",
       "prixUnitaire": "Prezzo unitario IVA esclusa",
+      "prixUnitaireAide": "Prezzo IVA esclusa. In un preventivo il prezzo si inserisce IVA inclusa: dividere per 1 + aliquota per riprendere un prezzo di preventivo.",
       "rabais": "Sconto",
       "payeur": "Chi paga",
       "technicien": "Tecnico",
@@ -172,6 +173,7 @@
       "choisi": "Scelto dal magazzino",
       "changer": "Cerca un altro pezzo",
       "prixConverti": "Prezzo di catalogo {prixTtc} IVA inclusa, convertito in netto (IVA {taux} %).",
+      "prixSansTva": "Prezzo di catalogo {prixTtc} IVA inclusa, riportato invariato (il Suo garage non fattura IVA).",
       "parcours": {
         "aide": "Digiti un riferimento preciso per cercare, oppure scelga direttamente dal catalogo qui sotto.",
         "vide": "Nessun articolo attivo nel catalogo di questa sede al momento. Può inserire il pezzo manualmente qui sotto."
@@ -338,7 +340,7 @@
   "liste": {
     "titre": "Ordini di riparazione",
     "actions": {
-      "nouveau": "Crea un OR"
+      "creer": "Crea un ordine di riparazione"
     },
     "colonnes": {
       "numero": "N. ordine",
@@ -550,10 +552,8 @@
       "surPlace": "Sul posto",
       "email": "E-mail"
     },
-    "horodatage": "Data e ora vengono registrate adesso.",
     "enregistrer": "Registra l'accordo",
     "action": "Accordo del cliente",
-    "description": "{count, plural, one {Il cliente ha dato l'accordo per # lavoro. Sarà convalidato.} other {Il cliente ha dato l'accordo per # lavori. Saranno convalidati.}}",
     "pourTous": "{count, plural, one {Accordo del cliente per il lavoro proposto} other {Accordo del cliente per i # lavori proposti}}"
   },
   "lignesEnAttente": {

@@ -26,8 +26,14 @@ beforeAll(() => {
 const SESSION_DEUX_SITES: SessionCourante = {
   ...SESSION_TEST,
   sites: [
-    { id: 'site-1', code: 'MARTIGNY', nom: 'Garage Martin — Martigny', actif: true },
-    { id: 'site-2', code: 'SION', nom: 'Garage Martin — Sion', actif: true },
+    {
+      id: 'site-1',
+      code: 'MARTIGNY',
+      codeCourt: 'MARTI',
+      nom: 'Garage Martin — Martigny',
+      actif: true,
+    },
+    { id: 'site-2', code: 'SION', codeCourt: 'SION', nom: 'Garage Martin — Sion', actif: true },
   ],
 };
 

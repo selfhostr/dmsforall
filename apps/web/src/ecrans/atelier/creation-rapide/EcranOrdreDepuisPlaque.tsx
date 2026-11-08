@@ -26,13 +26,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { ChampKilometrage } from '@/composants/comptoir/ChampKilometrage';
 import { AvertissementConfirmable } from '@/composants/motifs/AvertissementConfirmable';
 import { BandeauAlerteClient } from '@/composants/motifs/BandeauAlerteClient';
-import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
+import { PanneauLateral } from '@/composants/PanneauLateral';
 import { useOrdreDepuisPlaque } from '@/hooks/atelier/useOrdreDepuisPlaque';
 import { useRechercheTypee } from '@/hooks/atelier/useRechercheTypee';
 import { useClient } from '@/hooks/clients/useClient';
 import { useVehiculesClient } from '@/hooks/clients/useVehiculesClient';
 import { useParametresAtelier } from '@/hooks/parametres/useParametresAtelier';
-import { useSiteCourant } from '@/hooks/site/ContexteSiteCourant';
+import { useSitePrincipal } from '@/hooks/site/useSitePrincipal';
 import { useSiteImplicite } from '@/hooks/site/useSiteImplicite';
 import { useLangue } from '@/hooks/useLangue';
 import { useSession } from '@/hooks/useSession';
@@ -99,12 +99,12 @@ export function EcranOrdreDepuisPlaque() {
   const { langue } = useLangue();
   const { data: session } = useSession();
   const { estMonoSite, siteId: siteImplicite } = useSiteImplicite();
-  const { preferenceSiteId } = useSiteCourant();
+  const sitePrincipal = useSitePrincipal();
   const parametresAtelier = useParametresAtelier();
   const creation = useOrdreDepuisPlaque();
 
   // --- Site : jamais demandé à un garage mono-site.
-  const [siteChoisi, setSiteChoisi] = useState(siteUrl ?? preferenceSiteId ?? '');
+  const [siteChoisi, setSiteChoisi] = useState(siteUrl ?? sitePrincipal ?? '');
   const sitesActifs = (session?.sites ?? []).filter((site) => site.actif);
   const siteId = estMonoSite ? (siteImplicite ?? '') : siteChoisi;
 
@@ -242,228 +242,242 @@ export function EcranOrdreDepuisPlaque() {
   const deuxOrOuverts =
     creation.confirmationsRequises.includes('VEHICULE_DEUX_OR_OUVERTS') && orsOuverts.length > 0;
 
+  // Saisie dans le panneau latéral droit (comme « Nouveau client »), par-dessus la liste des OR :
+  // fermer le panneau ramène à la liste, sans perdre `?site=`.
+  const fermer = () => navigate(chemins.atelier.ordresReparation.liste(siteId || siteUrl));
+
   return (
-    <GabaritEcran titre={t('or:nouveau.rapide.titre')}>
-      <form
-        className="mx-auto flex w-full max-w-2xl flex-col gap-6"
-        noValidate
-        onSubmit={(evenement) => {
-          evenement.preventDefault();
-          soumettre();
+    <>
+      <PanneauLateral
+        ouvert
+        onOuvertChange={(ouvert) => {
+          if (!ouvert) fermer();
         }}
-      >
-        <p className="texte-corps text-muted-foreground">{t('or:nouveau.rapide.intro')}</p>
-
-        {clientUrl.isError ? (
-          <Alert variant="avertissement">
-            <AlertCircle className="h-4 w-4" aria-hidden="true" />
-            <AlertDescription>{t('or:nouveau.rapide.clientIntrouvable')}</AlertDescription>
-          </Alert>
-        ) : null}
-
-        <Section numero={1} titre={t('or:nouveau.rapide.vehicule.titre')}>
-          <SectionVehiculePlaque
-            plaque={plaque}
-            onPlaqueChange={setPlaque}
-            recherche={recherchePlaque}
-            candidatsClient={candidatsClient}
-            candidatsRecherche={candidatsRecherche}
-            choisi={vehiculeChoisi}
-            onChoisir={(candidat) => {
-              setVehiculeChoisi(candidat);
-              if (candidat === null) setDetenteurIgnore(false);
-            }}
-            nouveau={vehiculeNouveau}
-            onNouveau={setVehiculeNouveau}
-            marque={marque}
-            modele={modele}
-            onMarqueChange={setMarque}
-            onModeleChange={setModele}
-            erreurMarque={texteErreur(erreurs.marque)}
-            erreurModele={texteErreur(erreurs.modele)}
-            verrouille={verrouille}
-            autoFocus={vehiculeIdUrl === undefined}
-          />
-          {erreurs.vehicule && !vehiculeAffiche ? (
-            <p className="texte-corps text-destructive" role="alert">
-              {t('or:nouveau.rapide.vehicule.requis')}
-            </p>
-          ) : null}
-          {erreurs.vehicule && vehiculeAffiche ? (
-            <p className="texte-corps text-destructive" role="alert">
-              {t('or:nouveau.rapide.vehicule.choisir')}
-            </p>
-          ) : null}
-        </Section>
-
-        <Section numero={2} titre={t('or:nouveau.rapide.client.titre')}>
-          {ficheClient.data ? (
-            <BandeauAlerteClient
-              bloque={ficheClient.data.statut === 'bloque'}
-              alertes={ficheClient.data.notesAlerte.map((note) => ({
-                id: note.id,
-                texte: note.texte,
-              }))}
-            />
-          ) : null}
-          <SectionClientRapide
-            choisi={client}
-            onChoisir={(choix) => {
-              setClientManuel(choix);
-              if (choix === null) setDetenteurIgnore(true);
-            }}
-            detenteurDuVehicule={detenteurDuVehicule}
-            nouveau={clientNouveau}
-            onNouveau={setClientNouveau}
-            nom={nom}
-            telephone={telephone}
-            onNomChange={setNom}
-            onTelephoneChange={setTelephone}
-            erreurNom={texteErreur(erreurs.nom)}
-            erreurTelephone={texteErreur(erreurs.telephone)}
-            verrouille={verrouille}
-            imposeParUrl={clientImposeParUrl}
-          />
-          {erreurs.client ? (
-            <p className="texte-corps text-destructive" role="alert">
-              {t('or:nouveau.rapide.client.requis')}
-            </p>
-          ) : null}
-        </Section>
-
-        <Section numero={3} titre={t('or:nouveau.rapide.ordre.titre')}>
-          {estMonoSite ? null : (
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="or-rapide-site" requis>
-                {t('or:nouveau.siteManquant.label')}
-              </Label>
-              <Select value={siteChoisi} onValueChange={setSiteChoisi}>
-                <SelectTrigger
-                  id="or-rapide-site"
-                  aria-required="true"
-                  aria-invalid={erreurs.site ? true : undefined}
-                >
-                  <SelectValue placeholder={t('or:nouveau.siteManquant.label')} />
-                </SelectTrigger>
-                <SelectContent>
-                  {sitesActifs.map((site) => (
-                    <SelectItem key={site.id} value={site.id}>
-                      {site.nom}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {erreurs.site ? (
-                <p className="texte-corps text-destructive">{texteErreur(erreurs.site)}</p>
-              ) : null}
-            </div>
-          )}
-
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="or-rapide-demande">{t('or:nouveau.rapide.ordre.demande')}</Label>
-            <Textarea
-              id="or-rapide-demande"
-              rows={3}
-              maxLength={4000}
-              value={demande}
-              placeholder={t('or:nouveau.demandes.placeholder')}
-              onChange={(evenement) => setDemande(evenement.target.value)}
-            />
-          </div>
-
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="or-rapide-type" requis>
-                {t('or:nouveau.type.libelle')}
-              </Label>
-              <Select
-                value={type}
-                onValueChange={(valeur) => setType(valeur as TypeOrdreReparation)}
+        titre={t('or:nouveau.rapide.titre')}
+        pied={
+          <>
+            <Button asChild variant="outline">
+              <Link
+                to={chemins.atelier.ordresReparation.nouveau(siteId || undefined, client?.id, true)}
               >
-                <SelectTrigger id="or-rapide-type" aria-required="true">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {TYPES_ORDRE_REPARATION.map((valeur) => (
-                    <SelectItem key={valeur} value={valeur}>
-                      {t(`or:nouveau.type.${valeur}`)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <ChampKilometrage
-              valeur={kilometrage}
-              onChangeValeur={setKilometrage}
-              unite="km"
-              label={t('or:actions.kilometrageEntree')}
-              obligatoire={kilometrageObligatoire}
-              erreur={texteErreur(erreurs.kilometrage)}
-            />
-          </div>
+                {t('or:nouveau.rapide.ancienParcours')}
+              </Link>
+            </Button>
+            <Button type="submit" form="or-rapide-formulaire" disabled={creation.enCours}>
+              {creation.enCours
+                ? t('or:nouveau.actions.enCours')
+                : echec
+                  ? t('or:nouveau.rapide.reessayer')
+                  : t('or:nouveau.actions.creer')}
+            </Button>
+          </>
+        }
+      >
+        <form
+          id="or-rapide-formulaire"
+          className="flex w-full flex-col gap-6"
+          noValidate
+          onSubmit={(evenement) => {
+            evenement.preventDefault();
+            soumettre();
+          }}
+        >
+          <p className="texte-corps text-muted-foreground">{t('or:nouveau.rapide.intro')}</p>
 
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="or-rapide-restitution">{t('or:bandeau.restitutionPromise')}</Label>
-              <DatetimeInput
-                id="or-rapide-restitution"
-                value={restitution}
-                onChange={(valeurISO) => setRestitution(valeurISO ?? '')}
+          {clientUrl.isError ? (
+            <Alert variant="avertissement">
+              <AlertCircle className="h-4 w-4" aria-hidden="true" />
+              <AlertDescription>{t('or:nouveau.rapide.clientIntrouvable')}</AlertDescription>
+            </Alert>
+          ) : null}
+
+          <Section numero={1} titre={t('or:nouveau.rapide.vehicule.titre')}>
+            <SectionVehiculePlaque
+              plaque={plaque}
+              onPlaqueChange={setPlaque}
+              recherche={recherchePlaque}
+              candidatsClient={candidatsClient}
+              candidatsRecherche={candidatsRecherche}
+              choisi={vehiculeChoisi}
+              onChoisir={(candidat) => {
+                setVehiculeChoisi(candidat);
+                if (candidat === null) setDetenteurIgnore(false);
+              }}
+              nouveau={vehiculeNouveau}
+              onNouveau={setVehiculeNouveau}
+              marque={marque}
+              modele={modele}
+              onMarqueChange={setMarque}
+              onModeleChange={setModele}
+              erreurMarque={texteErreur(erreurs.marque)}
+              erreurModele={texteErreur(erreurs.modele)}
+              verrouille={verrouille}
+              autoFocus={vehiculeIdUrl === undefined}
+            />
+            {erreurs.vehicule && !vehiculeAffiche ? (
+              <p className="texte-corps text-destructive" role="alert">
+                {t('or:nouveau.rapide.vehicule.requis')}
+              </p>
+            ) : null}
+            {erreurs.vehicule && vehiculeAffiche ? (
+              <p className="texte-corps text-destructive" role="alert">
+                {t('or:nouveau.rapide.vehicule.choisir')}
+              </p>
+            ) : null}
+          </Section>
+
+          <Section numero={2} titre={t('or:nouveau.rapide.client.titre')}>
+            {ficheClient.data ? (
+              <BandeauAlerteClient
+                bloque={ficheClient.data.statut === 'bloque'}
+                alertes={ficheClient.data.notesAlerte.map((note) => ({
+                  id: note.id,
+                  texte: note.texte,
+                }))}
               />
-            </div>
-            {poObligatoire ? (
+            ) : null}
+            <SectionClientRapide
+              choisi={client}
+              onChoisir={(choix) => {
+                setClientManuel(choix);
+                if (choix === null) setDetenteurIgnore(true);
+              }}
+              detenteurDuVehicule={detenteurDuVehicule}
+              nouveau={clientNouveau}
+              onNouveau={setClientNouveau}
+              nom={nom}
+              telephone={telephone}
+              onNomChange={setNom}
+              onTelephoneChange={setTelephone}
+              erreurNom={texteErreur(erreurs.nom)}
+              erreurTelephone={texteErreur(erreurs.telephone)}
+              verrouille={verrouille}
+              imposeParUrl={clientImposeParUrl}
+            />
+            {erreurs.client ? (
+              <p className="texte-corps text-destructive" role="alert">
+                {t('or:nouveau.rapide.client.requis')}
+              </p>
+            ) : null}
+          </Section>
+
+          <Section numero={3} titre={t('or:nouveau.rapide.ordre.titre')}>
+            {estMonoSite ? null : (
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="or-rapide-po" requis>
-                  {t('or:bandeau.numeroPo')}
+                <Label htmlFor="or-rapide-site" requis>
+                  {t('or:nouveau.siteManquant.label')}
                 </Label>
-                <Input
-                  id="or-rapide-po"
-                  maxLength={60}
-                  value={numeroCommande}
-                  aria-required="true"
-                  aria-invalid={erreurs.numeroCommande ? true : undefined}
-                  onChange={(evenement) => setNumeroCommande(evenement.target.value)}
-                />
-                {erreurs.numeroCommande ? (
-                  <p className="texte-corps text-destructive">{t('or:refus.poManquant')}</p>
+                <Select value={siteChoisi} onValueChange={setSiteChoisi}>
+                  <SelectTrigger
+                    id="or-rapide-site"
+                    aria-required="true"
+                    aria-invalid={erreurs.site ? true : undefined}
+                  >
+                    <SelectValue placeholder={t('or:nouveau.siteManquant.label')} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {sitesActifs.map((site) => (
+                      <SelectItem key={site.id} value={site.id}>
+                        {site.nom}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {erreurs.site ? (
+                  <p className="texte-corps text-destructive">{texteErreur(erreurs.site)}</p>
                 ) : null}
               </div>
-            ) : null}
-          </div>
-        </Section>
-
-        {echec ? (
-          <Alert variant={estErreurReseau ? 'avertissement' : 'destructive'} role="alert">
-            {estErreurReseau ? (
-              <WifiOff className="h-4 w-4" aria-hidden="true" />
-            ) : (
-              <AlertCircle className="h-4 w-4" aria-hidden="true" />
             )}
-            <AlertTitle>{t('or:nouveau.rapide.echec.titre')}</AlertTitle>
-            <AlertDescription className="flex flex-col gap-1">
-              <span>{messageErreurMutation(echec, t)}</span>
-              <span>{t('or:nouveau.rapide.echec.reprise')}</span>
-            </AlertDescription>
-          </Alert>
-        ) : null}
 
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <Button asChild variant="outline">
-            <Link
-              to={chemins.atelier.ordresReparation.nouveau(siteId || undefined, client?.id, true)}
-            >
-              {t('or:nouveau.rapide.ancienParcours')}
-            </Link>
-          </Button>
-          <Button type="submit" disabled={creation.enCours}>
-            {creation.enCours
-              ? t('or:nouveau.actions.enCours')
-              : echec
-                ? t('or:nouveau.rapide.reessayer')
-                : t('or:nouveau.actions.creer')}
-          </Button>
-        </div>
-      </form>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="or-rapide-demande">{t('or:nouveau.rapide.ordre.demande')}</Label>
+              <Textarea
+                id="or-rapide-demande"
+                rows={3}
+                maxLength={4000}
+                value={demande}
+                placeholder={t('or:nouveau.demandes.placeholder')}
+                onChange={(evenement) => setDemande(evenement.target.value)}
+              />
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="or-rapide-type" requis>
+                  {t('or:nouveau.type.libelle')}
+                </Label>
+                <Select
+                  value={type}
+                  onValueChange={(valeur) => setType(valeur as TypeOrdreReparation)}
+                >
+                  <SelectTrigger id="or-rapide-type" aria-required="true">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {TYPES_ORDRE_REPARATION.map((valeur) => (
+                      <SelectItem key={valeur} value={valeur}>
+                        {t(`or:nouveau.type.${valeur}`)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <ChampKilometrage
+                valeur={kilometrage}
+                onChangeValeur={setKilometrage}
+                unite="km"
+                label={t('or:actions.kilometrageEntree')}
+                obligatoire={kilometrageObligatoire}
+                erreur={texteErreur(erreurs.kilometrage)}
+              />
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="or-rapide-restitution">{t('or:bandeau.restitutionPromise')}</Label>
+                <DatetimeInput
+                  id="or-rapide-restitution"
+                  value={restitution}
+                  onChange={(valeurISO) => setRestitution(valeurISO ?? '')}
+                />
+              </div>
+              {poObligatoire ? (
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="or-rapide-po" requis>
+                    {t('or:bandeau.numeroPo')}
+                  </Label>
+                  <Input
+                    id="or-rapide-po"
+                    maxLength={60}
+                    value={numeroCommande}
+                    aria-required="true"
+                    aria-invalid={erreurs.numeroCommande ? true : undefined}
+                    onChange={(evenement) => setNumeroCommande(evenement.target.value)}
+                  />
+                  {erreurs.numeroCommande ? (
+                    <p className="texte-corps text-destructive">{t('or:refus.poManquant')}</p>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
+          </Section>
+
+          {echec ? (
+            <Alert variant={estErreurReseau ? 'avertissement' : 'destructive'} role="alert">
+              {estErreurReseau ? (
+                <WifiOff className="h-4 w-4" aria-hidden="true" />
+              ) : (
+                <AlertCircle className="h-4 w-4" aria-hidden="true" />
+              )}
+              <AlertTitle>{t('or:nouveau.rapide.echec.titre')}</AlertTitle>
+              <AlertDescription className="flex flex-col gap-1">
+                <span>{messageErreurMutation(echec, t)}</span>
+                <span>{t('or:nouveau.rapide.echec.reprise')}</span>
+              </AlertDescription>
+            </Alert>
+          ) : null}
+        </form>
+      </PanneauLateral>
 
       <AvertissementConfirmable
         ouvert={creation.confirmationsRequises.length > 0 && !confirmationRejetee}
@@ -506,6 +520,6 @@ export function EcranOrdreDepuisPlaque() {
           </ul>
         ) : null}
       </AvertissementConfirmable>
-    </GabaritEcran>
+    </>
   );
 }

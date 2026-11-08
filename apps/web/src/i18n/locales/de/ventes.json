@@ -39,6 +39,7 @@
     },
     "actions": {
       "nouveauDossier": "Neuer Verkauf",
+      "creerDossier": "Verkaufsdossier erstellen",
       "vendre": "Verkaufen",
       "voirDossier": "Verkauf anzeigen",
       "assignerVehicule": "Fahrzeug zuweisen",
@@ -135,11 +136,6 @@
       "non": "Nein",
       "nonRenseigne": "Nicht angegeben"
     },
-    "vue": {
-      "groupeLabel": "Anzeigemodus",
-      "vendeur": "Verkäuferansicht",
-      "client": "Kundenansicht"
-    },
     "joursStock": {
       "libelle": "Tage im Bestand",
       "valeur": "{n, plural, one {# Tag} other {# Tage}}"
@@ -192,7 +188,7 @@
           "description": "Nehmen Sie Ihr erstes Fahrzeug in den Bestand auf."
         }
       },
-      "rechercherPlaceholder": "Kennzeichen, VIN oder Bezeichnung…",
+      "rechercherPlaceholder": "Kennzeichen, VIN…",
       "erreur": {
         "titre": "Fahrzeuge im Lager können nicht angezeigt werden"
       },
@@ -252,7 +248,6 @@
       "marquerVenduDescription": "Das Fahrzeug wechselt in den Status «Verkauft».",
       "garantie": {
         "titre": "Garantie",
-        "description": "Manuelle Eingabe — ausfüllen, sobald die Information bekannt ist, nie automatisch berechnet.",
         "debutLe": "Garantiebeginn",
         "mois": "Dauer (Monate)",
         "km": "Kilometer-Obergrenze",
@@ -316,7 +311,7 @@
         "statutLabel": "Status",
         "statutActifs": "Aktive Verkäufe",
         "statutTous": "Alle Status",
-        "afficherTermines": "Auch abgeschlossene, annullierte oder aufgegebene Verkäufe anzeigen"
+        "afficherTermines": "Abgeschlossene und stornierte einbeziehen"
       },
       "tri": {
         "label": "Sortieren nach",
@@ -401,6 +396,10 @@
       "aucuneActionDisponible": "Derzeit keine Aktion verfügbar.",
       "bonCommande": "Bestellung",
       "aucunBonCommande": "Keine Bestellung für diesen Verkauf vorhanden",
+      "blocageDocument": {
+        "sansVehicule": "Weisen Sie dem Dossier zuerst ein Fahrzeug zu: Das Dokument übernimmt dessen Preis.",
+        "sansPrix": "Das Fahrzeug hat keinen Verkaufspreis. Legen Sie den Preis im Lagerbestand fest, bevor Sie dieses Dokument erstellen."
+      },
       "creerBonCommande": "Bestellung erstellen",
       "facture": "Rechnung",
       "aucuneFacture": "Keine Rechnung für diesen Verkauf vorhanden",
@@ -610,7 +609,6 @@
       "champVehiculeIndication": "Geben Sie ein Kennzeichen oder eine Bezeichnung ein, um das eingetauschte Fahrzeug zu suchen.",
       "aucunVehiculeTrouve": "Kein Fahrzeug entspricht dieser Suche.",
       "creerVehiculeBouton": "Dieses Fahrzeug anlegen",
-      "creerVehiculeAide": "Der Kunde bringt ein Fahrzeug, das der Garage noch nicht bekannt ist? Legen Sie es mit den nötigsten Angaben an — der Rest wird später in der Fahrzeugkarte ergänzt.",
       "creerVehiculeSoumettre": "Anlegen und auswählen",
       "vehiculeSelectionne": "Ausgewähltes Fahrzeug: {designation}",
       "champValeurEstimee": "Geschätzter Wert",
@@ -649,7 +647,6 @@
       "enNegociation": "In Verhandlung",
       "ecart": "Differenz / Entgegenkommen",
       "detteResiduelle": "Restschuld aus Finanzierung",
-      "detteAide": "Aufschiebende Bedingung des Eintauschs.",
       "organisme": "Institut"
     },
     "modification": {

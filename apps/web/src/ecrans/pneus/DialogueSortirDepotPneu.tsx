@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import {
@@ -9,14 +9,6 @@ import {
 
 import { messageErreur } from '@/api/erreurs';
 import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import {
   Select,
@@ -25,6 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { PanneauLateral } from '@/composants/PanneauLateral';
 import { useSortirDepotPneus } from '@/hooks/pneus/useSortirDepotPneus';
 
 interface Props {
@@ -59,25 +52,38 @@ export function DialogueSortirDepotPneu({ depot, onFerme }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- réinitialisation à la réouverture seulement
   }, [depot]);
 
-  function confirmer() {
+  function confirmer(evenement?: FormEvent) {
+    evenement?.preventDefault();
     if (!depot || !motif) return;
     sortir.mutate({ id: depot.id, entree: { motif } }, { onSuccess: onFerme });
   }
 
   return (
-    <Dialog open={depot !== null} onOpenChange={(ouvert) => !ouvert && onFerme()}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{t('pneus:sortie.titre')}</DialogTitle>
-          <DialogDescription>
-            {depot
-              ? t('pneus:sortie.description', {
-                  codeCase: depot.codeCase ?? t('pneus:jeu.sansRepere'),
-                })
-              : null}
-          </DialogDescription>
-        </DialogHeader>
-
+    <PanneauLateral
+      ouvert={depot !== null}
+      onOuvertChange={(ouvert) => !ouvert && onFerme()}
+      titre={t('pneus:sortie.titre')}
+      description={
+        depot
+          ? t('pneus:sortie.description', { codeCase: depot.codeCase ?? t('pneus:jeu.sansRepere') })
+          : undefined
+      }
+      pied={
+        <>
+          <Button type="button" variant="outline" onClick={onFerme} disabled={sortir.isPending}>
+            {t('commun:actions.annuler')}
+          </Button>
+          <Button
+            type="submit"
+            form="formulaire-sortir-depot-pneu"
+            disabled={!motif || sortir.isPending}
+          >
+            {sortir.isPending ? t('commun:chargement.enCours') : t('pneus:jeu.actions.sortir')}
+          </Button>
+        </>
+      }
+    >
+      <form id="formulaire-sortir-depot-pneu" onSubmit={confirmer} className="flex flex-col gap-4">
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="depot-pneu-motif-sortie">{t('pneus:sortie.champMotif')} *</Label>
           <Select
@@ -105,16 +111,7 @@ export function DialogueSortirDepotPneu({ depot, onFerme }: Props) {
             {messageErreur(sortir.error, t)}
           </p>
         ) : null}
-
-        <DialogFooter>
-          <Button type="button" variant="outline" onClick={onFerme} disabled={sortir.isPending}>
-            {t('commun:actions.annuler')}
-          </Button>
-          <Button type="button" disabled={!motif || sortir.isPending} onClick={confirmer}>
-            {sortir.isPending ? t('commun:chargement.enCours') : t('pneus:jeu.actions.sortir')}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+      </form>
+    </PanneauLateral>
   );
 }

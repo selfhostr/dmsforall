@@ -255,6 +255,9 @@ export const CODES_ERREUR = [
   // pas le dossier ici, on refuse d'y ATTACHER un nouveau document tant qu'il est dans un état
   // fermé (`clos`/`annule`/`abandonne`).
   'DOCUMENT_DOSSIER_VENTE_RATTACHEMENT_REFUSE',
+  // Recette #64 : bon de commande/facture créé sans ligne depuis un dossier dont le véhicule est
+  // absent ou sans prix de vente — 422, jamais un document à 0.00.
+  'DOCUMENT_DOSSIER_VENTE_PRIX_REQUIS',
   // --- Étape 5 : connecteurs (déclarés, émis après étape 4) ---
   'CONNECTEUR_TYPE_INDISPONIBLE',
   'CONNECTEUR_IDENTIFIANTS_MANQUANTS',
@@ -339,6 +342,36 @@ export const CODES_ERREUR = [
   // Le client n'a aucune adresse courriel enregistrée (`client.email` NULL) — l'action ne peut
   // structurellement pas aboutir, message clair plutôt qu'un envoi silencieux sans destinataire.
   'FACTURE_DESTINATAIRE_COURRIEL_ABSENT',
+  // --- Assujettissement à la TVA (tenant.assujetti_tva, migration 0090) ---
+  // Garage NON assujetti : une ligne porte un taux de TVA > 0 à l'émission (art. 27 LTVA : un
+  // non-assujetti qui facture de la TVA la doit). `erreurs[]` nomme les lignes.
+  'TVA_NON_ASSUJETTI_TAUX_INTERDIT',
+  // Garage assujetti : son n° TVA n'est pas saisi, une facture ne peut pas être émise
+  // (art. 26 LTVA). Se règle dans Réglages > Mon garage.
+  'TVA_NUMERO_REQUIS',
+  // --- Correction de facture en brouillon (POST /documents-vente/{id}/corriger, mode 'brouillon') ---
+  // La facture a déjà été annulée par un avoir (donc déjà corrigée ou créditée) : `blocages[]`
+  // pointe le brouillon/la facture de remplacement quand il existe.
+  'FACTURE_DEJA_CORRIGEE',
+  // La facture porte déjà un règlement (partiel ou total) : refaire un brouillon libre détacherait
+  // l'encaissement de sa facture. À traiter d'abord (annuler/rembourser le paiement).
+  'FACTURE_CORRECTION_REGLEMENT_EXISTANT',
+  // --- Modules activables (migration 0092) : écriture sur un module que le garage a retiré ---
+  'MODULE_DESACTIVE',
+  // --- Envoi des e-mails du garage (migration 0098) ---
+  'COURRIEL_NON_CONFIGURE',
+  'COURRIEL_CLE_CHIFFREMENT_ABSENTE',
+  'COURRIEL_AUTHENTIFICATION_ECHEC',
+  'COURRIEL_CONNEXION_ECHEC',
+  'COURRIEL_TLS_ECHEC',
+  'COURRIEL_ENVOI_ECHEC',
+  // --- Changement de mot de passe obligatoire (issue #58) ---
+  // Mot de passe temporaire jamais remplacé : toute route métier est refusée (403) jusqu'au
+  // changement via POST /auth/mot-de-passe/changement.
+  'AUTH_CHANGEMENT_MOT_DE_PASSE_REQUIS',
+  // --- Scan de permis (issue #64) : le service de lecture (OCR) ne répond pas — 503, ce n'est pas
+  // une panne de l'application ; le front propose la saisie manuelle. ---
+  'SERVICE_LECTURE_INDISPONIBLE',
 ] as const;
 export type CodeErreur = (typeof CODES_ERREUR)[number];
 
@@ -465,6 +498,7 @@ export const STATUT_HTTP_PAR_CODE_ERREUR: Readonly<Record<CodeErreur, number>> =
   VENTE_REPRISE_VALEUR_NEGOCIEE_REQUISE: 409,
   VENTE_REPRISE_DEJA_EXISTANTE: 409,
   DOCUMENT_DOSSIER_VENTE_RATTACHEMENT_REFUSE: 409,
+  DOCUMENT_DOSSIER_VENTE_PRIX_REQUIS: 422,
   CONNECTEUR_TYPE_INDISPONIBLE: 409,
   CONNECTEUR_IDENTIFIANTS_MANQUANTS: 409,
   CONNECTEUR_ACTIVATION_TRANSITION_INTERDITE: 409,
@@ -486,7 +520,20 @@ export const STATUT_HTTP_PAR_CODE_ERREUR: Readonly<Record<CodeErreur, number>> =
   REPRISE_PLAN_NON_VALIDABLE: 409,
   REPRISE_AJUSTEMENT_ELEMENT_INCONNU: 400,
   AUTH_JETON_REINITIALISATION_INVALIDE: 400,
+  AUTH_CHANGEMENT_MOT_DE_PASSE_REQUIS: 403,
   FACTURE_DESTINATAIRE_COURRIEL_ABSENT: 409,
+  TVA_NON_ASSUJETTI_TAUX_INTERDIT: 409,
+  TVA_NUMERO_REQUIS: 409,
+  FACTURE_DEJA_CORRIGEE: 409,
+  FACTURE_CORRECTION_REGLEMENT_EXISTANT: 409,
+  MODULE_DESACTIVE: 403,
+  COURRIEL_NON_CONFIGURE: 409,
+  COURRIEL_CLE_CHIFFREMENT_ABSENTE: 409,
+  COURRIEL_AUTHENTIFICATION_ECHEC: 422,
+  COURRIEL_CONNEXION_ECHEC: 422,
+  COURRIEL_TLS_ECHEC: 422,
+  COURRIEL_ENVOI_ECHEC: 422,
+  SERVICE_LECTURE_INDISPONIBLE: 503,
 };
 
 /**
@@ -599,6 +646,7 @@ export const TITRE_FR_PAR_CODE_ERREUR: Readonly<Record<CodeErreur, string>> = {
   VENTE_REPRISE_VALEUR_NEGOCIEE_REQUISE: 'Valeur de reprise requise',
   VENTE_REPRISE_DEJA_EXISTANTE: 'Reprise déjà existante',
   DOCUMENT_DOSSIER_VENTE_RATTACHEMENT_REFUSE: 'Rattachement au dossier de vente refusé',
+  DOCUMENT_DOSSIER_VENTE_PRIX_REQUIS: 'Prix du véhicule requis',
   CONNECTEUR_TYPE_INDISPONIBLE: 'Type de connecteur indisponible',
   CONNECTEUR_IDENTIFIANTS_MANQUANTS: 'Identifiants du connecteur manquants',
   CONNECTEUR_ACTIVATION_TRANSITION_INTERDITE: 'Activation du connecteur impossible',
@@ -620,7 +668,20 @@ export const TITRE_FR_PAR_CODE_ERREUR: Readonly<Record<CodeErreur, string>> = {
   REPRISE_PLAN_NON_VALIDABLE: 'Plan de reprise non validable',
   REPRISE_AJUSTEMENT_ELEMENT_INCONNU: 'Élément de plan inconnu',
   AUTH_JETON_REINITIALISATION_INVALIDE: 'Jeton de réinitialisation invalide',
+  AUTH_CHANGEMENT_MOT_DE_PASSE_REQUIS: 'Changement de mot de passe requis',
   FACTURE_DESTINATAIRE_COURRIEL_ABSENT: "Le client n'a pas d'adresse courriel enregistrée",
+  TVA_NON_ASSUJETTI_TAUX_INTERDIT: 'TVA interdite pour un garage non assujetti',
+  TVA_NUMERO_REQUIS: 'Numéro de TVA requis pour émettre',
+  FACTURE_DEJA_CORRIGEE: 'Facture déjà corrigée',
+  FACTURE_CORRECTION_REGLEMENT_EXISTANT: 'Facture déjà réglée en tout ou partie',
+  MODULE_DESACTIVE: 'Module désactivé pour ce garage',
+  COURRIEL_NON_CONFIGURE: 'Envoi des e-mails non configuré',
+  COURRIEL_CLE_CHIFFREMENT_ABSENTE: 'Clé de chiffrement des secrets absente',
+  COURRIEL_AUTHENTIFICATION_ECHEC: "Authentification refusée par le serveur d'envoi",
+  COURRIEL_CONNEXION_ECHEC: "Serveur d'envoi injoignable",
+  COURRIEL_TLS_ECHEC: "Connexion sécurisée impossible avec le serveur d'envoi",
+  COURRIEL_ENVOI_ECHEC: "Échec d'envoi de l'e-mail",
+  SERVICE_LECTURE_INDISPONIBLE: 'Service de lecture indisponible',
 };
 
 /**

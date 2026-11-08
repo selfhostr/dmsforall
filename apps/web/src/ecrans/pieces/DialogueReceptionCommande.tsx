@@ -6,17 +6,11 @@ import type { EntreeReceptionCommandeFournisseur, ReponseCommandeFournisseur } f
 import { useCleIdempotence } from '@/api/idempotence';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label, LegendeChampsObligatoires } from '@/components/ui/label';
+import { PanneauLateral } from '@/composants/PanneauLateral';
 import { ChampMontant } from '@/composants/comptoir/ChampMontant';
+import { useDesignationsArticles } from '@/hooks/pieces/useDesignationsArticles';
 import { useReceptionnerCommandeFournisseur } from '@/hooks/pieces/useTransitionsCommandeFournisseur';
 
 import { messageErreurMutation } from './messages-erreur-mutation';
@@ -65,6 +59,7 @@ export function DialogueReceptionCommande({ ouvert, onOuvertChange, commande }: 
   const { t } = useTranslation(['pieces', 'commun', 'validation', 'erreurs']);
   const idempotence = useCleIdempotence();
   const receptionner = useReceptionnerCommandeFournisseur(commande.id);
+  const designations = useDesignationsArticles(commande.lignes.map((ligne) => ligne.articleId));
 
   const [lignes, setLignes] = useState<Record<string, LigneSaisie>>(() => etatInitial(commande));
   const [erreurValidation, setErreurValidation] = useState<string | null>(null);
@@ -126,103 +121,12 @@ export function DialogueReceptionCommande({ ouvert, onOuvertChange, commande }: 
   }
 
   return (
-    <Dialog open={ouvert} onOpenChange={onOuvertChange}>
-      <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>{t('pieces:commandes.reception.titre')}</DialogTitle>
-          <DialogDescription>{t('pieces:commandes.reception.description')}</DialogDescription>
-        </DialogHeader>
-
-        <div className="flex flex-col gap-groupe">
-          <LegendeChampsObligatoires>
-            {t('commun:formulaires.champsObligatoiresLegende')}
-          </LegendeChampsObligatoires>
-
-          {lignesReceptionnables.map((ligne) => {
-            const saisie = lignes[ligne.id];
-            if (!saisie) return null;
-            return (
-              // Bordure CONSERVÉE (DESIGN.md) : regroupe une case à cocher + des champs de
-              // saisie réels (quantité, prix), pas un simple groupe de contenu passif.
-              <div key={ligne.id} className="flex flex-col gap-controles rounded-md border p-3">
-                <label
-                  htmlFor={`reception-ligne-${ligne.id}`}
-                  className="flex items-center gap-2 texte-corps font-medium"
-                >
-                  <Checkbox
-                    id={`reception-ligne-${ligne.id}`}
-                    checked={saisie.selectionnee}
-                    onCheckedChange={(coche) =>
-                      majLigne(ligne.id, { selectionnee: coche === true })
-                    }
-                    disabled={receptionner.isPending}
-                  />
-                  {t('pieces:commandes.reception.ligneNumero', { numero: ligne.numeroOrdre })}
-                  <span className="texte-libelle text-muted-foreground font-normal">
-                    {t('pieces:commandes.lignes.quantiteReliquat')} :{' '}
-                    {quantiteMilliemeVersSaisie(ligne.quantiteReliquatMillieme)}
-                  </span>
-                </label>
-
-                {saisie.selectionnee ? (
-                  <div className="grid grid-cols-2 gap-controles">
-                    <div className="flex flex-col gap-champ">
-                      <Label htmlFor={`recep-qte-${ligne.id}`} requis>
-                        {t('pieces:commandes.lignes.quantiteRecue')}
-                      </Label>
-                      <Input
-                        id={`recep-qte-${ligne.id}`}
-                        type="text"
-                        inputMode="decimal"
-                        required
-                        readOnly={receptionner.isPending}
-                        value={saisie.quantiteSaisie}
-                        onChange={(evenement) =>
-                          majLigne(ligne.id, { quantiteSaisie: evenement.target.value })
-                        }
-                      />
-                    </div>
-                    <ChampMontant
-                      id={`recep-prix-${ligne.id}`}
-                      label={t('pieces:commandes.lignes.prixAchatReel')}
-                      disabled={receptionner.isPending}
-                      valeurCentimes={saisie.prixReelCentimes}
-                      onChangeCentimes={(centimes) =>
-                        majLigne(ligne.id, { prixReelCentimes: centimes })
-                      }
-                    />
-                    <div className="col-span-2 flex flex-col gap-champ">
-                      <Label htmlFor={`recep-motif-${ligne.id}`}>
-                        {t('pieces:commandes.lignes.motif')}
-                      </Label>
-                      <Input
-                        id={`recep-motif-${ligne.id}`}
-                        readOnly={receptionner.isPending}
-                        value={saisie.motif}
-                        onChange={(evenement) =>
-                          majLigne(ligne.id, { motif: evenement.target.value })
-                        }
-                      />
-                    </div>
-                  </div>
-                ) : null}
-              </div>
-            );
-          })}
-
-          {erreurValidation ? (
-            <p className="texte-libelle text-destructive" role="alert">
-              {erreurValidation}
-            </p>
-          ) : null}
-          {receptionner.error ? (
-            <p className="texte-libelle text-destructive" role="alert">
-              {messageErreurMutation(receptionner.error, t)}
-            </p>
-          ) : null}
-        </div>
-
-        <DialogFooter>
+    <PanneauLateral
+      ouvert={ouvert}
+      onOuvertChange={onOuvertChange}
+      titre={t('pieces:commandes.reception.titre')}
+      pied={
+        <>
           <Button
             type="button"
             variant="outline"
@@ -236,8 +140,103 @@ export function DialogueReceptionCommande({ ouvert, onOuvertChange, commande }: 
               ? t('commun:chargement.enCours')
               : t('pieces:commandes.actions.receptionner')}
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </>
+      }
+    >
+      <div className="flex flex-col gap-groupe">
+        <LegendeChampsObligatoires>
+          {t('commun:formulaires.champsObligatoiresLegende')}
+        </LegendeChampsObligatoires>
+
+        {lignesReceptionnables.map((ligne) => {
+          const saisie = lignes[ligne.id];
+          if (!saisie) return null;
+          const libelleLigne = t('pieces:commandes.reception.ligneNumero', {
+            numero: ligne.numeroOrdre,
+          });
+          const designation = designations.get(ligne.articleId);
+          const nomLigne = designation ? `${libelleLigne} — ${designation}` : libelleLigne;
+          return (
+            // Bordure CONSERVÉE (DESIGN.md) : regroupe une case à cocher + des champs de
+            // saisie réels (quantité, prix), pas un simple groupe de contenu passif.
+            <div key={ligne.id} className="flex flex-col gap-controles rounded-md border p-3">
+              <label
+                htmlFor={`reception-ligne-${ligne.id}`}
+                className="flex items-center gap-2 texte-corps font-medium"
+              >
+                <Checkbox
+                  id={`reception-ligne-${ligne.id}`}
+                  checked={saisie.selectionnee}
+                  onCheckedChange={(coche) => majLigne(ligne.id, { selectionnee: coche === true })}
+                  disabled={receptionner.isPending}
+                />
+                {nomLigne}
+                <span className="texte-libelle text-muted-foreground font-normal">
+                  {t('pieces:commandes.lignes.quantiteReliquat')} :{' '}
+                  {quantiteMilliemeVersSaisie(ligne.quantiteReliquatMillieme)}
+                </span>
+              </label>
+
+              {saisie.selectionnee ? (
+                <div className="grid grid-cols-2 gap-controles">
+                  <div className="flex flex-col gap-champ">
+                    <Label htmlFor={`recep-qte-${ligne.id}`} requis>
+                      {t('pieces:commandes.lignes.quantiteRecue')}
+                    </Label>
+                    <Input
+                      id={`recep-qte-${ligne.id}`}
+                      type="text"
+                      inputMode="decimal"
+                      required
+                      aria-label={`${t('pieces:commandes.lignes.quantiteRecue')} — ${nomLigne}`}
+                      readOnly={receptionner.isPending}
+                      value={saisie.quantiteSaisie}
+                      onChange={(evenement) =>
+                        majLigne(ligne.id, { quantiteSaisie: evenement.target.value })
+                      }
+                    />
+                  </div>
+                  <ChampMontant
+                    id={`recep-prix-${ligne.id}`}
+                    label={t('pieces:commandes.lignes.prixAchatReel')}
+                    nomAccessible={`${t('pieces:commandes.lignes.prixAchatReel')} — ${nomLigne}`}
+                    disabled={receptionner.isPending}
+                    valeurCentimes={saisie.prixReelCentimes}
+                    onChangeCentimes={(centimes) =>
+                      majLigne(ligne.id, { prixReelCentimes: centimes })
+                    }
+                  />
+                  <div className="col-span-2 flex flex-col gap-champ">
+                    <Label htmlFor={`recep-motif-${ligne.id}`}>
+                      {t('pieces:commandes.lignes.motif')}
+                    </Label>
+                    <Input
+                      id={`recep-motif-${ligne.id}`}
+                      aria-label={`${t('pieces:commandes.lignes.motif')} — ${nomLigne}`}
+                      readOnly={receptionner.isPending}
+                      value={saisie.motif}
+                      onChange={(evenement) =>
+                        majLigne(ligne.id, { motif: evenement.target.value })
+                      }
+                    />
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          );
+        })}
+
+        {erreurValidation ? (
+          <p className="texte-libelle text-destructive" role="alert">
+            {erreurValidation}
+          </p>
+        ) : null}
+        {receptionner.error ? (
+          <p className="texte-libelle text-destructive" role="alert">
+            {messageErreurMutation(receptionner.error, t)}
+          </p>
+        ) : null}
+      </div>
+    </PanneauLateral>
   );
 }

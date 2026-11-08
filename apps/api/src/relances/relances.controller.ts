@@ -43,6 +43,7 @@ import {
 import { ServiceHistoriqueEnvoisRelance } from './service-historique-envois';
 import { ServiceRegleRelance } from './service-regle-relance';
 import { ServiceRelancesFacture } from './service-relances-facture';
+import { ExigerModule } from '../common/droits/garde-module';
 
 /**
  * Relances automatiques, LOT 1 (facturation, rappel #2 —
@@ -75,6 +76,7 @@ import { ServiceRelancesFacture } from './service-relances-facture';
  */
 @ApiTags('Relances')
 @ApiCookieAuth()
+@ExigerModule('relances')
 @Controller({ path: 'relances', version: '1' })
 @UseGuards(GardeDroit)
 export class RelancesController {

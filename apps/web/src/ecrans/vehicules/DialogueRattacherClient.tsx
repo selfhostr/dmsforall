@@ -7,7 +7,6 @@ import { ErreurReseau, messageErreur } from '@/api/erreurs';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { DateInput } from '@/components/ui/date-input';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label, LegendeChampsObligatoires } from '@/components/ui/label';
 import {
   Select,
@@ -16,6 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { PanneauLateral } from '@/composants/PanneauLateral';
 import { IdentiteClient } from '@/composants/identite/IdentiteClient';
 
 import { SelecteurClientVehicule } from './SelecteurClientVehicule';
@@ -107,117 +107,124 @@ export function DialogueRattacherClient({
   const estErreurReseau = mutation.error instanceof ErreurReseau;
 
   return (
-    <Dialog open={ouvert} onOpenChange={fermer}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>
-            {t(
-              detenteurActuel
-                ? 'vehicules:detentions.dialogue.titreChanger'
-                : 'vehicules:detentions.dialogue.titreRattacher',
-            )}
-          </DialogTitle>
-        </DialogHeader>
-        <form onSubmit={soumettre} className="flex flex-col gap-4">
-          <LegendeChampsObligatoires>
-            {t('commun:formulaires.champsObligatoiresLegende')}
-          </LegendeChampsObligatoires>
-
-          {detenteurActuel ? (
-            <div className="flex flex-col gap-1.5">
-              <Label>{t('vehicules:detentions.dialogue.detenteurActuelLabel')}</Label>
-              <p className="texte-corps text-muted-foreground">
-                {detenteurActuel.nomAffiche} · {detenteurActuel.numeroClient}
-              </p>
-            </div>
-          ) : null}
-
-          {mutation.error ? (
-            <Alert variant={estErreurReseau ? 'avertissement' : 'destructive'}>
-              <AlertTitle>
-                {t(estErreurReseau ? 'erreurs:reseau.titre' : 'erreurs:inattendue.titre')}
-              </AlertTitle>
-              <AlertDescription>{messageErreur(mutation.error, t)}</AlertDescription>
-            </Alert>
-          ) : null}
-
-          <div className="flex flex-col gap-1.5">
-            <Label requis>{t('vehicules:detentions.dialogue.clientLabel')}</Label>
-            {client ? (
-              // Bordure structurelle : bloc qui porte la sélection courante ET l'action de la
-              // retirer (« modifier la sélection » ci-dessous), pas un simple groupe de contenu.
-              <div className="flex items-center justify-between gap-3 rounded-md border border-primary bg-primary/5 p-3">
-                <IdentiteClient client={client} />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    setClientId(null);
-                    setClient(null);
-                  }}
-                >
-                  {t('vehicules:detentions.dialogue.modifierSelection')}
-                </Button>
-              </div>
-            ) : (
-              <SelecteurClientVehicule
-                valeur={clientId}
-                libelle={t('vehicules:detentions.dialogue.clientLabel')}
-                requis
-                onChangeValeur={(idChoisi, clientChoisi) => {
-                  setClientId(idChoisi);
-                  setClient(clientChoisi);
-                }}
-              />
-            )}
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="rattacher-date" requis>
-              {t('vehicules:detentions.dialogue.dateLabel')}
-            </Label>
-            <DateInput
-              id="rattacher-date"
-              required
-              className="max-w-[200px]"
-              value={changementLe ?? null}
-              onChange={setChangementLe}
-            />
-          </div>
-
-          {motifRequis ? (
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="rattacher-motif" requis>
-                {t('vehicules:detentions.dialogue.motifLabel')}
-              </Label>
-              <Select
-                value={motifFin}
-                onValueChange={(valeurMotif) => setMotifFin(valeurMotif as MotifFinDetention)}
-              >
-                <SelectTrigger
-                  id="rattacher-motif"
-                  aria-label={t('vehicules:detentions.dialogue.motifLabel')}
-                  aria-required="true"
-                >
-                  <SelectValue placeholder={t('vehicules:detentions.dialogue.motifLabel')} />
-                </SelectTrigger>
-                <SelectContent>
-                  {MOTIFS_FIN_DETENTION.map((valeurMotif) => (
-                    <SelectItem key={valeurMotif} value={valeurMotif}>
-                      {t(`vehicules:detentions.motifs.${valeurMotif}`)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          ) : null}
-
-          <Button type="submit" disabled={!pretASoumettre || mutation.isPending}>
+    <PanneauLateral
+      ouvert={ouvert}
+      onOuvertChange={fermer}
+      titre={t(
+        detenteurActuel
+          ? 'vehicules:detentions.dialogue.titreChanger'
+          : 'vehicules:detentions.dialogue.titreRattacher',
+      )}
+      pied={
+        <>
+          <Button type="button" variant="outline" onClick={() => fermer(false)}>
+            {t('commun:actions.annuler')}
+          </Button>
+          <Button
+            type="submit"
+            form="formulaire-rattacher-client"
+            disabled={!pretASoumettre || mutation.isPending}
+          >
             {t(detenteurActuel ? 'vehicules:detentions.changer' : 'vehicules:detentions.rattacher')}
           </Button>
-        </form>
-      </DialogContent>
-    </Dialog>
+        </>
+      }
+    >
+      <form id="formulaire-rattacher-client" onSubmit={soumettre} className="flex flex-col gap-4">
+        <LegendeChampsObligatoires>
+          {t('commun:formulaires.champsObligatoiresLegende')}
+        </LegendeChampsObligatoires>
+
+        {detenteurActuel ? (
+          <div className="flex flex-col gap-1.5">
+            <Label>{t('vehicules:detentions.dialogue.detenteurActuelLabel')}</Label>
+            <p className="texte-corps text-muted-foreground">
+              {detenteurActuel.nomAffiche} · {detenteurActuel.numeroClient}
+            </p>
+          </div>
+        ) : null}
+
+        {mutation.error ? (
+          <Alert variant={estErreurReseau ? 'avertissement' : 'destructive'}>
+            <AlertTitle>
+              {t(estErreurReseau ? 'erreurs:reseau.titre' : 'erreurs:inattendue.titre')}
+            </AlertTitle>
+            <AlertDescription>{messageErreur(mutation.error, t)}</AlertDescription>
+          </Alert>
+        ) : null}
+
+        <div className="flex flex-col gap-1.5">
+          <Label requis>{t('vehicules:detentions.dialogue.clientLabel')}</Label>
+          {client ? (
+            // Bordure structurelle : bloc qui porte la sélection courante ET l'action de la
+            // retirer (« modifier la sélection » ci-dessous), pas un simple groupe de contenu.
+            <div className="flex items-center justify-between gap-3 rounded-md border border-primary bg-primary/5 p-3">
+              <IdentiteClient client={client} />
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setClientId(null);
+                  setClient(null);
+                }}
+              >
+                {t('vehicules:detentions.dialogue.modifierSelection')}
+              </Button>
+            </div>
+          ) : (
+            <SelecteurClientVehicule
+              valeur={clientId}
+              libelle={t('vehicules:detentions.dialogue.clientLabel')}
+              requis
+              onChangeValeur={(idChoisi, clientChoisi) => {
+                setClientId(idChoisi);
+                setClient(clientChoisi);
+              }}
+            />
+          )}
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="rattacher-date" requis>
+            {t('vehicules:detentions.dialogue.dateLabel')}
+          </Label>
+          <DateInput
+            id="rattacher-date"
+            required
+            className="max-w-[200px]"
+            value={changementLe ?? null}
+            onChange={setChangementLe}
+          />
+        </div>
+
+        {motifRequis ? (
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="rattacher-motif" requis>
+              {t('vehicules:detentions.dialogue.motifLabel')}
+            </Label>
+            <Select
+              value={motifFin}
+              onValueChange={(valeurMotif) => setMotifFin(valeurMotif as MotifFinDetention)}
+            >
+              <SelectTrigger
+                id="rattacher-motif"
+                aria-label={t('vehicules:detentions.dialogue.motifLabel')}
+                aria-required="true"
+              >
+                <SelectValue placeholder={t('vehicules:detentions.dialogue.motifLabel')} />
+              </SelectTrigger>
+              <SelectContent>
+                {MOTIFS_FIN_DETENTION.map((valeurMotif) => (
+                  <SelectItem key={valeurMotif} value={valeurMotif}>
+                    {t(`vehicules:detentions.motifs.${valeurMotif}`)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        ) : null}
+      </form>
+    </PanneauLateral>
   );
 }

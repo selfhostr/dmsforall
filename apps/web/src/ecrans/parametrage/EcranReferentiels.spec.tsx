@@ -17,6 +17,9 @@ import { creerQueryClientTest } from '@/test/utils';
 
 import { EcranReferentiels } from './EcranReferentiels';
 
+/** Libellé d'un champ obligatoire : l'étoile (aria-hidden) fait partie du texte du <label>. */
+const avecEtoile = (libelle: string) => new RegExp(`^${libelle}\\*?$`);
+
 // Radix Select appelle `hasPointerCapture`/`scrollIntoView`, absents de jsdom.
 beforeAll(() => {
   Element.prototype.hasPointerCapture = vi.fn().mockReturnValue(false);
@@ -71,33 +74,6 @@ function rendre() {
     </QueryClientProvider>,
   );
 }
-
-describe('EcranReferentiels — mon compte (choix de langue)', () => {
-  // `parametrage/referentiels` est le SEUL onglet de Réglages ouvert à tout rôle authentifié sans
-  // restriction (voir le commentaire de tête d'`EcranReferentiels` et `routes/droits-routes.ts` :
-  // les quatre autres onglets — atelier, sites, facturation, pièces — ferment la ROUTE elle-même à
-  // des sous-ensembles de rôles). Un rôle qui ne verrait pas ce sélecteur ici perdrait toute
-  // possibilité de changer de langue une fois connecté : les deux tests ci-dessous couvrent un rôle
-  // de gouvernance (chef_atelier) et un rôle sans aucun droit d'écriture sur le paramétrage
-  // (technicien) pour prouver que l'un comme l'autre l'atteint.
-  it.each(['chef_atelier', 'technicien'] as const)(
-    'affiche le sélecteur de langue, réutilisé tel quel, pour le rôle %s',
-    async (role) => {
-      connecterSession(role);
-      server.use(
-        http.get(CHEMIN_TAUX_HORAIRES, () => HttpResponse.json(pageVide<ReponseTauxHoraire>())),
-        http.get(CHEMIN_PRESTATIONS, () => HttpResponse.json(pageVide<ReponsePrestation>())),
-      );
-      rendre();
-
-      expect(await screen.findByText(i18n.t('parametrage:monCompte.titre'))).toBeInTheDocument();
-      const groupe = screen.getByRole('group', { name: i18n.t('commun:langue.choisir') });
-      for (const code of ['fr', 'de', 'it']) {
-        expect(within(groupe).getByRole('button', { name: code })).toBeInTheDocument();
-      }
-    },
-  );
-});
 
 describe('EcranReferentiels — taux horaires', () => {
   it('affiche un état vide avec action de création quand le catalogue est vide (rôle habilité)', async () => {
@@ -163,20 +139,22 @@ describe('EcranReferentiels — taux horaires', () => {
     rendre();
 
     const utilisateur = userEvent.setup();
-    // Deux boutons portent le même intitulé (en-tête + état vide) : le premier suffit ici.
-    const boutonsNouveau = await screen.findAllByRole('button', {
+    // Un seul bouton de création, même en état vide (celui de l'en-tête).
+    const boutonsNouveau = await screen.findByRole('button', {
       name: i18n.t('parametrage:referentiels.tauxHoraires.nouveau'),
     });
-    await utilisateur.click(boutonsNouveau[0]!);
+    await utilisateur.click(boutonsNouveau);
 
     const dialogue = await screen.findByRole('dialog');
     await utilisateur.type(
-      within(dialogue).getByLabelText(i18n.t('parametrage:referentiels.tauxHoraires.champs.code')),
+      within(dialogue).getByLabelText(
+        avecEtoile(i18n.t('parametrage:referentiels.tauxHoraires.champs.code')),
+      ),
       'CARR',
     );
     await utilisateur.type(
       within(dialogue).getByLabelText(
-        i18n.t('parametrage:referentiels.tauxHoraires.champs.libelle'),
+        avecEtoile(i18n.t('parametrage:referentiels.tauxHoraires.champs.libelle')),
       ),
       'Carrosserie',
     );
@@ -268,10 +246,10 @@ describe('EcranReferentiels — taux horaires', () => {
     rendre();
 
     const utilisateur = userEvent.setup();
-    const boutonsNouveau = await screen.findAllByRole('button', {
+    const boutonsNouveau = await screen.findByRole('button', {
       name: i18n.t('parametrage:referentiels.tauxHoraires.nouveau'),
     });
-    await utilisateur.click(boutonsNouveau[0]!);
+    await utilisateur.click(boutonsNouveau);
 
     const dialogue = await screen.findByRole('dialog');
     // Le montant est pré-affiché « 0.00 » (valeur par défaut de `ChampMontant`) : le vider rend
@@ -290,7 +268,9 @@ describe('EcranReferentiels — taux horaires', () => {
 
     expect(await within(dialogue).findAllByText(i18n.t('validation:requis'))).not.toHaveLength(0);
     expect(
-      within(dialogue).getByLabelText(i18n.t('parametrage:referentiels.tauxHoraires.champs.code')),
+      within(dialogue).getByLabelText(
+        avecEtoile(i18n.t('parametrage:referentiels.tauxHoraires.champs.code')),
+      ),
     ).toHaveAttribute('aria-invalid', 'true');
     expect(appelPost).toBe(false);
   });
@@ -369,18 +349,20 @@ describe('EcranReferentiels — catalogue de prestations', () => {
         name: i18n.t('parametrage:referentiels.prestations.onglet'),
       }),
     );
-    const boutonsNouvelle = await screen.findAllByRole('button', {
+    const boutonsNouvelle = await screen.findByRole('button', {
       name: i18n.t('parametrage:referentiels.prestations.nouvelle'),
     });
-    await utilisateur.click(boutonsNouvelle[0]!);
+    await utilisateur.click(boutonsNouvelle);
 
     const dialogue = await screen.findByRole('dialog');
     await utilisateur.type(
-      within(dialogue).getByLabelText(i18n.t('parametrage:referentiels.prestations.champs.code')),
+      within(dialogue).getByLabelText(
+        avecEtoile(i18n.t('parametrage:referentiels.prestations.champs.code')),
+      ),
       'FREINS',
     );
     await utilisateur.type(
-      within(dialogue).getByLabelText(i18n.t('commun:langues.fr')),
+      within(dialogue).getByLabelText(avecEtoile(i18n.t('commun:langues.fr'))),
       'Remplacement plaquettes',
     );
     await utilisateur.click(
@@ -423,18 +405,20 @@ describe('EcranReferentiels — catalogue de prestations', () => {
         name: i18n.t('parametrage:referentiels.prestations.onglet'),
       }),
     );
-    const boutonsNouvelle = await screen.findAllByRole('button', {
+    const boutonsNouvelle = await screen.findByRole('button', {
       name: i18n.t('parametrage:referentiels.prestations.nouvelle'),
     });
-    await utilisateur.click(boutonsNouvelle[0]!);
+    await utilisateur.click(boutonsNouvelle);
 
     const dialogue = await screen.findByRole('dialog');
     await utilisateur.type(
-      within(dialogue).getByLabelText(i18n.t('parametrage:referentiels.prestations.champs.code')),
+      within(dialogue).getByLabelText(
+        avecEtoile(i18n.t('parametrage:referentiels.prestations.champs.code')),
+      ),
       'VIDANGE-STD',
     );
     await utilisateur.type(
-      within(dialogue).getByLabelText(i18n.t('commun:langues.fr')),
+      within(dialogue).getByLabelText(avecEtoile(i18n.t('commun:langues.fr'))),
       'Vidange standard',
     );
     await utilisateur.click(
@@ -469,10 +453,10 @@ describe('EcranReferentiels — catalogue de prestations', () => {
         name: i18n.t('parametrage:referentiels.prestations.onglet'),
       }),
     );
-    const boutonsNouvelle = await screen.findAllByRole('button', {
+    const boutonsNouvelle = await screen.findByRole('button', {
       name: i18n.t('parametrage:referentiels.prestations.nouvelle'),
     });
-    await utilisateur.click(boutonsNouvelle[0]!);
+    await utilisateur.click(boutonsNouvelle);
 
     const dialogue = await screen.findByRole('dialog');
     await utilisateur.click(
@@ -481,7 +465,9 @@ describe('EcranReferentiels — catalogue de prestations', () => {
 
     expect(await within(dialogue).findAllByText(i18n.t('validation:requis'))).not.toHaveLength(0);
     expect(
-      within(dialogue).getByLabelText(i18n.t('parametrage:referentiels.prestations.champs.code')),
+      within(dialogue).getByLabelText(
+        avecEtoile(i18n.t('parametrage:referentiels.prestations.champs.code')),
+      ),
     ).toHaveAttribute('aria-invalid', 'true');
     expect(appelPost).toBe(false);
   });
@@ -516,5 +502,40 @@ describe('EcranReferentiels — catalogue de prestations', () => {
     expect(
       screen.queryByRole('button', { name: i18n.t('commun:actions.modifier') }),
     ).not.toBeInTheDocument();
+  });
+});
+
+describe('EcranReferentiels — champs obligatoires', () => {
+  it('affiche la légende, marque le taux horaire obligatoire et pose aria-required sur les champs requis', async () => {
+    connecterSession('chef_atelier');
+    server.use(
+      http.get(CHEMIN_TAUX_HORAIRES, () => HttpResponse.json(pageVide<ReponseTauxHoraire>())),
+      http.get(CHEMIN_PRESTATIONS, () => HttpResponse.json(pageVide<ReponsePrestation>())),
+    );
+    rendre();
+
+    expect(screen.getByText(i18n.t('parametrage:obligatoire.legende'))).toBeInTheDocument();
+    expect(
+      await screen.findByText(i18n.t('parametrage:referentiels.tauxHoraires.auMoinsUn')),
+    ).toBeInTheDocument();
+
+    const boutonsNouveau = await screen.findByRole('button', {
+      name: i18n.t('parametrage:referentiels.tauxHoraires.nouveau'),
+    });
+    await userEvent.setup().click(boutonsNouveau);
+    const dialogue = await screen.findByRole('dialog');
+    for (const cle of ['code', 'libelle']) {
+      expect(
+        within(dialogue).getByLabelText(
+          avecEtoile(i18n.t(`parametrage:referentiels.tauxHoraires.champs.${cle}`)),
+        ),
+      ).toHaveAttribute('aria-required', 'true');
+    }
+    // « Valide au » est facultatif : ni étoile ni aria-required.
+    expect(
+      within(dialogue).getByLabelText(
+        i18n.t('parametrage:referentiels.tauxHoraires.champs.valideAuLe'),
+      ),
+    ).not.toHaveAttribute('aria-required');
   });
 });

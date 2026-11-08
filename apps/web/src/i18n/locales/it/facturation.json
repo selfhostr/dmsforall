@@ -53,12 +53,12 @@
   },
   "paiementVerrouille": {
     "message": "Questo pagamento è registrato e non può più essere modificato.",
-    "corriger": "Registrare un pagamento correttivo →"
+    "corriger": "Registra un pagamento correttivo →"
   },
   "avanceClient": {
     "message": "Questo incasso supera il saldo di {montant} — l'eccedenza sarà registrata come acconto cliente, da imputare in seguito.",
     "aucuneFactureOuverte": "Questo cliente non ha nessuna fattura aperta da saldare.",
-    "confirmerAction": "Registrare comunque come acconto cliente",
+    "confirmerAction": "Registra comunque come acconto cliente",
     "excedent": "Incassate {excedent} in più rispetto al saldo di {solde}: l'eccedenza sarà registrata come anticipo del cliente, da assegnare più tardi."
   },
   "motifsAvoir": {
@@ -120,7 +120,7 @@
     },
     "demontage": {
       "message": "È stato eseguito uno smontaggio per un preventivo rifiutato — fatturabile: {montant} IVA incl.",
-      "ajouter": "Aggiungere questa riga alla fattura del cliente"
+      "ajouter": "Aggiungi questa riga alla fattura del cliente"
     },
     "groupe": {
       "titre": "Fattura per « {payeur} »",
@@ -138,8 +138,8 @@
       "message": "Un deposito cauzionale di {montant} IVA incl. sarà fatturato ora. Al ritorno del pezzo vecchio, viene rimborsato con una nota di credito parziale — non aspettando il ritorno."
     },
     "action": {
-      "unSingulier": "Creare 1 fattura ({payeur}) — {montant} IVA incl.",
-      "plusieurs": "Creare {count} fatture — {montant} IVA incl. in totale",
+      "unSingulier": "Crea 1 fattura ({payeur}) — {montant} IVA incl.",
+      "plusieurs": "Crea {count} fatture — {montant} IVA incl. in totale",
       "enCours": "Creazione in corso…"
     },
     "vide": {
@@ -169,10 +169,10 @@
         "montant": "Importo IVA incl.",
         "tva": "IVA"
       },
-      "ajouterDemontage": "Aggiungere la riga di smontaggio proposta",
+      "ajouterDemontage": "Aggiungi la riga di smontaggio proposta",
       "ajouter": "Aggiungi una riga",
       "retirer": "Rimuovere",
-      "modifierAria": "Modificare la riga « {designation} »",
+      "modifierAria": "Modifica la riga « {designation} »",
       "retirerAria": "Rimuovere la riga « {designation} »",
       "vide": "Nessuna riga su questo documento.",
       "dialogueAjout": {
@@ -187,6 +187,7 @@
         "reference": "Riferimento",
         "quantite": "Quantità",
         "prixUnitaire": "Prezzo unitario IVA incl.",
+        "prixUnitaireAide": "Prezzo IVA inclusa, come in un preventivo. Pari a {ht} IVA esclusa all'aliquota scelta. In un ordine di riparazione il prezzo si inserisce IVA esclusa.",
         "taux": "Aliquota IVA",
         "datePrestation": "Data prestazione"
       },
@@ -212,6 +213,14 @@
         "exclu": "Escluso dal campo IVA — 0%"
       }
     },
+    "paiements": {
+      "titre": "Pagamenti",
+      "paye": "Già pagato",
+      "solde": "Ancora da pagare",
+      "aucun": "Nessun pagamento registrato.",
+      "erreur": "Impossibile caricare i pagamenti.",
+      "correctionParAvoir": "Un pagamento registrato non si cancella: per correggere una fattura saldata, creare una nota di credito."
+    },
     "documentsLies": {
       "titre": "Documenti collegati",
       "or": "Ordine di riparazione collegato →",
@@ -230,24 +239,28 @@
       "payablePar": "Pagabile da",
       "iban": "IBAN",
       "reference": "Riferimento",
-      "sansReference": "Senza riferimento"
+      "sansReference": "Senza riferimento",
+      "copier": "Copiare",
+      "copie": "Copiato"
     },
     "actions": {
-      "emettre": "Emettere",
-      "encaisser": "Incassare",
+      "emettre": "Emetti",
+      "encaisser": "Incassa",
       "autresActions": "Altre azioni",
       "menu": {
-        "imprimer": "Stampare / scaricare il PDF",
-        "envoyer": "Inviare per e-mail",
-        "dupliquer": "Duplicare (ristampa)",
-        "corriger": "Correggere questa fattura",
-        "creerAvoir": "Creare una nota di credito",
-        "journal": "Vedere il registro"
+        "imprimer": "Stampa / scarica il PDF",
+        "envoyer": "Invia per e-mail",
+        "dupliquer": "Duplica (ristampa)",
+        "corriger": "Correggi questa fattura",
+        "creerAvoir": "Crea una nota di credito",
+        "journal": "Vedi il registro"
       },
+      "corrigerFacture": "Correggere la fattura",
       "telechargerPdf": "Scarica il PDF",
-      "envoyerDevis": "Inviare il preventivo",
+      "envoyerDevis": "Invia il preventivo",
       "accordClient": "Accordo del cliente",
-      "creerOr": "Creare l'OR"
+      "annulerAccord": "Annulla l'accordo",
+      "creerOr": "Crea l'OR"
     },
     "dialogueEmission": {
       "titre": "Emettere la fattura?",
@@ -256,12 +269,12 @@
       "resumeAvoir": "Nota di credito sulla fattura {numero} — {montant} IVA incl.",
       "avertissement": "Una volta emessa, questa fattura non potrà più essere modificata — solo una correzione tramite nota di credito sarà possibile in seguito.",
       "avertissementAvoir": "Riduce la fattura {numero} e non potrà essere annullata una volta emessa.",
-      "confirmer": "Emettere",
+      "confirmer": "Emetti",
       "enCours": "Emissione…",
       "titreDevis": "Inviare il preventivo?",
       "resumeDevis": "Preventivo per {destinataire} — {montant} IVA incl.",
       "avertissementDevis": "Una volta inviato, questo preventivo non potrà più essere modificato. Se il cliente cambia idea, dovrà crearne uno nuovo.",
-      "confirmerDevis": "Inviare",
+      "confirmerDevis": "Invia",
       "enCoursDevis": "Invio…"
     },
     "refusEmission": {
@@ -273,14 +286,26 @@
     },
     "correction": {
       "titre": "Correggere la fattura {numero}",
-      "explication": "Una fattura emessa è bloccata: non è possibile modificarla direttamente. DFA creerà una nota di credito che annulla questa fattura, poi una nuova fattura con la correzione. Entrambe mantengono il proprio numero nella serie — nulla scompare, nulla viene rinumerato.",
+      "explication": "Una fattura emessa non si modifica: una nota di credito la annulla, poi viene creata una nuova fattura corretta.",
       "motif": "Motivo della correzione",
       "adresse": {
         "rue": "Via e numero",
         "npa": "NPA",
         "localite": "Località"
       },
-      "motifMontantTaux": "Le correzioni di importo o di aliquota si effettuano tramite la schermata Nota di credito: non sono gestite qui.",
+      "choix": {
+        "legende": "Cosa desidera fare?",
+        "remplacement": {
+          "titre": "Correggere solo l'indirizzo",
+          "aide": "Il destinatario o l'indirizzo cambiano, gli importi restano identici. La fattura corretta viene emessa subito."
+        },
+        "brouillon": {
+          "titre": "Rifare la fattura (nota di credito + nuova bozza)",
+          "aide": "La fattura viene annullata da una nota di credito, poi viene creata una bozza identica. La modifica liberamente (righe, prezzi, IVA) prima di emetterla. L'IVA segue il regime attuale del Suo garage.",
+          "dejaRegle": "Non disponibile: questa fattura è già pagata in tutto o in parte (vedere la scheda «Pagamenti» della fattura). Creare una nota di credito per annullarla."
+        }
+      },
+      "confirmerBrouillon": "Creare la nota di credito e la bozza",
       "corrigerFiche": "Correggere anche la scheda cliente con questo indirizzo",
       "confirmer": "Correggere la fattura",
       "enCours": "Correzione in corso…",
@@ -311,14 +336,16 @@
       "titre": "Incassi",
       "moyen": "Modalità",
       "montant": "Importo",
-      "ajouter": "Aggiungere una modalità di pagamento",
+      "ajouter": "Aggiungi una modalità di pagamento",
       "retirer": "Rimuovere questa modalità di pagamento",
-      "arrondi": "arrotondamento {ecart}"
+      "arrondi": "arrotondamento {ecart}",
+      "especesCinqCentimes": "Contanti: multiplo di 5 centesimi richiesto (niente monete da 1 o 2 ct). Importo proposto: {propose}.",
+      "especesCinqCentimesGenerique": "I contanti devono essere un multiplo di 5 centesimi."
     },
     "lignesInvalides": "Ogni modalità di pagamento deve avere un importo superiore a zero.",
     "resteAEncaisser": "Residuo da incassare",
     "confirmationSucces": "Incasso registrato",
-    "confirmer": "Registrare l'incasso",
+    "confirmer": "Registra l'incasso",
     "enCours": "Registrazione…",
     "erreur": {
       "titre": "Impossibile registrare l'incasso"
@@ -337,7 +364,7 @@
     "totalAvoir": "Totale della nota di credito",
     "motifObligatoire": "Motivo obbligatorio, richiesto all'emissione",
     "action": {
-      "emettre": "Emettere la nota di credito",
+      "emettre": "Emetti la nota di credito",
       "enCours": "Creazione in corso…"
     },
     "erreur": {
@@ -346,6 +373,17 @@
   },
   "liste": {
     "titre": "Fatture",
+    "tri": {
+      "label": "Ordinare",
+      "options": {
+        "dateDesc": "Data, più recenti prima",
+        "dateAsc": "Data, più vecchie prima",
+        "numeroDesc": "N°, decrescente",
+        "numeroAsc": "N°, crescente",
+        "soldeDesc": "Saldo, più alto prima",
+        "relanceAsc": "Prossimo sollecito"
+      }
+    },
     "onglets": {
       "groupeLabel": "Filtra le fatture",
       "toutes": "Tutte",
@@ -395,31 +433,28 @@
     }
   },
   "actions": {
-    "emettre": "Emettere",
-    "creer": "Creare",
-    "enregistrer": "Salvare",
-    "encaisser": "Incassare",
-    "corriger": "Correggere",
-    "modifier": "Modificare"
+    "emettre": "Emetti",
+    "creer": "Crea",
+    "enregistrer": "Salva",
+    "encaisser": "Incassa",
+    "corriger": "Correggi",
+    "modifier": "Modifica"
   },
   "devis": {
     "nouveau": {
       "action": "Nuovo preventivo",
       "titre": "Nuovo preventivo",
-      "description": "Un prezzo per un cliente, senza aprire un ordine di riparazione. Il veicolo è facoltativo.",
       "client": "Cliente",
       "clientPlaceholder": "Nome, telefono o n. cliente",
       "clientRequis": "Scelga un cliente.",
       "aucunClient": "Nessun cliente trovato.",
       "vehicule": "Veicolo",
-      "vehiculeAide": "Facoltativo: lasci «Senza veicolo» se l'auto non è ancora nota.",
       "sansVehicule": "Senza veicolo",
       "site": "Sede",
       "creer": "Crea il preventivo"
     },
     "cree": {
       "titre": "Preventivo creato",
-      "description": "Aggiunga ora manodopera e ricambi al preventivo. Una volta inviato il preventivo e accettato dal cliente, potrà trasformarlo in un OR.",
       "ouvrir": "Apri il preventivo"
     },
     "statuts": {
@@ -482,6 +517,70 @@
   },
   "toasts": {
     "devisEnvoye": "Preventivo inviato",
-    "devisAccepte": "Accordo del cliente registrato"
+    "devisAccepte": "Accordo del cliente registrato",
+    "accordAnnule": "Accordo del cliente annullato"
+  },
+  "chiffres": {
+    "titre": "Cifre",
+    "sousTitre": "Cifra d'affari, incassi e fatture da seguire.",
+    "erreur": "Impossibile caricare queste cifre.",
+    "incomplet": "Molte righe: i totali qui sopra sono valori minimi.",
+    "voirFactures": "Torni all'elenco delle fatture",
+    "voirChiffres": "Veda le cifre",
+    "refuse": {
+      "titre": "Pagina riservata",
+      "description": "Le cifre sono riservate alla direzione e alla contabilità."
+    },
+    "periodes": {
+      "moisCourant": "Questo mese",
+      "moisPrecedent": "Mese precedente",
+      "annee": "Quest'anno"
+    },
+    "colonnes": {
+      "periode": "Periodo",
+      "factures": "Fatture",
+      "ht": "Totale IVA esclusa",
+      "tva": "IVA",
+      "ttc": "Totale IVA inclusa",
+      "moyen": "Mezzo di pagamento",
+      "paiements": "Pagamenti",
+      "montant": "Importo"
+    },
+    "chiffreAffaires": {
+      "titre": "Cifra d'affari",
+      "description": "Fatture emesse, note di credito dedotte.",
+      "vide": {
+        "titre": "Nessuna fattura emessa",
+        "description": "Le cifre appariranno dalla prima fattura emessa."
+      }
+    },
+    "encaissements": {
+      "titre": "Incassi del mese",
+      "description": "Denaro ricevuto dal {periode}, per mezzo di pagamento.",
+      "total": "Totale incassato",
+      "vide": {
+        "titre": "Nessun incasso questo mese",
+        "description": "I pagamenti registrati questo mese appariranno qui."
+      }
+    },
+    "facturesOuvertes": {
+      "titre": "Fatture da incassare",
+      "description": "Fatture emesse, non ancora saldate.",
+      "ouvertes": "{count, plural, =0 {Nessuna fattura aperta} one {# fattura aperta} other {# fatture aperte}}",
+      "enRetard": "{count, plural, =0 {Nessuna scaduta} one {# scaduta} other {# scadute}}",
+      "vide": {
+        "titre": "Nessuna fattura aperta",
+        "description": "Tutti i clienti hanno pagato."
+      }
+    },
+    "travauxTermines": {
+      "titre": "Lavori da fatturare",
+      "description": "Ordini di riparazione terminati, non ancora fatturati (importo stimato IVA inclusa).",
+      "nombre": "{count, plural, one {# ordine di riparazione} other {# ordini di riparazione}}",
+      "vide": {
+        "titre": "Nulla da fatturare",
+        "description": "Nessun ordine di riparazione terminato attende la fattura."
+      }
+    }
   }
 }

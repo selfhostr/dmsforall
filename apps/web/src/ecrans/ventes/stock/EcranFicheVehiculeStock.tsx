@@ -35,11 +35,6 @@ import { formaterDate, formaterMontant } from '@/lib/formats';
 import { chemins } from '@/routes/chemins';
 
 import { ValeurConfidentielle } from '../_composants/ValeurConfidentielle';
-import {
-  BasculeVueStock,
-  lireVueAffichageStock,
-  type VueAffichageStock,
-} from './_composants/BasculeVueStock';
 import { ChampEmplacementVehiculeStock } from './_composants/ChampEmplacementVehiculeStock';
 import { DialogueActionAvecMotif } from './_composants/DialogueActionAvecMotif';
 import { DialogueGarantieVehiculeStock } from './_composants/DialogueGarantieVehiculeStock';
@@ -84,26 +79,10 @@ function texteDate(valeur: string | null): string {
 export function EcranFicheVehiculeStock() {
   const { t } = useTranslation(['ventes', 'commun', 'erreurs']);
   const { id } = useParams<{ id: string }>();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
   const site = searchParams.get('site') ?? undefined;
   const { data: session } = useSession();
   const actions = session?.actions;
-
-  // Vue client (issue #84) : quand cette fiche est ouverte depuis la liste en vue client (bouton
-  // « Fiche commerciale », voir `EcranListeVehiculesStock.cheminFicheCommerciale`), le mode suit
-  // dans l'URL — pas de bascule séparée à refaire à chaque fiche pendant qu'un client regarde
-  // encore l'écran. Reste bien sûr changeable ici aussi (`BasculeVueStock` ci-dessous).
-  const vue = lireVueAffichageStock(searchParams);
-
-  function definirVue(valeur: VueAffichageStock) {
-    const parametres = new URLSearchParams(searchParams);
-    if (valeur === 'client') {
-      parametres.set('vue', 'client');
-    } else {
-      parametres.delete('vue');
-    }
-    setSearchParams(parametres);
-  }
 
   const [formulaireOuvert, setFormulaireOuvert] = useState(false);
   const [remettreDisponibleOuvert, setRemettreDisponibleOuvert] = useState(false);
@@ -111,18 +90,14 @@ export function EcranFicheVehiculeStock() {
   const [confirmationReceptionOuverte, setConfirmationReceptionOuverte] = useState(false);
   const [garantieOuverte, setGarantieOuverte] = useState(false);
 
-  // Prix d'achat / frais de remise en état : en vue client (issue #84), ces deux lignes ne sont
-  // plus rendues DU TOUT — voir plus bas — donc rien à masquer ni à révéler ici. En vue vendeur
-  // (défaut), restent masquées par défaut (constat testeur : juxtaposées au prix de vente, elles
-  // révèlent la marge) — PAS une mesure de sécurité, une protection contre le regard par-dessus
-  // l'épaule pour l'usage privé au bureau. Remis à `false` non seulement au montage mais aussi à
-  // chaque CHANGEMENT d'`id` OU de `vue` : react-router ne démonte pas cet écran quand on navigue
-  // d'une fiche véhicule à une autre (même route, seul `:id` change), un simple `useState(false)`
-  // resterait donc révélé pour le véhicule suivant, ou en repassant en vue vendeur, sans ce reset.
+  // Prix d'achat / frais de remise en état : masqués par défaut (constat testeur : juxtaposés au
+  // prix de vente, ils révèlent la marge) — protection contre le regard par-dessus l'épaule, pas une
+  // mesure de sécurité. Remis à `false` à chaque changement d'`id` : react-router ne démonte pas cet
+  // écran d'une fiche à l'autre.
   const [prixConfidentielsReveles, setPrixConfidentielsReveles] = useState(false);
   useEffect(() => {
     setPrixConfidentielsReveles(false);
-  }, [id, vue]);
+  }, [id]);
 
   const requeteStock = useVehiculeStock(id);
   const receptionner = useReceptionnerVehiculeStock(id ?? '');
@@ -137,15 +112,9 @@ export function EcranFicheVehiculeStock() {
     setConfirmationReceptionOuverte(ouvertSuivant);
   }
 
-  // Bascule vue vendeur/client (issue #84) — ACTION de l'en-tête d'écran (retour produit du 17.08.2026 :
-  // « Vue vendeur, Vue client, il faut le mettre ailleurs »), construite AVANT les retours anticipés
-  // chargement/erreur pour que l'en-tête ne change pas de composition entre les états : elle ne
-  // dépend que de l'URL, jamais de `stock`.
-  const actionsEnTete = <BasculeVueStock vue={vue} onChangeVue={definirVue} />;
-
   if (requeteStock.isPending) {
     return (
-      <GabaritEcran titre={t('ventes:stock.fiche.titre')} actions={actionsEnTete}>
+      <GabaritEcran titre={t('ventes:stock.fiche.titre')}>
         <EtatChargement lignes={8} />
       </GabaritEcran>
     );
@@ -153,7 +122,7 @@ export function EcranFicheVehiculeStock() {
 
   if (requeteStock.isError) {
     return (
-      <GabaritEcran titre={t('ventes:stock.fiche.titre')} actions={actionsEnTete}>
+      <GabaritEcran titre={t('ventes:stock.fiche.titre')}>
         <EtatErreur
           titre={t('ventes:stock.fiche.erreur.titre')}
           description={messageErreur(requeteStock.error, t)}
@@ -235,7 +204,7 @@ export function EcranFicheVehiculeStock() {
   // que celui que ce chantier corrige ailleurs (structure haute non mécanique), corrigé ici en même
   // temps que le passage par `GabaritEcran`.
   return (
-    <GabaritEcran titre={t('ventes:stock.fiche.titre')} actions={actionsEnTete}>
+    <GabaritEcran titre={t('ventes:stock.fiche.titre')}>
       {/* DESIGN.md « bordure structurelle uniquement » — `border`/`rounded-lg` manuels retirés :
        *  ce bandeau (identité, statut, emplacement, actions) est un simple groupe de contenu, sans
        *  comportement propre au conteneur lui-même (chaque contrôle qu'il porte — champ
@@ -247,14 +216,7 @@ export function EcranFicheVehiculeStock() {
         <CardContent className="flex flex-col gap-4 pt-6 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex flex-col gap-2">
             <div className="flex flex-wrap items-center gap-2">
-              <IdentiteVehicule
-                vehicule={
-                  vue === 'client'
-                    ? { ...stock.vehicule, identificationIncomplete: false }
-                    : stock.vehicule
-                }
-                taillePlaque="xl"
-              />
+              <IdentiteVehicule vehicule={stock.vehicule} taillePlaque="xl" />
               <Badge variant={VARIANTE_BADGE_STATUT[stock.statutCommercial]}>
                 {t(`ventes:stock.statuts.${stock.statutCommercial}`)}
               </Badge>
@@ -269,201 +231,163 @@ export function EcranFicheVehiculeStock() {
               {t('ventes:stock.fiche.voirFicheVehicule')}
             </Link>
 
-            {/* Emplacement (issue #142) : géré au comptoir, pas un geste accessible en vue client
-                (même retrait que les autres actions internes ci-dessous). */}
-            {vue === 'vendeur' ? (
-              <ChampEmplacementVehiculeStock
-                vehiculeId={stock.vehicule.id}
-                emplacement={stock.vehicule.emplacementLibre}
-                peutModifier={peutModifierVehicule}
-              />
-            ) : null}
+            <ChampEmplacementVehiculeStock
+              vehiculeId={stock.vehicule.id}
+              emplacement={stock.vehicule.emplacementLibre}
+              peutModifier={peutModifierVehicule}
+            />
           </div>
 
-          {/* Actions internes (mettre à jour, réceptionner, corrections, garantie) retirées en vue
-              client : pas de geste d'écriture accessible pendant qu'un client regarde l'écran. */}
-          {vue === 'vendeur' ? (
-            <div className="flex shrink-0 flex-wrap items-center gap-2">
-              {/* « Garantie » (issue #141) : gardée par `vehicule.modifier`, un droit DISTINCT de
+          <div className="flex shrink-0 flex-wrap items-center gap-2">
+            {/* « Garantie » (issue #141) : gardée par `vehicule.modifier`, un droit DISTINCT de
                   celui qui gouverne `actionPrimaire`/`actionsSecondaires` ci-dessous (voir
                   `peutModifierVehiculeAssocie`) — placée à côté, hors du composant `ActionPrimaire`,
                   qui n'admet qu'UNE seule action primaire construite par l'appelant (voir son
                   en-tête) : la coincer dans son menu de débordement l'aurait rendue invisible pour
                   un rôle sans action commerciale primaire (ex. `receptionnaire`) alors qu'il a bien
                   le droit de renseigner la garantie. */}
-              {peutModifierVehicule ? (
-                <Button type="button" variant="outline" onClick={() => setGarantieOuverte(true)}>
-                  {t('ventes:stock.fiche.actions.garantie')}
+            {peutModifierVehicule ? (
+              <Button type="button" variant="outline" onClick={() => setGarantieOuverte(true)}>
+                {t('ventes:stock.fiche.actions.garantie')}
+              </Button>
+            ) : null}
+            {actionPrimaire ? (
+              <ActionPrimaire
+                actionsSecondaires={actionsSecondaires}
+                libelleMenuSecondaire={t('ventes:stock.fiche.actions.autresActions')}
+              >
+                <Button type="button" variant="default" onClick={actionPrimaire.onClick}>
+                  {actionPrimaire.libelle}
                 </Button>
-              ) : null}
-              {actionPrimaire ? (
-                <ActionPrimaire
-                  actionsSecondaires={actionsSecondaires}
-                  libelleMenuSecondaire={t('ventes:stock.fiche.actions.autresActions')}
-                >
-                  <Button type="button" variant="default" onClick={actionPrimaire.onClick}>
-                    {actionPrimaire.libelle}
-                  </Button>
-                </ActionPrimaire>
-              ) : null}
-            </div>
-          ) : null}
+              </ActionPrimaire>
+            ) : null}
+          </div>
         </CardContent>
       </Card>
 
-      {vue === 'client' ? (
-        // Vue client (issue #84) : provenance, ancienneté, prix d'achat, frais de remise en état
-        // et assujettissement TVA du vendeur précédent ne sont PAS rendus — ni masqués ni
-        // révélables, absents du DOM. Seul ce qui aide un client à décider reste : le véhicule,
-        // son statut, son prix de vente, mis en avant plutôt qu'englouti dans un tableau de
-        // données commerciales qui n'a plus grand-chose à montrer une fois la marge retirée.
-        //
-        // DESIGN.md « densité » — un chiffre, un libellé : même candidat que `CarteChiffreRequete`
-        // (tableau-bord) pour `--espace-carte-compacte`. `p-6` brut (hors système de densité)
-        // remplacé par le jeton compact, posé directement sur `CardContent` plutôt que via la seule
-        // prop `compact` de `Card` : pas de `CardHeader` ici (le libellé reste une légende discrète
-        // au-dessus du chiffre, pas un titre de carte), et `CardContent` applique `pt-0` par défaut
-        // en anticipant un `CardHeader` précédent — sans cet override, le rembourrage du haut
-        // serait vidé.
-        <Card compact>
-          <CardContent className="p-carte-compacte">
-            <p className="texte-libelle text-muted-foreground">
-              {t('ventes:stock.champs.prixVenteAffiche')}
-            </p>
-            <p className="texte-donnee-proeminente">
-              {stock.prixVenteAfficheCentimes === null
-                ? t('ventes:stock.prixNonFixe')
-                : formaterMontant(stock.prixVenteAfficheCentimes)}
-            </p>
-          </CardContent>
-        </Card>
-      ) : (
-        <>
-          <Card>
-            <CardHeader>
-              <CardTitle className="texte-titre-section">
-                {t('ventes:stock.fiche.donneesCommerciales')}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <dl className="grid grid-cols-2 gap-x-6 gap-y-3 texte-corps sm:grid-cols-3">
-                <div>
-                  <dt className="texte-libelle text-muted-foreground">
-                    {t('ventes:stock.champs.provenance')}
-                  </dt>
-                  <dd>
-                    {PROVENANCES_VEHICULE_STOCK.includes(
-                      stock.provenance as (typeof PROVENANCES_VEHICULE_STOCK)[number],
-                    )
-                      ? t(`ventes:stock.provenances.${stock.provenance}`)
-                      : stock.provenance}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="texte-libelle text-muted-foreground">
-                    {t('ventes:stock.champs.dateEntreeStock')}
-                  </dt>
-                  <dd>{formaterDate(stock.dateEntreeStock)}</dd>
-                </div>
-                <div>
-                  <dt className="texte-libelle text-muted-foreground">
-                    {t('ventes:stock.champs.joursStock')}
-                  </dt>
-                  <dd className="tabular-nums">{stock.joursStock}</dd>
-                </div>
-                <div>
-                  <dt className="texte-libelle text-muted-foreground">
-                    {t('ventes:stock.champs.prixAchat')}
-                  </dt>
-                  <dd className="tabular-nums font-medium">
-                    <ValeurConfidentielle
-                      revele={prixConfidentielsReveles}
-                      onToggle={() => setPrixConfidentielsReveles((valeur) => !valeur)}
-                      valeur={formaterMontant(stock.prixAchatCentimes)}
-                      nomChamp={t('ventes:stock.champs.prixAchat')}
-                    />
-                  </dd>
-                </div>
-                <div>
-                  <dt className="texte-libelle text-muted-foreground">
-                    {t('ventes:stock.champs.fraisRemiseEtatCumules')}
-                  </dt>
-                  <dd className="tabular-nums">
-                    <ValeurConfidentielle
-                      revele={prixConfidentielsReveles}
-                      onToggle={() => setPrixConfidentielsReveles((valeur) => !valeur)}
-                      valeur={formaterMontant(stock.fraisRemiseEtatCumulesCentimes)}
-                      nomChamp={t('ventes:stock.champs.fraisRemiseEtatCumules')}
-                    />
-                  </dd>
-                </div>
-                <div>
-                  <dt className="texte-libelle text-muted-foreground">
-                    {t('ventes:stock.champs.prixVenteAffiche')}
-                  </dt>
-                  <dd className="tabular-nums font-medium">
-                    {stock.prixVenteAfficheCentimes === null
-                      ? t('ventes:stock.prixNonFixe')
-                      : formaterMontant(stock.prixVenteAfficheCentimes)}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="texte-libelle text-muted-foreground">
-                    {t('ventes:stock.champs.vendeurPrecedentAssujetti')}
-                  </dt>
-                  <dd>
-                    {stock.vendeurPrecedentAssujetti === null
-                      ? t('ventes:stock.assujetti.nonRenseigne')
-                      : stock.vendeurPrecedentAssujetti
-                        ? t('ventes:stock.assujetti.oui')
-                        : t('ventes:stock.assujetti.non')}
-                  </dd>
-                </div>
-              </dl>
-            </CardContent>
-          </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle className="texte-titre-section">
+            {t('ventes:stock.fiche.donneesCommerciales')}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <dl className="grid grid-cols-2 gap-x-6 gap-y-3 texte-corps sm:grid-cols-3">
+            <div>
+              <dt className="texte-libelle text-muted-foreground">
+                {t('ventes:stock.champs.provenance')}
+              </dt>
+              <dd>
+                {PROVENANCES_VEHICULE_STOCK.includes(
+                  stock.provenance as (typeof PROVENANCES_VEHICULE_STOCK)[number],
+                )
+                  ? t(`ventes:stock.provenances.${stock.provenance}`)
+                  : stock.provenance}
+              </dd>
+            </div>
+            <div>
+              <dt className="texte-libelle text-muted-foreground">
+                {t('ventes:stock.champs.dateEntreeStock')}
+              </dt>
+              <dd>{formaterDate(stock.dateEntreeStock)}</dd>
+            </div>
+            <div>
+              <dt className="texte-libelle text-muted-foreground">
+                {t('ventes:stock.champs.joursStock')}
+              </dt>
+              <dd className="tabular-nums">{stock.joursStock}</dd>
+            </div>
+            <div>
+              <dt className="texte-libelle text-muted-foreground">
+                {t('ventes:stock.champs.prixAchat')}
+              </dt>
+              <dd className="tabular-nums font-medium">
+                <ValeurConfidentielle
+                  revele={prixConfidentielsReveles}
+                  onToggle={() => setPrixConfidentielsReveles((valeur) => !valeur)}
+                  valeur={formaterMontant(stock.prixAchatCentimes)}
+                  nomChamp={t('ventes:stock.champs.prixAchat')}
+                />
+              </dd>
+            </div>
+            <div>
+              <dt className="texte-libelle text-muted-foreground">
+                {t('ventes:stock.champs.fraisRemiseEtatCumules')}
+              </dt>
+              <dd className="tabular-nums">
+                <ValeurConfidentielle
+                  revele={prixConfidentielsReveles}
+                  onToggle={() => setPrixConfidentielsReveles((valeur) => !valeur)}
+                  valeur={formaterMontant(stock.fraisRemiseEtatCumulesCentimes)}
+                  nomChamp={t('ventes:stock.champs.fraisRemiseEtatCumules')}
+                />
+              </dd>
+            </div>
+            <div>
+              <dt className="texte-libelle text-muted-foreground">
+                {t('ventes:stock.champs.prixVenteAffiche')}
+              </dt>
+              <dd className="tabular-nums font-medium">
+                {stock.prixVenteAfficheCentimes === null
+                  ? t('ventes:stock.prixNonFixe')
+                  : formaterMontant(stock.prixVenteAfficheCentimes)}
+              </dd>
+            </div>
+            <div>
+              <dt className="texte-libelle text-muted-foreground">
+                {t('ventes:stock.champs.vendeurPrecedentAssujetti')}
+              </dt>
+              <dd>
+                {stock.vendeurPrecedentAssujetti === null
+                  ? t('ventes:stock.assujetti.nonRenseigne')
+                  : stock.vendeurPrecedentAssujetti
+                    ? t('ventes:stock.assujetti.oui')
+                    : t('ventes:stock.assujetti.non')}
+              </dd>
+            </div>
+          </dl>
+        </CardContent>
+      </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="texte-titre-section">
-                {t('ventes:stock.fiche.historique')}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <dl className="grid grid-cols-2 gap-x-6 gap-y-3 texte-corps sm:grid-cols-4">
-                <div>
-                  <dt className="texte-libelle text-muted-foreground">
-                    {t('ventes:stock.champs.receptionneLe')}
-                  </dt>
-                  <dd>{texteDate(stock.receptionneLe)}</dd>
-                </div>
-                <div>
-                  <dt className="texte-libelle text-muted-foreground">
-                    {t('ventes:stock.champs.reserveLe')}
-                  </dt>
-                  <dd>{texteDate(stock.reserveLe)}</dd>
-                </div>
-                <div>
-                  <dt className="texte-libelle text-muted-foreground">
-                    {t('ventes:stock.champs.venduLe')}
-                  </dt>
-                  <dd>{texteDate(stock.venduLe)}</dd>
-                </div>
-                <div>
-                  <dt className="texte-libelle text-muted-foreground">
-                    {t('ventes:stock.champs.livreLe')}
-                  </dt>
-                  <dd>{texteDate(stock.livreLe)}</dd>
-                </div>
-              </dl>
-              <p className="mt-3 texte-libelle text-muted-foreground">
-                {t('ventes:stock.fiche.creeLe')} {formaterDate(stock.creeLe)} ·{' '}
-                {t('ventes:stock.fiche.modifieLe')} {formaterDate(stock.modifieLe)}
-              </p>
-            </CardContent>
-          </Card>
-        </>
-      )}
+      <Card>
+        <CardHeader>
+          <CardTitle className="texte-titre-section">
+            {t('ventes:stock.fiche.historique')}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <dl className="grid grid-cols-2 gap-x-6 gap-y-3 texte-corps sm:grid-cols-4">
+            <div>
+              <dt className="texte-libelle text-muted-foreground">
+                {t('ventes:stock.champs.receptionneLe')}
+              </dt>
+              <dd>{texteDate(stock.receptionneLe)}</dd>
+            </div>
+            <div>
+              <dt className="texte-libelle text-muted-foreground">
+                {t('ventes:stock.champs.reserveLe')}
+              </dt>
+              <dd>{texteDate(stock.reserveLe)}</dd>
+            </div>
+            <div>
+              <dt className="texte-libelle text-muted-foreground">
+                {t('ventes:stock.champs.venduLe')}
+              </dt>
+              <dd>{texteDate(stock.venduLe)}</dd>
+            </div>
+            <div>
+              <dt className="texte-libelle text-muted-foreground">
+                {t('ventes:stock.champs.livreLe')}
+              </dt>
+              <dd>{texteDate(stock.livreLe)}</dd>
+            </div>
+          </dl>
+          <p className="mt-3 texte-libelle text-muted-foreground">
+            {t('ventes:stock.fiche.creeLe')} {formaterDate(stock.creeLe)} ·{' '}
+            {t('ventes:stock.fiche.modifieLe')} {formaterDate(stock.modifieLe)}
+          </p>
+        </CardContent>
+      </Card>
 
       {formulaireOuvert ? (
         <FormulaireVehiculeStock

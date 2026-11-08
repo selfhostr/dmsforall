@@ -20,6 +20,7 @@ import type { Response } from 'express';
 import {
   EN_TETE_IDEMPOTENCE,
   schemaAccepterDevis,
+  schemaAnnulerAccordDevis,
   schemaAnnulerDocument,
   schemaCorrectionFacture,
   schemaCreationAvoir,
@@ -71,6 +72,7 @@ const EnveloppeCorrectionFactureDto = EnveloppeDocumentDto(
  */
 const schemaEmissionDocumentVenteCorpsOptionnel = schemaEmissionDocumentVente.optional();
 const schemaAccepterDevisCorpsOptionnel = schemaAccepterDevis.optional();
+const schemaAnnulerAccordDevisCorpsOptionnel = schemaAnnulerAccordDevis.optional();
 
 /**
  * Transitions de la chaîne documentaire — émission (`RF-5`, `RF-10`, `RF-22`→`RF-28`), acceptation/
@@ -148,6 +150,32 @@ export class DocumentVenteTransitionsController {
     const ctx = this.contexte.contexteTenant();
     const principal = this.contexte.exigerPrincipal();
     return this.emission.accepter(ctx, principal, id);
+  }
+
+  @Post(':id/annuler-accord')
+  @HttpCode(HttpStatus.OK)
+  @ExigerDroit('facturation.document.transitionner')
+  @ApiOperation({
+    summary:
+      "Annuler l'accord du client — devis uniquement (devis.accepte → emis), tant qu'aucun OR ni document n'en est issu.",
+  })
+  @ApiParam({ name: 'id', format: 'uuid' })
+  @ApiResponse({ status: 200, type: EnveloppeDocumentVenteDto })
+  @ApiReponseProbleme(400, 'Type de document invalide (seul un devis a un accord).')
+  @ApiReponseProbleme(401, 'Session absente ou expirée.')
+  @ApiReponseProbleme(403, 'Droit insuffisant.')
+  @ApiReponseProbleme(404, 'Document introuvable pour ce tenant.')
+  @ApiReponseProbleme(
+    409,
+    'DOCUMENT_TRANSITION_INTERDITE (le devis n’est pas accepté) ou DOCUMENT_SOURCE_DEJA_TRANSFORME (un OR ou un document en est issu).',
+  )
+  async annulerAccord(
+    @Param('id', new PipeZod(schemaIdentifiant)) id: string,
+    @CorpsZod(schemaAnnulerAccordDevisCorpsOptionnel, { exemple: {} }) _entree: unknown,
+  ) {
+    const ctx = this.contexte.contexteTenant();
+    const principal = this.contexte.exigerPrincipal();
+    return this.emission.annulerAccord(ctx, principal, id);
   }
 
   @Post(':id/refuser')
@@ -255,6 +283,12 @@ export class DocumentVenteTransitionsController {
       "lignes avec l'en-tête corrigé (`champsCorriges` : désignation et/ou adresse de facturation " +
       'uniquement — une erreur de montant ou de taux se corrige par un avoir libre, `POST ' +
       '/documents-vente/{factureId}/avoirs`, jamais par ce geste). ' +
+      "`mode` (défaut `remplacement`, comportement historique) : avec `mode = 'brouillon'`, la facture de " +
+      "remplacement n'est PAS émise — elle est créée en BROUILLON (mêmes lignes, TVA recalculée au " +
+      'régime ACTUEL du garage), `champsCorriges` est alors interdit et la réponse porte `mode = ' +
+      "'brouillon'` ; `factureRemplacement.id` est le brouillon à ouvrir, modifier puis émettre. " +
+      'Refusé en mode brouillon : facture déjà annulée par un avoir (`FACTURE_DEJA_CORRIGEE`) ou ' +
+      'déjà réglée en tout ou partie (`FACTURE_CORRECTION_REGLEMENT_EXISTANT`). ' +
       "Droit DÉDIÉ, périmètre volontairement PLUS ÉTROIT qu'émettre un avoir simple : " +
       '`direction`/`comptable` SEULS (ni `receptionnaire`, ni `admin`, RF-115).',
   })
@@ -271,7 +305,7 @@ export class DocumentVenteTransitionsController {
   @ApiReponseProbleme(404, 'Facture introuvable pour ce tenant.')
   @ApiReponseProbleme(
     409,
-    'DOCUMENT_TRANSITION_INTERDITE (facture non émise ou déjà corrigée/annulée) ou IDEMPOTENCE_CONFLIT.',
+    'DOCUMENT_TRANSITION_INTERDITE (facture non émise), FACTURE_DEJA_CORRIGEE et FACTURE_CORRECTION_REGLEMENT_EXISTANT (mode brouillon), TVA_NUMERO_REQUIS ou IDEMPOTENCE_CONFLIT.',
   )
   async corriger(
     @Param('factureId', new PipeZod(schemaIdentifiant)) factureId: string,

@@ -42,7 +42,7 @@ export function ListeTravauxReportes({ travaux, className }: ProprietesListeTrav
       </CardHeader>
       <CardContent>
         {travaux.length === 0 ? (
-          <EtatVide titre={t('travauxReportes.titre')} description={t('vide.travauxReportes')} />
+          <EtatVide description={t('vide.travauxReportes')} />
         ) : (
           <ul className="flex flex-col divide-y">
             {travaux.map((travail) => {

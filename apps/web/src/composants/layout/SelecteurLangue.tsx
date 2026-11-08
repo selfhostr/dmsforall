@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 
-import { useLangue } from '@/hooks/useLangue';
+import { useLangueProfil } from '@/hooks/useLangueProfil';
 import { cn } from '@/lib/utils';
 
 /** Accessible AVANT connexion (utilisé sur EcranConnexion) et dans l'en-tête une fois
@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils';
  *  dépendance à un composant de menu complexe pour un choix à 3 valeurs fixes. */
 export function SelecteurLangue() {
   const { t } = useTranslation('commun');
-  const { langue, languesDisponibles, changerLangue } = useLangue();
+  const { langue, languesDisponibles, changerLangue } = useLangueProfil();
 
   return (
     <div

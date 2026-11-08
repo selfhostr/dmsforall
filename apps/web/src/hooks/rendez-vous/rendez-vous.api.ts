@@ -27,11 +27,19 @@ export interface FiltresPeriodeRendezVous {
   readonly siteId: string;
 }
 
-function construireParametresPeriode(filtres: FiltresPeriodeRendezVous): string {
+/** Liste de rendez-vous sur une période. `siteId` absent = tous les sites du garage (accueil) ;
+ *  l'agenda du planning, lui, est toujours scopé à un site (`FiltresPeriodeRendezVous`). */
+export interface FiltresListeRendezVous {
+  readonly du: string;
+  readonly au: string;
+  readonly siteId?: string;
+}
+
+function construireParametresPeriode(filtres: FiltresListeRendezVous): string {
   const parametres = new URLSearchParams();
   parametres.set('du', filtres.du);
   parametres.set('au', filtres.au);
-  parametres.set('siteId', filtres.siteId);
+  if (filtres.siteId !== undefined) parametres.set('siteId', filtres.siteId);
   return parametres.toString();
 }
 
@@ -39,7 +47,7 @@ function construireParametresPeriode(filtres: FiltresPeriodeRendezVous): string 
  *  reste TOUJOURS scopé à un seul site (RV-06 : la capacité se calcule site par site, jamais
  *  agrégée tenant) — `siteId` n'est donc jamais omis ici, contrairement à d'autres listes. */
 export async function listerRendezVous(
-  filtres: FiltresPeriodeRendezVous,
+  filtres: FiltresListeRendezVous,
 ): Promise<PageCurseur<ReponseRendezVous>> {
   const page = await requeteApi<PageCurseur<ReponseRendezVous>>(
     `/rendez-vous?${construireParametresPeriode(filtres)}`,

@@ -486,6 +486,8 @@ export type EntreeEmissionDocumentVente = z.infer<typeof schemaEmissionDocumentV
 
 /** `POST /documents-vente/{id}/accepter` — devis uniquement. */
 export const schemaAccepterDevis = z.object({}).extend(schemaConfirmations.shape).strict();
+/** `POST /documents-vente/{id}/annuler-accord` — devis uniquement ; aucun champ. */
+export const schemaAnnulerAccordDevis = z.object({}).strict();
 /** `POST /documents-vente/{id}/refuser` — devis ou bon de commande. */
 export const schemaRefuserDocument = z.object({ motif: schemaTexteLong.optional() }).strict();
 /** `POST /documents-vente/{id}/annuler` — bon de commande uniquement ; motif OBLIGATOIRE, même
@@ -493,6 +495,7 @@ export const schemaRefuserDocument = z.object({ motif: schemaTexteLong.optional(
 export const schemaAnnulerDocument = z.object({ motif: schemaTexteLong }).strict();
 
 export type EntreeAccepterDevis = z.infer<typeof schemaAccepterDevis>;
+export type EntreeAnnulerAccordDevis = z.infer<typeof schemaAnnulerAccordDevis>;
 export type EntreeRefuserDocument = z.infer<typeof schemaRefuserDocument>;
 export type EntreeAnnulerDocument = z.infer<typeof schemaAnnulerDocument>;
 
@@ -562,18 +565,29 @@ export type EntreeCreationAvoir = z.infer<typeof schemaCreationAvoir>;
  * immuables, exactement comme un avoir puis une facture créés séparément. C'est une commodité
  * d'écran, exposée comme telle par un endpoint dédié plutôt que comme un cas spécial de `PATCH`.
  */
+export const MODES_CORRECTION_FACTURE = ['remplacement', 'brouillon'] as const;
+export type ModeCorrectionFacture = (typeof MODES_CORRECTION_FACTURE)[number];
+
 export const schemaCorrectionFacture = z
   .object({
+    /** `remplacement` (défaut, comportement historique) : avoir total + facture de remplacement
+     *  ÉMISE, en-tête corrigé via `champsCorriges` (obligatoire dans ce mode).
+     *  `brouillon` : avoir total émis + NOUVEAU BROUILLON de facture (mêmes lignes, recalculées au
+     *  régime TVA ACTUEL du garage), laissé modifiable puis émis par l'utilisateur. Dans ce mode
+     *  `champsCorriges` et `corrigerFicheClient` n'ont pas de sens : le brouillon se corrige
+     *  ensuite par les routes ordinaires de modification d'un brouillon. */
+    mode: z.enum(MODES_CORRECTION_FACTURE).default('remplacement'),
     motif: z.enum(MOTIFS_AVOIR),
     motifAutre: schemaTexteLong.optional(),
     /** Coché par défaut (`RF-14`) : sans correction de la fiche, l'erreur revient à la facture
      *  suivante. Reste décochable — corriger le document et corriger la donnée sont deux actions
      *  distinctes, et la seconde n'est pas toujours souhaitée (ex. le client donne une adresse
-     *  de facturation ponctuelle, différente de sa fiche). */
+     *  de facturation ponctuelle, différente de sa fiche). Ignoré en mode `brouillon`. */
     corrigerFicheClient: z.boolean().default(true),
     /** Overlay PARTIEL des valeurs figées : seuls les champs fournis sont corrigés sur la
      *  nouvelle facture (et, si `corrigerFicheClient`, reportés sur la fiche). Les champs omis
-     *  sont recopiés tels quels depuis la facture d'origine. */
+     *  sont recopiés tels quels depuis la facture d'origine. OBLIGATOIRE en mode `remplacement`,
+     *  INTERDIT en mode `brouillon`. */
     champsCorriges: z
       .object({
         clientDesignation: schemaTexteCourt.optional(),
@@ -582,13 +596,22 @@ export const schemaCorrectionFacture = z
       .strict()
       .refine((v) => Object.keys(v).length > 0, {
         message: 'Au moins un champ à corriger est requis.',
-      }),
+      })
+      .optional(),
   })
   .extend(schemaConfirmations.shape)
   .strict()
   .refine((v) => v.motif !== 'autre' || Boolean(v.motifAutre?.trim()), {
     message: "Un motif 'autre' exige un texte libre (RF-15).",
     path: ['motifAutre'],
+  })
+  .refine((v) => v.mode !== 'remplacement' || v.champsCorriges !== undefined, {
+    message: 'Au moins un champ à corriger est requis.',
+    path: ['champsCorriges'],
+  })
+  .refine((v) => v.mode !== 'brouillon' || v.champsCorriges === undefined, {
+    message: "Le mode 'brouillon' ne prend aucun champ corrigé : le brouillon se modifie ensuite.",
+    path: ['champsCorriges'],
   });
 
 export type EntreeCorrectionFacture = z.infer<typeof schemaCorrectionFacture>;
@@ -598,6 +621,10 @@ export type EntreeCorrectionFacture = z.infer<typeof schemaCorrectionFacture>;
  *  inchangée sauf pour les colonnes de la liste blanche (`MD-20`), n'est pas renvoyée ici — un
  *  `GET /documents-vente/{factureId}` séparé la montre `statut = 'annule_par_avoir'`. */
 export interface ReponseCorrectionFacture {
+  readonly mode: ModeCorrectionFacture;
   readonly avoir: ReponseDocumentVente;
+  /** Mode `remplacement` : facture émise. Mode `brouillon` : document `statut = 'brouillon'`
+   *  (sans numéro), dont `id` est celui à ouvrir pour le modifier puis l'émettre ; relié à
+   *  l'originale par `factureCorrigeeId` (côté base). */
   readonly factureRemplacement: ReponseDocumentVente;
 }

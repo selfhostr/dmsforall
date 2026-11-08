@@ -334,7 +334,8 @@ describe('FormulaireNouveauClient', () => {
 
       expect(screen.getByLabelText('Nom')).toHaveValue('Rossier');
       expect(screen.getByLabelText('Prénom')).toHaveValue('Jean');
-      expect(screen.getByLabelText('Téléphone')).toHaveValue('079 123 45 67');
+      // Le téléphone n'est jamais persisté dans le brouillon (donnée personnelle).
+      expect(screen.getByLabelText('Téléphone')).toHaveValue('');
       expect(screen.getByLabelText('Rue et numéro')).toHaveValue('Rue du Lac 8');
       expect(screen.getByText(/Brouillon repris de/)).toBeInTheDocument();
     });

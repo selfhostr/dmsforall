@@ -1,4 +1,3 @@
-import { Plus } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useSearchParams } from 'react-router';
@@ -6,7 +5,6 @@ import { useNavigate, useSearchParams } from 'react-router';
 import type { ClientResume, StatutClient, TypeClient } from '@dfa/shared';
 
 import { ErreurReseau, messageErreur } from '@/api/erreurs';
-import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import {
@@ -16,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { PanneauLateral } from '@/composants/PanneauLateral';
 import { BarreFiltres } from '@/composants/comptoir/BarreFiltres';
 import { BoutonChargerPlus } from '@/composants/comptoir/BoutonChargerPlus';
 import {
@@ -88,8 +86,6 @@ export function EcranListeClients() {
     () => requete.data?.pages.flatMap((page) => page.donnees) ?? [],
     [requete.data],
   );
-
-  const filtresActifs = qSaisi.trim() !== '' || type !== undefined || inclureInactifs;
 
   const effacerFiltres = () => {
     setQSaisi('');
@@ -170,12 +166,6 @@ export function EcranListeClients() {
     <EtatVidePremierUsage
       titre={t('clients:vide.premier')}
       description={t('clients:vide.premierDescription')}
-      action={
-        <Button type="button" onClick={() => setSheetOuvert(true)}>
-          <Plus aria-hidden className="h-4 w-4" />
-          {t('clients:nouveau')}
-        </Button>
-      }
     />
   );
 
@@ -187,55 +177,46 @@ export function EcranListeClients() {
     // auparavant, qui demandait ce même h1 visible : l'onglet « Clients », déjà affiché à
     // l'écran, porte désormais ce libellé, le h1 devient `sr-only` (jamais retiré du DOM).
     // Aucun padding local : `AppShell` pose déjà `p-4 sm:p-6` sur tout écran routé.
-    //
-    // « Nouveau client » N'EST PAS dans l'emplacement `actions` du gabarit (qui le placerait juste
-    // sous le titre, seul sur sa ligne, et décalerait tout le reste) — retour produit, chantier
-    // « zone haute des écrans de liste » : le bouton descend juste sous la barre de filtres,
-    // aligné à droite, même déplacement que sur Atelier/Pneus/Véhicules.
-    <GabaritEcran titre={t('clients:titre')}>
-      <BarreFiltres
-        q={qSaisi}
-        onChangeQ={setQSaisi}
-        filtresActifs={filtresActifs}
-        onEffacerFiltres={effacerFiltres}
-      >
-        <Select
-          value={type ?? 'tous'}
-          onValueChange={(valeur) =>
-            setType(valeur === 'tous' ? undefined : (valeur as TypeClient))
-          }
+    // « Créer un client » est le bouton « + » en bout de la barre de filtres (BarreFiltres).
+    <GabaritEcran
+      titre={t('clients:titre')}
+      barre={
+        <BarreFiltres
+          q={qSaisi}
+          onChangeQ={setQSaisi}
+          actionCreer={{
+            libelle: t('clients:creerInfobulle'),
+            onClick: () => setSheetOuvert(true),
+          }}
         >
-          <SelectTrigger className="w-[200px]" aria-label={t('clients:liste.filtres.type')}>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="tous">{t('clients:liste.filtres.tousLesTypes')}</SelectItem>
-            <SelectItem value="particulier">{t('clients:liste.types.particulier')}</SelectItem>
-            <SelectItem value="entreprise">{t('clients:liste.types.entreprise')}</SelectItem>
-          </SelectContent>
-        </Select>
-        <div className="flex items-center gap-2">
-          <Checkbox
-            id="clients-inclure-inactifs"
-            checked={inclureInactifs}
-            onCheckedChange={(valeur) => setInclureInactifs(valeur === true)}
-          />
-          <Label htmlFor="clients-inclure-inactifs">
-            {t('clients:liste.filtres.inclureInactifs')}
-          </Label>
-        </div>
-      </BarreFiltres>
-
-      {/* Pas de `SelecteurTri` sur cet écran (tri par colonnes triables de `TableComptoir`) :
-          le bouton d'action rejoint donc sa propre ligne, aligné à droite, directement sous la
-          barre de filtres — même principe que la ligne « Trier par » des autres écrans. */}
-      <div className="flex justify-end">
-        <Button type="button" onClick={() => setSheetOuvert(true)}>
-          <Plus aria-hidden className="h-4 w-4" />
-          {t('clients:nouveau')}
-        </Button>
-      </div>
-
+          <Select
+            value={type ?? 'tous'}
+            onValueChange={(valeur) =>
+              setType(valeur === 'tous' ? undefined : (valeur as TypeClient))
+            }
+          >
+            <SelectTrigger className="w-auto min-w-28" aria-label={t('clients:liste.filtres.type')}>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="tous">{t('clients:liste.filtres.tousLesTypes')}</SelectItem>
+              <SelectItem value="particulier">{t('clients:liste.types.particulier')}</SelectItem>
+              <SelectItem value="entreprise">{t('clients:liste.types.entreprise')}</SelectItem>
+            </SelectContent>
+          </Select>
+          <div className="flex items-center gap-2">
+            <Checkbox
+              id="clients-inclure-inactifs"
+              checked={inclureInactifs}
+              onCheckedChange={(valeur) => setInclureInactifs(valeur === true)}
+            />
+            <Label htmlFor="clients-inclure-inactifs">
+              {t('clients:liste.filtres.inclureInactifs')}
+            </Label>
+          </div>
+        </BarreFiltres>
+      }
+    >
       {requete.isError ? (
         <EtatErreur
           titre={t(estErreurReseau ? 'erreurs:reseau.titre' : 'erreurs:inattendue.titre')}
@@ -263,47 +244,44 @@ export function EcranListeClients() {
         </>
       )}
 
-      <Sheet open={sheetOuvert} onOpenChange={setSheetOuvert}>
-        <SheetContent
-          className="w-full overflow-y-auto sm:max-w-lg"
-          // Issue #78 (mesuré en navigateur : Échap et un clic sur la zone grisée hors du panneau
-          // ferment tous deux ce tiroir PAR DÉFAUT, chez Radix, sans confirmation — un
-          // réceptionniste a perdu nom/prénom/téléphone/rue en plein comptoir de cette façon).
-          // Les DEUX interactions passent par ces rappels avant d'atteindre `onOpenChange` ;
-          // `preventDefault()` les bloque tant qu'une saisie réelle est en jeu
-          // (`aUnBrouillonNouveauClientEnCours`, `FormulaireNouveauClient.tsx` — même source de
-          // vérité que le brouillon qu'il persiste). Le bouton de fermeture visible (coin
-          // supérieur droit de `SheetContent`) n'est PAS concerné : il ne déclenche ni l'un ni
-          // l'autre de ces événements, une fermeture par ce bouton reste toujours immédiate — le
-          // brouillon reste alors le filet de rattrapage, pas ce garde-fou.
-          onEscapeKeyDown={(evenement) => {
-            if (aUnBrouillonNouveauClientEnCours()) evenement.preventDefault();
+      <PanneauLateral
+        ouvert={sheetOuvert}
+        onOuvertChange={setSheetOuvert}
+        titre={t('clients:nouveau')}
+        // Issue #78 (mesuré en navigateur : Échap et un clic sur la zone grisée hors du panneau
+        // ferment tous deux ce tiroir PAR DÉFAUT, chez Radix, sans confirmation — un
+        // réceptionniste a perdu nom/prénom/téléphone/rue en plein comptoir de cette façon).
+        // Les DEUX interactions passent par ces rappels avant d'atteindre `onOpenChange` ;
+        // `preventDefault()` les bloque tant qu'une saisie réelle est en jeu
+        // (`aUnBrouillonNouveauClientEnCours`, `FormulaireNouveauClient.tsx` — même source de
+        // vérité que le brouillon qu'il persiste). Le bouton de fermeture visible (coin
+        // supérieur droit de `SheetContent`) n'est PAS concerné : il ne déclenche ni l'un ni
+        // l'autre de ces événements, une fermeture par ce bouton reste toujours immédiate — le
+        // brouillon reste alors le filet de rattrapage, pas ce garde-fou.
+        onEscapeKeyDown={(evenement) => {
+          if (aUnBrouillonNouveauClientEnCours()) evenement.preventDefault();
+        }}
+        onPointerDownOutside={(evenement) => {
+          if (aUnBrouillonNouveauClientEnCours()) evenement.preventDefault();
+        }}
+        onInteractOutside={(evenement) => {
+          if (aUnBrouillonNouveauClientEnCours()) evenement.preventDefault();
+        }}
+      >
+        <FormulaireNouveauClient
+          ouvert={sheetOuvert}
+          onCree={(client) => {
+            setSheetOuvert(false);
+            // Issue #79 : transmet numéro + nom affiché via l'état de navigation — si la
+            // LECTURE de la fiche qui suit échoue (`EcranFicheClient`), l'écran doit pouvoir dire
+            // « le client a bien été créé, seul l'affichage a échoué » plutôt que de laisser
+            // planer le doute qui a failli faire ressaisir Rossier une seconde fois.
+            navigate(chemins.clients.detail(client.id, site), {
+              state: { clientCreeNumero: client.numeroClient, clientCreeNom: client.nomAffiche },
+            });
           }}
-          onPointerDownOutside={(evenement) => {
-            if (aUnBrouillonNouveauClientEnCours()) evenement.preventDefault();
-          }}
-          onInteractOutside={(evenement) => {
-            if (aUnBrouillonNouveauClientEnCours()) evenement.preventDefault();
-          }}
-        >
-          <SheetHeader>
-            <SheetTitle>{t('clients:nouveau')}</SheetTitle>
-          </SheetHeader>
-          <FormulaireNouveauClient
-            ouvert={sheetOuvert}
-            onCree={(client) => {
-              setSheetOuvert(false);
-              // Issue #79 : transmet numéro + nom affiché via l'état de navigation — si la
-              // LECTURE de la fiche qui suit échoue (`EcranFicheClient`), l'écran doit pouvoir dire
-              // « le client a bien été créé, seul l'affichage a échoué » plutôt que de laisser
-              // planer le doute qui a failli faire ressaisir Rossier une seconde fois.
-              navigate(chemins.clients.detail(client.id, site), {
-                state: { clientCreeNumero: client.numeroClient, clientCreeNom: client.nomAffiche },
-              });
-            }}
-          />
-        </SheetContent>
-      </Sheet>
+        />
+      </PanneauLateral>
     </GabaritEcran>
   );
 }

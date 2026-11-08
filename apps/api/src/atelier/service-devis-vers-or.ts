@@ -4,6 +4,7 @@ import { and, asc, eq, sql } from 'drizzle-orm';
 import type {
   EntreeCreationOrdreDepuisDevis,
   EntreeCreationOrdreReparation,
+  RegimeTva,
   ReponseAvecAvertissements,
   ReponseCreationOrdreDepuisDevis,
 } from '@dfa/shared';
@@ -24,6 +25,11 @@ import {
   type ResultatIdempotent,
   type ServiceIdempotence,
 } from '../common/idempotence';
+import {
+  adapterLigneRecopieeAuRegimeActuel,
+  chargerSituationTva,
+  type SituationTvaGarage,
+} from '../facturation/documents/assujettissement';
 import { chargerDocumentOuNull } from '../facturation/documents/document-requetes';
 import { ServiceEmissionDocument } from '../facturation/documents/service-emission';
 
@@ -73,18 +79,43 @@ export interface LigneOrDepuisDevis {
  * Main-d'œuvre : l'OR veut un temps (centièmes d'heure) et un taux horaire ; le devis une quantité
  * (millièmes d'heure) et un prix. `temps = quantité / 10`, `taux = net HT par heure`.
  *
+ * Régime TVA (`situation`, optionnel pour rester rétrocompatible) : un garage NON assujetti
+ * aujourd'hui ne reprend jamais l'ancien taux d'un devis émis quand il l'était — taux 0, TVA 0 et
+ * HT = TTC (le prix TTC accepté par le client reste figé, seule la TVA disparaît) ; voir
+ * `adapterLigneRecopieeAuRegimeActuel`. Un garage assujetti reprend les montants tels quels.
+ *
  * @throws ErreurMetier `CONFLIT` (`ligne_non_reprenable`) pour un type sans équivalent d'OR.
  */
-export function convertirLigneDevisEnLigneOr(ligne: {
+export function convertirLigneDevisEnLigneOr(
+  ligneDevis: LigneDevisAConvertir,
+  situation?: SituationTvaGarage,
+): LigneOrDepuisDevis {
+  if (situation === undefined || situation.assujetti) return convertirSansRegime(ligneDevis);
+  const { tauxTvaPourmille } = adapterLigneRecopieeAuRegimeActuel(situation, {
+    tauxTvaPourmille: ligneDevis.tauxTvaPourmille,
+    regimeTva: ligneDevis.regimeTva ?? 'normal',
+  });
+  return convertirSansRegime({
+    ...ligneDevis,
+    tauxTvaPourmille: tauxTvaPourmille ?? 0,
+    htCentimes: ligneDevis.ttcCentimes,
+    tvaCentimes: 0,
+  });
+}
+
+interface LigneDevisAConvertir {
   readonly typeLigne: string;
   readonly designation: string;
   readonly referenceTexte: string | null;
   readonly quantiteMillieme: number;
   readonly tauxTvaPourmille: number;
+  readonly regimeTva?: RegimeTva;
   readonly htCentimes: number;
   readonly tvaCentimes: number;
   readonly ttcCentimes: number;
-}): LigneOrDepuisDevis {
+}
+
+function convertirSansRegime(ligne: LigneDevisAConvertir): LigneOrDepuisDevis {
   if (!TYPES_REPRENABLES.has(ligne.typeLigne)) {
     throw new ErreurMetier(
       'CONFLIT',
@@ -203,7 +234,8 @@ export class ServiceDevisVersOr {
             and(eq(ligneDocument.tenantId, ctx.tenantId), eq(ligneDocument.documentId, devisId)),
           )
           .orderBy(asc(ligneDocument.numeroOrdre));
-        const lignesOr = this.garantirTransformable(devis, lignesDevis);
+        const situationTva = await chargerSituationTva(tx, ctx);
+        const lignesOr = this.garantirTransformable(devis, lignesDevis, situationTva);
         await this.garantirPasDejaTransforme(tx, ctx, devisId);
 
         const totalTtc = lignesOr.reduce((s, l) => s + l.montantTtcCentimes, 0);
@@ -269,6 +301,7 @@ export class ServiceDevisVersOr {
   private garantirTransformable(
     devis: LigneDocumentVente,
     lignes: readonly LigneLigneDocument[],
+    situationTva: SituationTvaGarage,
   ): readonly LigneOrDepuisDevis[] {
     if (devis.typeDocument !== 'devis') {
       throw new ErreurMetier(
@@ -308,7 +341,7 @@ export class ServiceDevisVersOr {
         'devise',
       );
     }
-    return lignes.map(convertirLigneDevisEnLigneOr);
+    return lignes.map((l) => convertirLigneDevisEnLigneOr(l, situationTva));
   }
 
   private async garantirPasDejaTransforme(

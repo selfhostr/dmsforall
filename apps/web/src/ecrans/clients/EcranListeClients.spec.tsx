@@ -84,14 +84,12 @@ function repondreListeVide() {
   );
 }
 
-/** Liste VIDE (`repondreListeVide`) : DEUX boutons portent le nom accessible « Nouveau client »
- *  une fois `EtatVidePremierUsage` rendu — celui de l'en-tête (toujours présent, premier dans le
- *  DOM) et celui de l'état vide. Le premier, systématiquement, jamais `getByRole` seul (ambigu dès
- *  que la liste vide a fini de se rendre). */
+/** Bouton « + » (nom accessible « Créer un client ») en bout de la barre de filtres. L'état vide
+ *  n'en porte plus (doublon retiré) : un seul bouton existe, même liste vide. */
 async function boutonNouveauClient() {
-  const boutons = await screen.findAllByRole('button', { name: 'Nouveau client' });
+  const boutons = await screen.findAllByRole('button', { name: 'Créer un client' });
   const bouton = boutons[0];
-  if (!bouton) throw new Error('Bouton « Nouveau client » introuvable.');
+  if (!bouton) throw new Error('Bouton « Créer un client » introuvable.');
   return bouton;
 }
 
@@ -133,13 +131,13 @@ describe('EcranListeClients', () => {
   // fiable ici — `toBeVisible()` (jest-dom) ne teste que `display`/`visibility`/`opacity`/`hidden`,
   // jamais la technique `position: absolute; clip: …` d'une classe `sr-only`, et aucune feuille de
   // style n'est chargée dans ces tests (jsdom) : cette assertion resterait verte même sans masquage.
-  it('garde un h1 accessible « Clients » dans le DOM, masqué via `sr-only` (doublon avec l’onglet actif)', async () => {
+  it('affiche le h1 « Clients » (jamais masqué sur un écran de liste)', async () => {
     repondreListe([CLIENT_TEST]);
     rendreEcran();
 
     const titre = await screen.findByRole('heading', { level: 1, name: 'Clients' });
     expect(titre).toBeInTheDocument();
-    expect(titre.className).toMatch(/\bsr-only\b/);
+    expect(titre.className).not.toMatch(/\bsr-only\b/);
   });
 
   it('affiche des lignes squelette pendant le chargement', async () => {
@@ -162,7 +160,8 @@ describe('EcranListeClients', () => {
     expect(
       await screen.findByText('Aucun client enregistré. Créez le premier.'),
     ).toBeInTheDocument();
-    expect(screen.getAllByRole('button', { name: 'Nouveau client' }).length).toBeGreaterThan(0);
+    // Un seul bouton de création : celui de la barre de filtres, pas de doublon dans l'état vide.
+    expect(screen.getAllByRole('button', { name: 'Créer un client' })).toHaveLength(1);
   });
 
   it("affiche un état d'erreur actionnable si le serveur répond en erreur", async () => {

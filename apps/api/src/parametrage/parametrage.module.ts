@@ -1,8 +1,15 @@
 import { Module } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
+
+import { GardeModule } from '../common/droits/garde-module';
 
 import { BlocCreancierController } from './bloc-creancier/bloc-creancier.controller';
 import { ServiceBlocCreancier } from './bloc-creancier/service-bloc-creancier';
 import { CompteursModule } from './compteurs/compteurs.module';
+import { CourrielModule } from '../courriel';
+import { EnvoiCourrielController } from './envoi-courriel/envoi-courriel.controller';
+import { ModulesController } from './modules/modules.controller';
+import { ServiceModules } from './modules/service-modules';
 import { ParametresEntrepriseController } from './entreprise/parametres-entreprise.controller';
 import { ServiceParametresEntreprise } from './entreprise/service-parametres-entreprise';
 import { ParametresAtelierController } from './parametres-atelier/parametres-atelier.controller';
@@ -17,7 +24,7 @@ import { ServiceTauxHoraires } from './referentiels/taux-horaires/service-taux-h
 /**
  * Assemble `GET|PATCH /parametres-atelier`, `GET|PATCH /sites/:siteId/parametres-atelier`,
  * `GET|POST /referentiels/prestations(/{id})`, `GET|POST /referentiels/taux-horaires(/{id})`,
- * `GET|PATCH /parametres-entreprise` (n° TVA),
+ * `GET|PATCH /parametres-entreprise` (n° TVA), `GET|PATCH /parametres-entreprise/modules`,
  * `GET|PATCH /parametres-facturation/creancier` (contrats-api-etape-1.md §8.2, §7.9, §7.12,
  * RM-65 ; bloc créancier RF-54/PF-03, migration 0014).
  *
@@ -27,11 +34,13 @@ import { ServiceTauxHoraires } from './referentiels/taux-horaires/service-taux-h
  * `atelier/`) sans qu'ils importent `ParametrageModule` (anti-cycle, voir `atelier.jetons.ts`).
  */
 @Module({
-  imports: [CompteursModule],
+  imports: [CompteursModule, CourrielModule],
   controllers: [
     ParametresAtelierController,
     ParametresSiteController,
     ParametresEntrepriseController,
+    ModulesController,
+    EnvoiCourrielController,
     PrestationsController,
     TauxHorairesController,
     BlocCreancierController,
@@ -40,6 +49,10 @@ import { ServiceTauxHoraires } from './referentiels/taux-horaires/service-taux-h
     ServiceParametresAtelier,
     ServiceParametresSite,
     ServiceParametresEntreprise,
+    ServiceModules,
+    // Garde GLOBALE des modules activables (`@ExigerModule`) : après `GardeSession` (AuthModule,
+    // importé avant ce module) pour que le principal soit déjà attaché.
+    { provide: APP_GUARD, useClass: GardeModule },
     ServicePrestations,
     ServiceTauxHoraires,
     ServiceBlocCreancier,

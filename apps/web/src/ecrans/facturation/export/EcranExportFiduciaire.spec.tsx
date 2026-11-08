@@ -579,6 +579,7 @@ describe('EcranExportFiduciaire — aperçu', () => {
                 ecritures: [
                   {
                     reference: 'FAC-2026-00016',
+                    pieces: ['FAC-2026-00016'],
                     totalDebitCentimes: 10000,
                     totalCreditCentimes: 9995,
                   },
@@ -733,7 +734,7 @@ describe('EcranExportFiduciaire — comptes comptables', () => {
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
   });
 
-  it('remplit aussi le code TVA 8.1 % et l’arrondi quand l’API ne propose rien', async () => {
+  it('ne devine ni code TVA ni arrondi quand l’API ne propose rien', async () => {
     connecte('comptable');
     server.use(
       http.get('/api/v1/exports-fiduciaires/mapping', () =>
@@ -768,12 +769,8 @@ describe('EcranExportFiduciaire — comptes comptables', () => {
     rendre();
 
     await utilisateur.click(await screen.findByRole('button', { name: 'Comptes comptables' }));
-    await utilisateur.click(
-      await screen.findByRole('button', { name: 'Utiliser les valeurs proposées' }),
-    );
-
-    expect(screen.getByLabelText(/^Arrondi/)).toHaveValue('3809');
-    expect(screen.getByLabelText('Normal, 8.1 %')).toHaveValue('N81');
+    expect(await screen.findByLabelText(/^Arrondi/)).toHaveValue('');
+    expect(screen.getByLabelText('Normal, 8.1 %')).toHaveValue('');
   });
 
   it('signale un compte invalide champ par champ sans perdre la saisie', async () => {

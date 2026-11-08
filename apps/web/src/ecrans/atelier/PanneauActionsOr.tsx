@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate, useSearchParams } from 'react-router';
@@ -152,9 +152,12 @@ const RESERVEES_SECONDAIRES: ReadonlySet<ActionOrdreReparation> = new Set([
 
 interface Props {
   readonly or: ReponseOrdreReparation;
+  /** Boutons de la fiche (ex. véhicule de courtoisie) placés dans la MÊME rangée que les actions,
+   *  avant le menu « … » qui reste le dernier élément. */
+  readonly complements?: ReactNode;
 }
 
-export function PanneauActionsOr({ or }: Props) {
+export function PanneauActionsOr({ or, complements }: Props) {
   const { t } = useTranslation(['or', 'commun', 'erreurs', 'validation']);
   const session = useSession();
   const [actionOuverte, setActionOuverte] = useState<ActionOrdreReparation | null>(null);
@@ -373,7 +376,10 @@ export function PanneauActionsOr({ or }: Props) {
     // `or.actionsDisponibles` — voir le commentaire d'en-tête de `BoutonImprimerOr`.
     return (
       <div className="flex flex-col items-start gap-3">
-        <BoutonImprimerOr orId={or.id} />
+        <div className="flex flex-wrap items-center gap-2">
+          <BoutonImprimerOr orId={or.id} />
+          {complements}
+        </div>
         <p className="texte-libelle text-muted-foreground">
           {t('or:actions.aucuneActionDisponible')}
         </p>
@@ -427,13 +433,29 @@ export function PanneauActionsOr({ or }: Props) {
     onSelect: () => ouvrir(action),
   }));
 
+  // Une seule rangée : primaire, puis Facturer / Imprimer / compléments de la fiche, « … » en
+  // dernier (rendu par `ActionPrimaire`, jamais coincé entre deux boutons).
+  const complementsRangee = (
+    <>
+      {peutFacturer ? (
+        <Button key="facturer" asChild variant="outline">
+          <Link to={`/ordres-reparation/${or.id}/facturer`}>{libelleTransition('facturer')}</Link>
+        </Button>
+      ) : null}
+      <BoutonImprimerOr orId={or.id} />
+      {complements}
+    </>
+  );
+
   return (
     <>
       <div className="flex flex-wrap items-center gap-2" role="group" aria-label={t('or:titre')}>
         {actionPrimaire ? (
           <ActionPrimaire
+            className="flex-wrap shrink"
             actionsSecondaires={menuSecondaire}
             libelleMenuSecondaire={t('or:actions.autresActions')}
+            complements={complementsRangee}
           >
             <Button
               type="button"
@@ -449,15 +471,9 @@ export function PanneauActionsOr({ or }: Props) {
               {libelleTransition(actionPrimaire)}
             </Button>
           </ActionPrimaire>
-        ) : null}
-
-        {peutFacturer ? (
-          <Button key="facturer" asChild variant="outline">
-            <Link to={`/ordres-reparation/${or.id}/facturer`}>{libelleTransition('facturer')}</Link>
-          </Button>
-        ) : null}
-
-        <BoutonImprimerOr orId={or.id} />
+        ) : (
+          <div className="flex flex-wrap items-center gap-2">{complementsRangee}</div>
+        )}
       </div>
 
       <Dialog

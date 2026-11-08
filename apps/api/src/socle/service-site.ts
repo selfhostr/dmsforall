@@ -1,6 +1,11 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { and, desc, eq, getTableColumns, sql } from 'drizzle-orm';
-import { TRI_DEFAUT_CREATION, type PageCurseur, type SiteResume } from '@dfa/shared';
+import {
+  TRI_DEFAUT_CREATION,
+  type EntreeModificationSite,
+  type PageCurseur,
+  type SiteResume,
+} from '@dfa/shared';
 import type { AccesBase, ContexteTenant } from '../db/db.types';
 import { JETON_DB } from '../db/db.jetons';
 import { site, type LigneSite } from '../db/schema';
@@ -17,7 +22,13 @@ export interface ParametresListeSites {
 }
 
 function versSiteResume(ligne: LigneSite): SiteResume {
-  return { id: ligne.id, code: ligne.code, nom: ligne.nom, actif: ligne.actif };
+  return {
+    id: ligne.id,
+    code: ligne.code,
+    codeCourt: ligne.codeCourt,
+    nom: ligne.nom,
+    actif: ligne.actif,
+  };
 }
 
 /**
@@ -129,6 +140,48 @@ export class ServiceSite {
         throw new ErreurMetier('RESSOURCE_INTROUVABLE', 'Site introuvable.');
       }
 
+      return versSiteResume(ligne);
+    });
+  }
+
+  /**
+   * `PATCH /sites/{siteId}` — aujourd'hui le seul champ modifiable est le code court. Doublon dans
+   * le tenant → 409 CONFLIT (contrainte `site_tenant_code_court_uk`), jamais un 500.
+   */
+  async modifier(
+    ctx: ContexteTenant,
+    siteId: string,
+    entree: EntreeModificationSite,
+  ): Promise<SiteResume> {
+    return this.acces.enTenant(ctx, async (tx) => {
+      const portee = and(eq(site.tenantId, ctx.tenantId), eq(site.id, siteId));
+      const [existant] = await tx.select({ id: site.id }).from(site).where(portee).limit(1);
+      if (!existant) throw new ErreurMetier('RESSOURCE_INTROUVABLE', 'Site introuvable.');
+
+      if (entree.codeCourt !== undefined) {
+        try {
+          await tx.update(site).set({ codeCourt: entree.codeCourt }).where(portee);
+        } catch (erreur) {
+          if (
+            (erreur as { code?: string; cause?: { code?: string } }).cause?.code === '23505' ||
+            (erreur as { code?: string }).code === '23505'
+          ) {
+            throw new ErreurMetier('CONFLIT', 'Ce code court est déjà utilisé par un autre site.', {
+              erreurs: [
+                {
+                  champ: 'codeCourt',
+                  code: 'code_court_deja_utilise',
+                  message: 'Ce code court est déjà utilisé par un autre site.',
+                },
+              ],
+            });
+          }
+          throw erreur;
+        }
+      }
+
+      const [ligne] = await tx.select().from(site).where(portee).limit(1);
+      if (!ligne) throw new ErreurMetier('RESSOURCE_INTROUVABLE', 'Site introuvable.');
       return versSiteResume(ligne);
     });
   }

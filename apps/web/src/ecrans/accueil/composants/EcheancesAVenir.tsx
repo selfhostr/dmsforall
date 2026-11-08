@@ -3,11 +3,12 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 
 import { ErreurReseau, messageErreur } from '@/api/erreurs';
-import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { EtatVide } from '@/composants/commun/EtatVide';
 import { peutLireDepotPneus } from '@/ecrans/pneus/droits';
+import { useModulesActifs } from '@/hooks/modules/useModulesActifs';
 import { useJeuxARelancer } from '@/hooks/pneus/useJeuxARelancer';
 import { useSession } from '@/hooks/useSession';
 import { formaterDate } from '@/lib/formats';
@@ -41,14 +42,19 @@ export function EcheancesAVenir({ site }: Props) {
   const { data: session, isLoading: sessionEnChargement } = useSession();
   const actions = session?.actions;
   const peutLire = peutLireDepotPneus(actions);
+  // Module « Pneus » retiré : la carte (et sa requête) disparaît, le garage ne gère pas de dépôts.
+  const { estActif } = useModulesActifs();
+  const modulePneus = estActif('pneus');
 
   const requete = useJeuxARelancer(
     { siteId: site, tri: 'dernierMouvementLe:asc' },
-    { enabled: peutLire },
+    { enabled: peutLire && modulePneus },
   );
 
   const jeux = requete.depots.slice(0, MAX_LIGNES);
   const surplus = requete.depots.length - jeux.length;
+
+  if (!modulePneus) return null;
 
   return (
     <Card>
@@ -57,7 +63,6 @@ export function EcheancesAVenir({ site }: Props) {
           <BellRing className="h-5 w-5 shrink-0 text-muted-foreground" aria-hidden="true" />
           <CardTitle>{t('accueil:echeances.titre')}</CardTitle>
         </div>
-        <CardDescription>{t('accueil:echeances.description')}</CardDescription>
       </CardHeader>
       <div className="px-carte pb-carte">
         {sessionEnChargement ? (

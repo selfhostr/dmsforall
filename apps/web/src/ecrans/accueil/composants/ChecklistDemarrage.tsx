@@ -1,11 +1,16 @@
 import { peut } from '@/droits';
 import { CheckCircle2, Circle, CircleHelp } from 'lucide-react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { AssistantDemarrage } from '@/ecrans/assistant-demarrage/AssistantDemarrage';
+import { consommerDemandeOuverture, useEtatAssistant } from '@/hooks/assistant/etat-assistant';
+import { doitOuvrirAutomatiquement } from '@/hooks/assistant/ouverture-assistant';
+import { useFermetureAssistant } from '@/hooks/assistant/useFermetureAssistant';
 import type { EtapeDemarrage, IdEtapeDemarrage } from '@/hooks/accueil/etapes-demarrage';
 import { useEtapesDemarrage } from '@/hooks/accueil/useEtapesDemarrage';
 import { useMasquageDemarrage } from '@/hooks/accueil/useMasquageDemarrage';
@@ -14,9 +19,9 @@ import { chemins } from '@/routes/chemins';
 import { cn } from '@/lib/utils';
 
 const LIENS: Readonly<Record<IdEtapeDemarrage, string>> = {
-  coordonnees: chemins.parametrage.facturation(),
+  coordonnees: chemins.parametrage.garage(),
   compte: chemins.parametrage.facturation(),
-  tva: chemins.parametrage.facturation(),
+  tva: chemins.parametrage.garage(),
   tauxHoraire: chemins.parametrage.referentiels(),
   motifs: `${chemins.parametrage.atelier()}#motifs-rendez-vous`,
   collaborateur: chemins.parametrage.utilisateurs(),
@@ -31,14 +36,90 @@ const LIENS: Readonly<Record<IdEtapeDemarrage, string>> = {
  */
 export function ChecklistDemarrage() {
   const { data: session } = useSession();
-  const autorise = peut(session?.actions, 'socle.utilisateur.lire');
+  // Même droit que l'API (`GET /accueil/etat-demarrage`) : sans lui, l'appel part en 403.
+  const autorise = peut(session?.actions, 'accueil.demarrage.lire');
   const { masque, masquer } = useMasquageDemarrage(autorise ? session?.utilisateur.id : undefined);
-  if (!autorise || masque) return null;
-  return <CarteDemarrage masquer={masquer} />;
+  const gereLesParametres = autorise && peut(session?.actions, 'parametrage.atelier.modifier');
+  return (
+    <>
+      {gereLesParametres && session ? (
+        <AssistantAccueil tenantId={session.tenant.id} utilisateurId={session.utilisateur.id}>
+          {(reprendre) =>
+            autorise && !masque ? <CarteDemarrage masquer={masquer} reprendre={reprendre} /> : null
+          }
+        </AssistantAccueil>
+      ) : autorise && !masque ? (
+        <CarteDemarrage masquer={masquer} />
+      ) : null}
+    </>
+  );
 }
 
-function CarteDemarrage({ masquer }: { readonly masquer: () => void }) {
-  const { t } = useTranslation('accueil');
+/**
+ * Assistant de démarrage : s'ouvre tout seul pour qui gère les paramètres d'un garage pas encore
+ * configuré, tant qu'il n'a pas été fermé (mémoire locale par garage et utilisateur). Le lien
+ * « Reprendre l'assistant » de la carte le rouvre.
+ */
+function AssistantAccueil({
+  tenantId,
+  utilisateurId,
+  children,
+}: {
+  readonly tenantId: string;
+  readonly utilisateurId: string;
+  readonly children: (reprendre: () => void) => ReactNode;
+}) {
+  const { etapes, complet, enChargement } = useEtapesDemarrage();
+  const { ferme, memoriserFermeture } = useFermetureAssistant(tenantId, utilisateurId);
+  const [ouvert, setOuvert] = useState(false);
+  const ouvertureTentee = useRef(false);
+  const { ouvertureDemandee } = useEtatAssistant();
+
+  // Demande venue de la barre latérale (« Configurer le garage ») : rouvre à l'étape mémorisée.
+  useEffect(() => {
+    if (!ouvertureDemandee) return;
+    consommerDemandeOuverture();
+    setOuvert(true);
+  }, [ouvertureDemandee]);
+
+  useEffect(() => {
+    if (ouvertureTentee.current) return;
+    if (
+      doitOuvrirAutomatiquement({
+        autorise: true,
+        // Un état qui n'a pas répondu (erreur réseau, refus) n'est PAS « garage neuf ».
+        etatConnu: !enChargement && etapes.every((e) => e.etat !== 'inconnu'),
+        garageConfigure: complet,
+        ferme,
+      })
+    ) {
+      ouvertureTentee.current = true;
+      setOuvert(true);
+    }
+  }, [enChargement, etapes, complet, ferme]);
+
+  return (
+    <>
+      <AssistantDemarrage
+        ouvert={ouvert}
+        onFermer={() => {
+          setOuvert(false);
+          memoriserFermeture();
+        }}
+      />
+      {children(() => setOuvert(true))}
+    </>
+  );
+}
+
+function CarteDemarrage({
+  masquer,
+  reprendre,
+}: {
+  readonly masquer: () => void;
+  readonly reprendre?: (() => void) | undefined;
+}) {
+  const { t } = useTranslation(['accueil', 'assistant']);
   const { etapes, enChargement, complet, reessayer } = useEtapesDemarrage();
 
   if (complet) return null;
@@ -48,7 +129,7 @@ function CarteDemarrage({ masquer }: { readonly masquer: () => void }) {
   const aVerifier = etapes.some((e) => e.etat === 'inconnu');
 
   return (
-    <Card aria-labelledby="demarrage-titre" role="region">
+    <Card aria-labelledby="demarrage-titre" role="region" data-demarrage>
       <CardHeader className="flex-row items-start justify-between gap-4">
         <div className="space-y-1">
           <CardTitle id="demarrage-titre" className="texte-titre-section">
@@ -60,9 +141,16 @@ function CarteDemarrage({ masquer }: { readonly masquer: () => void }) {
             </p>
           ) : null}
         </div>
-        <Button type="button" variant="ghost" size="sm" onClick={masquer}>
-          {t('accueil:demarrage.checklist.masquer')}
-        </Button>
+        <div className="flex flex-wrap justify-end gap-2">
+          {reprendre ? (
+            <Button type="button" size="sm" onClick={reprendre}>
+              {t('assistant:reprise.bouton')}
+            </Button>
+          ) : null}
+          <Button type="button" variant="ghost" size="sm" onClick={masquer}>
+            {t('accueil:demarrage.checklist.masquer')}
+          </Button>
+        </div>
       </CardHeader>
       <CardContent className="space-y-3">
         {enChargement ? (

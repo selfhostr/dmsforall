@@ -8,9 +8,9 @@ Les valeurs chiffrées (ratios de contraste) sont calculées selon la formule WC
 
 ## Familles de couleur
 
-Le produit a trois familles de couleur, chacune avec un rôle exclusif. Ne pas introduire de quatrième famille.
+L'interface est monochrome : aucune couleur d'accentuation. La couleur est réservée aux feux de statut, où elle porte du sens. Le produit a trois familles, chacune avec un rôle exclusif. Ne pas introduire de quatrième famille.
 
-- **Marque** (`--marque`, `--marque-fort`, `--marque-doux`). Valeur `#083f45` en clair et `#4ccce6` en sombre. Rôle : bouton principal, lien, élément de menu actif, anneau de focus. La marque ne sert jamais à porter un statut.
+- **Marque** (`--marque`, `--marque-fort`, `--marque-doux`). Neutre sans teinte (saturation 0 %) : quasi-noir `#171717` en clair, quasi-blanc `#f5f5f5` en sombre. Rôle : bouton principal, lien, élément de menu actif, anneau de focus. La marque ne sert jamais à porter un statut. L'orange du logo reste dans l'icône et la favicon, jamais dans l'interface.
 - **Neutres** (`--foreground`, `--border`, `--input`, `--muted`, `--secondary`, `--accent`, `--card`, `--popover`). Rôle : texte, structure, surfaces. Un neutre ne porte jamais un sens.
 - **Six feux d'atelier** (`--statut-*` et `--statut-*-fond`). Palette de sévérité générale : `neutre`, `info`, `attention`, `succes`, `danger`, `terminal`. Ils servent à tout ce qui se lit comme un degré de sévérité : statut d'un ordre de réparation, échéance, disponibilité d'une pièce, statut d'un dossier de vente.
 
@@ -29,15 +29,15 @@ Le thème clair est la base shadcn, avec un fond de page légèrement teinté.
 | `--background`                         | `#f0f0f3` | Fond de page                                   |
 | `--foreground`                         | `#09090b` | Texte principal                                |
 | `--card` / `--popover`                 | `#ffffff` | Surface de carte, menu                         |
-| `--marque`                             | `#083f45` | Couleur de marque, `--primary`                 |
-| `--marque-fort`                        | `#052a2e` | Survol ou appui d'une surface pleine de marque |
-| `--marque-doux`                        | `#edf6f7` | Surlignage (élément actif, sélection)          |
+| `--marque`                             | `#171717` | Marque neutre, `--primary`                     |
+| `--marque-fort`                        | `#404040` | Survol ou appui d'une surface pleine de marque |
+| `--marque-doux`                        | `#d9d9d9` | Surlignage (élément actif, sélection)          |
 | `--secondary` / `--muted` / `--accent` | `#f2f2f4` | Surfaces neutres (bouton secondaire, survol)   |
 | `--muted-foreground`                   | `#62626a` | Texte atténué                                  |
 | `--destructive`                        | `#b81e1e` | Action destructrice                            |
 | `--border`                             | `#d7d7dc` | Trait décoratif (non soumis au seuil de 3:1)   |
 | `--input`                              | `#888896` | Contour de contrôle de saisie (3:1 requis)     |
-| `--ring`                               | `#083f45` | Anneau de focus                                |
+| `--ring`                               | `#171717` | Anneau de focus                                |
 | `--avertissement`                      | `#77420d` | Texte d'un bandeau d'alerte                    |
 | `--avertissement-fond`                 | `#fef7eb` | Fond d'un bandeau d'alerte                     |
 
@@ -53,9 +53,9 @@ Un jeton absent du bloc `.dark` garde sa valeur claire (échelle d'espacement, d
 | `--foreground`                         | `#edeef0` | Texte principal (16.39:1 sur le fond)   |
 | `--card`                               | `#18191b` | Surface de carte                        |
 | `--popover`                            | `#212225` | Surface haute (menu, popover)           |
-| `--marque`                             | `#4ccce6` | Couleur de marque                       |
-| `--marque-fort`                        | `#67d4e9` | Survol, plus clair que la marque        |
-| `--marque-doux`                        | `#1e393e` | Surlignage                              |
+| `--marque`                             | `#f5f5f5` | Marque neutre (quasi-blanc)             |
+| `--marque-fort`                        | `#d1d1d1` | Survol, légèrement plus sombre          |
+| `--marque-doux`                        | `#383838` | Surlignage                              |
 | `--primary-foreground`                 | `#111113` | Texte sombre sur bouton plein de marque |
 | `--secondary` / `--muted` / `--accent` | `#212225` | Surfaces neutres                        |
 | `--muted-foreground`                   | `#b0b4ba` | Texte atténué                           |
@@ -68,8 +68,10 @@ Un jeton absent du bloc `.dark` garde sa valeur claire (échelle d'espacement, d
 Choix à connaître :
 
 - `--input` vaut `slate-9` et non `slate-8` : `slate-8` ne tient pas 3:1 sur une carte.
-- `--marque-fort` est plus claire que `--marque` en sombre, car la marque y est déjà claire.
-- `--primary-foreground` est sombre. Aucune teinte de la famille cyan ne tient 4.5:1 en texte blanc sur fond de marque.
+- La marque est neutre (saturation 0 %), en clair comme en sombre. `contraste-jetons.spec.ts` verrouille cette absence de teinte (sentinelle « marque sans saturation »).
+- `--marque-fort` (survol) est plus claire que `--marque` en clair, légèrement plus sombre en sombre : dans les deux cas elle se rapproche du fond.
+- `--primary-foreground` est blanc en clair, `#121212` (gris neutre proche du fond) en sombre.
+- Le focus utilise `--ring` = `--marque`, avec un décalage (`--focus-decalage`) pour rester visible autour d'un bouton plein de même valeur.
 
 ### Contrastes mesurés (tokens de base)
 
@@ -77,11 +79,14 @@ Choix à connaître :
 | ----------------------------------------------------- | ------- | ----- |
 | `--foreground` sur `--background` (sombre)            | 16.39:1 | 4.5:1 |
 | `--muted-foreground` sur `--background` (sombre)      | 9.06:1  | 4.5:1 |
-| `--marque` sur `--background` (sombre)                | 9.96:1  | 4.5:1 |
-| `--primary-foreground` sur `--primary` (sombre)       | 9.96:1  | 4.5:1 |
+| `--marque` (lien) sur `--background` (sombre)         | 17.30:1 | 4.5:1 |
+| `--primary-foreground` sur `--primary` (sombre)       | 17.30:1 | 4.5:1 |
+| blanc sur `--primary` (clair)                         | 17.94:1 | 4.5:1 |
+| `--marque` (lien) sur `--background` (clair)          | 15.89:1 | 4.5:1 |
 | `--input` sur `--background` (sombre)                 | 3.68:1  | 3:1   |
 | `--input` sur `--card` (sombre)                       | 3.43:1  | 3:1   |
-| `--ring` sur `--card` (sombre)                        | 9.29:1  | 3:1   |
+| `--ring` (focus) sur `--card` (sombre)                | 16.11:1 | 3:1   |
+| `--ring` (focus) sur `--background` (clair)           | 15.89:1 | 3:1   |
 | `--avertissement` sur `--avertissement-fond` (sombre) | 7.29:1  | 4.5:1 |
 | `--input` sur `--background` (clair)                  | 3.10:1  | 3:1   |
 | `--statut-neutre` sur `--background` (clair)          | 4.61:1  | 4.5:1 |
@@ -188,6 +193,7 @@ Un composant feuille, sans portail ni piège de focus, peut provenir du registre
 
 - **Un seul composant d'onglets** : `components/ui/tabs.tsx` (Base UI). `TabsList variante="soulignee"` (défaut) pour les onglets de fiche ; `variante="segments"` pour un sélecteur segmenté. Pour un simple filtre sans panneau (bascule liste/plan, horizon, onglet de liste), utiliser `composants/commun/Segments.tsx` : `<Segments valeur onChange options ariaLabel />`. Interdit : réécrire un `tablist` à la main avec `h-9`.
 - `OngletsDomaine` est une navigation par liens (`aria-current`), pas un `tablist` ; il lit les mêmes jetons de taille.
+- **Filtre de site** : pas de site global. Chaque écran dont les données sont par site pose `composants/commun/FiltreSite.tsx` (segments, ou menu au-delà de quatre choix) dans sa ligne d'en-tête ou de filtres, branché sur `useFiltreSite('<domaine.ecran>')`. Il affiche le code court du site (« MART »), jamais le nom long ; le nom complet est le nom accessible. Défaut : site principal de la personne ; « Tous » seulement pour les rôles pilotant plusieurs sites, jamais sur un écran qui exige un site ; masqué avec un seul site actif. L'accueil n'a aucun filtre de site.
 - **Un seul badge de statut** : `composants/identite/BadgeStatut.tsx` (`icone`, `token`, `forme`). Interdit de recomposer `border-statut-*` / `bg-statut-*-fond` dans un écran.
 
 ## Focus et accessibilité

@@ -42,9 +42,12 @@ const session: SessionCourante = creerSessionTest('poste_atelier', {
     slug: 'garage-martin',
     raisonSociale: 'Garage Martin SA',
     langueDefaut: 'fr',
+    modeSignalement: 'via_site',
+    assujettiTva: true,
   },
-  sites: [{ id: 'site-martigny', code: 'MTG', nom: 'Martigny', actif: true }],
+  sites: [{ id: 'site-martigny', code: 'MTG', codeCourt: 'MTG', nom: 'Martigny', actif: true }],
   siteRattachementId: 'site-martigny',
+  sitePrincipalId: null,
   expireLe: new Date(Date.now() + 3_600_000).toISOString(),
 });
 

@@ -1,15 +1,29 @@
+import { ChartColumn } from 'lucide-react';
 import { useMemo, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 
 import type { DocumentVenteResume, FiltresDocumentsVente } from '@dfa/shared';
 
+type TriFactures = FiltresDocumentsVente['tri'];
+
+const CLE_TRI: Record<TriFactures, string> = {
+  'dateDocument:desc': 'dateDesc',
+  'dateDocument:asc': 'dateAsc',
+  'numeroSequence:desc': 'numeroDesc',
+  'numeroSequence:asc': 'numeroAsc',
+  'soldeCentimes:desc': 'soldeDesc',
+  'relanceLe:asc': 'relanceAsc',
+};
+
 import { messageErreur } from '@/api/erreurs';
+import { BoutonIconeInfobulle } from '@/composants/commun/BoutonIconeInfobulle';
 import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { Segments } from '@/composants/commun/Segments';
 import { EtatVide } from '@/composants/commun/EtatVide';
 import { BarreFiltres } from '@/composants/comptoir/BarreFiltres';
+import { SelecteurTri } from '@/composants/comptoir/SelecteurTri';
 import { BoutonChargerPlus } from '@/composants/comptoir/BoutonChargerPlus';
 import { TableComptoir, type ColonneComptoir } from '@/composants/comptoir/TableComptoir';
 import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
@@ -22,7 +36,13 @@ import { formaterDate, formaterMontant } from '@/lib/formats';
 import { BadgeEtatDocument } from './BadgeEtatDocument';
 import { BadgeStatutDevis } from './BadgeStatutDevis';
 import { BadgeStatutReglement } from './BadgeStatutReglement';
+import { FiltreSite } from '@/composants/commun/FiltreSite';
+import { useFiltreSite } from '@/hooks/site/useFiltreSite';
+
 import { BoutonNouveauDevis } from './BoutonNouveauDevis';
+import { chemins } from '@/routes/chemins';
+
+import { peutVoirChiffres } from './chiffres/droits';
 import { peutVoirMontantsFacturation } from './droits';
 import { IndicateurRetard } from './IndicateurRetard';
 
@@ -82,17 +102,31 @@ export function EcranListeFactures() {
   // clignoter le tableau (même principe que `autoriseFinancier` sur `EcranTableauBord`).
   const voitMontantsFacturation = peutVoirMontantsFacturation(actions);
 
+  const filtreSite = useFiltreSite('facturation.liste');
   const [qSaisie, setQSaisie] = useState('');
-  const [q, reinitialiserQ] = useValeurDebouncee(qSaisie, DELAI_DEBOUNCE_MS);
+  const [q] = useValeurDebouncee(qSaisie, DELAI_DEBOUNCE_MS);
   // Onglet par défaut : « Non réglées » (§7.1) — reste un badge neutre, l'onglet organise le
   // travail du patron sans l'alarmer.
   const [onglet, setOnglet] = useState<OngletListeFactures>('nonReglees');
+  // `null` = tri par défaut de l'onglet (les plus anciennes d'abord pour « Non réglées »).
+  const [triChoisi, setTriChoisi] = useState<TriFactures | null>(null);
+  const triParDefaut: TriFactures =
+    onglet === 'nonReglees' ? 'dateDocument:asc' : 'dateDocument:desc';
+  const tri = triChoisi ?? triParDefaut;
+  const optionsTri: readonly TriFactures[] = [
+    'dateDocument:desc',
+    'dateDocument:asc',
+    'numeroSequence:desc',
+    'numeroSequence:asc',
+    ...(voitMontantsFacturation ? (['soldeCentimes:desc'] as const) : []),
+  ];
 
   const filtres: FiltresDocumentsVente = useMemo(() => {
     const base: FiltresDocumentsVente = {
       typeDocument: onglet === 'devis' ? ['devis'] : ['facture'],
       q: q.trim() === '' ? undefined : q.trim(),
-      tri: onglet === 'nonReglees' ? 'dateDocument:asc' : 'dateDocument:desc',
+      tri,
+      siteId: filtreSite.siteId,
     };
     if (onglet === 'devis') {
       // Les devis n'ont ni règlement ni échéance : aucun autre filtre que le type, du plus récent
@@ -116,7 +150,7 @@ export function EcranListeFactures() {
       return { ...base, enRetard: true, relanceNiveau: 0 };
     }
     return base;
-  }, [q, onglet]);
+  }, [q, onglet, tri, filtreSite.siteId]);
 
   const {
     documents,
@@ -128,14 +162,6 @@ export function EcranListeFactures() {
     isFetchingNextPage,
     fetchNextPage,
   } = useListeDocumentsVente(filtres);
-
-  function effacerFiltres() {
-    // Levier de reset (choix produit 26.08.2026) : `effacerFiltres` est un geste de reprise en
-    // main, pas une frappe — `q` doit refléter la case vide immédiatement, pas après le même
-    // délai qu'une recherche (voir le commentaire de `useValeurDebouncee`, `hooks/commun/`).
-    setQSaisie('');
-    reinitialiserQ();
-  }
 
   const colonnes: ColonneComptoir<DocumentVenteResume>[] = [
     {
@@ -278,7 +304,6 @@ export function EcranListeFactures() {
       <EtatVide
         titre={t('facturation:liste.vide.devis.titre')}
         description={t('facturation:liste.vide.devis.description')}
-        action={<BoutonNouveauDevis variante="default" />}
       />
     );
   } else if (onglet === 'enRetard') {
@@ -307,53 +332,49 @@ export function EcranListeFactures() {
     // Clients, c'est mieux » (12.08.2026), tranchée dans l'autre sens le 17.08.2026 pour ce cas
     // précis. Aucun padding local : le gabarit ne pose ni max-largeur ni remplissage, `AppShell`
     // fournit déjà l'unique `p-4 sm:p-6` de tout écran routé.
-    <GabaritEcran titre={t('facturation:liste.titre')} actions={<BoutonNouveauDevis />}>
-      {/* Bascule de VUE à l'intérieur de cet écran (elle ne navigue nulle part — elle change quelles
-          factures la même liste affiche), pas un second niveau de NAVIGATION : empilée sous la
-          rangée d'onglets d'`OngletsDomaine` (soulignement, `components/ui/tabs.tsx`), une même
-          apparence soulignée lisait comme une double barre de navigation ambiguë (retour @laupernoe du
-          13.08.2026). Reconstruite sur `@base-ui/react/tabs` directement, avec le style déjà
-          retenu pour ce rôle — fond `bg-muted/40`, onglet actif en `bg-background` — même modèle
-          que `BasculeVueStock` (`ecrans/ventes/stock/_composants/BasculeVueStock.tsx`, PAS encore
-          repris sur cette bibliothèque — signalé hors périmètre de ce correctif). Rôles ARIA et
-          clavier inchangés (`tablist`/`tab`, flèches, Home/End, `getByRole('tab', …)`) — seul
-          l'habillage change.
-          `@base-ui/react/tabs` plutôt que `@radix-ui/react-tabs` (bug e2e mesuré, `aria-valid-
-          attr-value` critique WCAG 4.1.2, axe-core, clair ET sombre) : ces onglets FILTRENT une
-          liste unique en dessous, ils n'ouvrent jamais un panneau dédié par onglet (aucun
-          `TabsContent`/`TabsPanel` — la liste + ses états chargement/vide/erreur restent rendus
-          UNE fois, hors `Tabs`, filtrés par `onglet`). Radix calcule `aria-controls` sur chaque
-          `Trigger` à partir d'un id DÉTERMINISTE (`<base>-content-<value>`) qu'aucun panneau ne
-          porte jamais ici — référence cassée dans les quatre onglets, en permanence. Base UI
-          calcule `aria-controls` à partir des panneaux RÉELLEMENT montés (`TabsRoot.js`,
-          `getTabPanelIdByValue`/`registerMountedTabPanel`) : sans `TabsPanel` du tout, l'attribut
-          est simplement OMIS (React n'écrit jamais un attribut `undefined`) — rien à référencer,
-          rien d'invalide, sans avoir à fabriquer un panneau qui n'existerait que pour satisfaire
-          l'attribut. Piste « un vrai `TabsPanel` par onglet » écartée : forcerait `forceMount`
-          sur les quatre pour que les `aria-controls` des onglets INACTIFS restent valides en
-          permanence (Radix/Base UI ne montent QUE le panneau actif sans lui), donc quatre
-          `<div role="tabpanel">` montés en clavier/lecteur d'écran en permanence à masquer
-          soi-même en CSS — plus de code, plus de risque, pour un problème que l'absence de
-          panneau évite structurellement. Piste « radiogroup » écartée aussi : chaque onglet change
-          RÉELLEMENT quel jeu de factures s'affiche (pas un simple tri) — la sémantique « tabs »
-          reste honnête, seule la bibliothèque posait un attribut invalide. */}
-      <Segments
-        valeur={onglet}
-        onChange={setOnglet}
-        ariaLabel={t('facturation:liste.onglets.groupeLabel')}
-        options={ONGLETS_LISTE_FACTURES.map((valeur) => ({
-          valeur,
-          libelle: t(`facturation:liste.onglets.${valeur}`),
-        }))}
-      />
-
-      <BarreFiltres
-        q={qSaisie}
-        onChangeQ={setQSaisie}
-        filtresActifs={q.trim() !== ''}
-        onEffacerFiltres={effacerFiltres}
-      />
-
+    <GabaritEcran
+      titre={t('facturation:liste.titre')}
+      barre={
+        <BarreFiltres
+          q={qSaisie}
+          onChangeQ={setQSaisie}
+          actionsSecondaires={
+            <>
+              {peutVoirChiffres(actions) ? (
+                <BoutonIconeInfobulle
+                  libelle={t('facturation:chiffres.voirChiffres')}
+                  icone={ChartColumn}
+                  to={chemins.facturation.chiffres()}
+                />
+              ) : null}
+              <BoutonNouveauDevis iconeSeule />
+            </>
+          }
+          tri={
+            <SelecteurTri
+              label={t('facturation:liste.tri.label')}
+              valeur={tri}
+              onChangeValeur={(valeur) => setTriChoisi(valeur as TriFactures)}
+              options={optionsTri.map((valeur) => ({
+                valeur,
+                libelle: t(`facturation:liste.tri.options.${CLE_TRI[valeur]}`),
+              }))}
+            />
+          }
+        >
+          <Segments
+            valeur={onglet}
+            onChange={setOnglet}
+            ariaLabel={t('facturation:liste.onglets.groupeLabel')}
+            options={ONGLETS_LISTE_FACTURES.map((valeur) => ({
+              valeur,
+              libelle: t(`facturation:liste.onglets.${valeur}`),
+            }))}
+          />
+          <FiltreSite filtre={filtreSite} />
+        </BarreFiltres>
+      }
+    >
       {isPending ? (
         <EtatChargement lignes={6} />
       ) : isError ? (

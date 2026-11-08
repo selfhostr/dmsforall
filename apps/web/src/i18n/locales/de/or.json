@@ -74,6 +74,7 @@
       "tempsBareme": "Vorgabezeit",
       "tempsPointe": "Erfasste Zeit",
       "prixUnitaire": "Einzelpreis exkl. MWST",
+      "prixUnitaireAide": "Preis exkl. MWST. In einer Offerte wird der Preis inkl. MWST erfasst: durch 1 + Satz teilen, um einen Offertpreis zu übernehmen.",
       "rabais": "Rabatt",
       "payeur": "Zahlungspflichtig",
       "technicien": "Techniker",
@@ -172,6 +173,7 @@
       "choisi": "Aus dem Lager übernommen",
       "changer": "Anderes Teil suchen",
       "prixConverti": "Katalogpreis {prixTtc} inkl. MWST, umgerechnet auf netto (MWST {taux} %).",
+      "prixSansTva": "Katalogpreis {prixTtc} inkl. MWST, unverändert übernommen (Ihre Garage verrechnet keine MWST).",
       "parcours": {
         "aide": "Tippen Sie eine genaue Referenz zum Suchen, oder wählen Sie direkt aus dem Katalog unten.",
         "vide": "Für diesen Standort ist aktuell kein Artikel im Katalog aktiv. Sie können das Teil unten manuell erfassen."
@@ -292,7 +294,7 @@
     "terminer": "Arbeiten abgeschlossen",
     "facturer": "Fakturieren",
     "restituer": "Fahrzeug restitieren",
-    "cloturer": "Schliessend",
+    "cloturer": "Abschliessen",
     "annuler": "RA stornieren",
     "rouvrir": "Wiederöffnen",
     "reprendreTravaux": "Arbeiten fortsetzen",
@@ -338,7 +340,7 @@
   "liste": {
     "titre": "Reparaturaufträge",
     "actions": {
-      "nouveau": "RA erstellen"
+      "creer": "Reparaturauftrag erstellen"
     },
     "colonnes": {
       "numero": "RA-Nr.",
@@ -550,10 +552,8 @@
       "surPlace": "Vor Ort",
       "email": "E-Mail"
     },
-    "horodatage": "Datum und Uhrzeit werden jetzt erfasst.",
     "enregistrer": "Zustimmung speichern",
     "action": "Zustimmung des Kunden",
-    "description": "{count, plural, one {Der Kunde hat für # Arbeit zugestimmt. Sie wird freigegeben.} other {Der Kunde hat für # Arbeiten zugestimmt. Sie werden freigegeben.}}",
     "pourTous": "{count, plural, one {Zustimmung des Kunden für die vorgeschlagene Arbeit} other {Zustimmung des Kunden für die # vorgeschlagenen Arbeiten}}"
   },
   "lignesEnAttente": {

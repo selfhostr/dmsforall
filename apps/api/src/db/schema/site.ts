@@ -7,7 +7,17 @@
  */
 
 import { sql } from 'drizzle-orm';
-import { boolean, char, check, index, pgTable, text, unique, uuid } from 'drizzle-orm/pg-core';
+import {
+  boolean,
+  char,
+  check,
+  index,
+  pgTable,
+  text,
+  unique,
+  uuid,
+  varchar,
+} from 'drizzle-orm/pg-core';
 
 import { colonneId, colonnesHorodatage } from './colonnes-communes';
 import { tenant } from './tenant';
@@ -27,6 +37,15 @@ export const site = pgTable(
 
     /** Code court saisi par le garage (`SION`, `MARTIGNY`) — apparaît dans les n° de documents. */
     code: text('code').notNull(),
+
+    /**
+     * Étiquette compacte (1 à 5 caractères A-Z/0-9, ex. `MART`) affichée dans les filtres de
+     * site. Modifiable dans Réglages > sites. Distincte de `code` (numérotation des documents).
+     * Migration 0091.
+     * Le `default('')` côté Drizzle est un signal « non fourni » : le trigger
+     * `site_code_court_defaut_trg` le remplace par un code dérivé de `code`/`nom`, unique du tenant.
+     */
+    codeCourt: varchar('code_court', { length: 5 }).notNull().default(''),
 
     nom: text('nom').notNull(),
 
@@ -50,6 +69,8 @@ export const site = pgTable(
     // Index dérivé utile au-delà de la contrainte : il fournit un préfixe (tenant_id, …) qui
     // sert tous les parcours filtrés par tenant sans tri particulier.
     unique('site_tenant_code_uk').on(t.tenantId, t.code),
+    unique('site_tenant_code_court_uk').on(t.tenantId, t.codeCourt),
+    check('site_code_court_format_chk', sql`${t.codeCourt} ~ '^[A-Z0-9]{1,5}$'`),
 
     // Cible des futures clés étrangères composites (OR, facture, stock → site).
     // Une FK `(tenant_id, site_id) → site(tenant_id, id)` rend structurellement impossible le

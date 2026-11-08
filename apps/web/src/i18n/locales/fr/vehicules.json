@@ -1,6 +1,7 @@
 {
   "titre": "Véhicules",
   "nouveau": "Nouveau véhicule",
+  "creerInfobulle": "Créer un véhicule",
   "nouveauPourClient": "Ce véhicule sera rattaché à {nom}.",
   "creer": "Créer le véhicule",
   "liste": {
@@ -102,7 +103,7 @@
       "recherche": "Recherche en cours…",
       "aucunResultat": "Aucune correspondance dans le référentiel — vous pouvez saisir librement.",
       "resultats": "{count, plural, one {# résultat} other {# résultats}}",
-      "horsReferentiel": "Ne figure pas dans le référentiel — sera enregistré tel quel.",
+      "horsReferentiel": "Absent de la liste : saisie libre acceptée, enregistré tel quel.",
       "nombreModeles": "{count, plural, one {# modèle} other {# modèles}}",
       "erreurRecherche": "Suggestions indisponibles pour le moment — vous pouvez saisir librement."
     }
@@ -256,7 +257,6 @@
     "reporter": {
       "bouton": "Reporter un travail",
       "titre": "Reporter un travail",
-      "description": "Notez ce qui sera à faire à la prochaine visite : il ressortira sur la fiche du véhicule et à l'ouverture du prochain OR.",
       "designationPlaceholder": "Ex. : courroie de distribution",
       "detail": "Détail (facultatif)",
       "enregistrer": "Enregistrer",

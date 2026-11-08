@@ -17,10 +17,8 @@
     "aucun": "Kein Lagerfach hinterlegt",
     "dialogue": {
       "titre": "Lagerfach",
-      "description": "Regal und Schublade sind optional — eine strukturierte Ergänzung zum bestehenden Freitext, der für Sonderfälle weiterhin nutzbar bleibt.",
       "rayon": "Regal",
       "tiroir": "Schublade",
-      "aide": "„B3“, „b3“ und „B 3“ bezeichnen dasselbe Regal — Groß-/Kleinschreibung und Leerzeichen spielen keine Rolle.",
       "libreActuel": "Aktueller Freitext für diesen Standort: {emplacement}",
       "libreAucun": "Kein Freitext für diesen Standort hinterlegt."
     }
@@ -205,7 +203,6 @@
       "action": "Meldebestand",
       "actionAria": "Meldebestand festlegen — {nomSite}",
       "champ": "Neuer Meldebestand",
-      "champAide": "Der aktuelle Wert wird hier nicht angezeigt. Ist dieser Artikel bereits unter seinem Meldebestand, ist dieser im Bildschirm «Nachbestellung» sichtbar und bearbeitbar. Hier speichern setzt den Meldebestand für diesen Standort neu oder ersetzt ihn.",
       "erreurVide": "Geben Sie eine Menge ein, oder verwenden Sie «Meldebestand entfernen», um keinen zu setzen.",
       "erreurInvalide": "Ungültige Menge. Ein Meldebestand von null ist nicht möglich — um diesen Artikel nie nachzubestellen, verwenden Sie «Meldebestand entfernen».",
       "retirer": "Meldebestand entfernen",
@@ -392,6 +389,7 @@
     },
     "actions": {
       "creer": "Bestellung erstellen",
+      "creerInfobulle": "Lieferantenbestellung erstellen",
       "envoyer": "Senden",
       "receptionner": "Empfang erfassen",
       "annulerReliquat": "Offene Menge stornieren",
@@ -399,7 +397,6 @@
     },
     "reception": {
       "titre": "Empfang",
-      "description": "Geben Sie an, was tatsächlich geliefert wurde, Position für Position.",
       "ligneNumero": "Position {numero}",
       "aucuneLigne": "Wählen Sie mindestens eine erhaltene Position aus.",
       "referenceLibellee": "Gelieferte Referenz",
@@ -559,7 +556,6 @@
   "facturesFournisseur": {
     "titre": "Lieferantenrechnungen",
     "titreDepot": "Lieferantenrechnung hochladen",
-    "sousTitreDepot": "Laden Sie das vom Lieferanten erhaltene PDF hoch: Es wird automatisch gelesen und der passenden Bestellung zugeordnet.",
     "deposeeLe": "Hochgeladen am {date}",
     "sansNumero": "Rechnung ohne gelesene Nummer",
     "vide": {
@@ -678,6 +674,7 @@
     },
     "actions": {
       "deposer": "Rechnung hochladen",
+      "deposerInfobulle": "Lieferantenrechnung hochladen",
       "voirDocument": "Dokument anzeigen",
       "valider": "Lieferantenrechnung bestätigen",
       "rejeter": "Ablehnen",

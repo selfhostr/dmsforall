@@ -596,6 +596,14 @@ export const TOUTES_ACTIONS = [
   'atelier.ligne.photo.supprimer',
   // ---- Accueil — état de mise en route (`GET /accueil/etat-demarrage`) : direction et admin. -----
   'accueil.demarrage.lire',
+  // ---- Modules activables (`PATCH /parametres-entreprise/modules`) : direction et admin seuls. -----
+  // Retirer un module change ce que TOUT le garage voit : pas un geste d'encadrement de l'atelier
+  // (`parametrage.atelier.modifier`, chef d'atelier inclus). La lecture reste `parametrage.atelier.lire`.
+  'parametrage.modules.modifier',
+  // ---- Envoi des e-mails (`/parametres-entreprise/envoi-courriel`) : direction et admin seuls. -----
+  // Lire, régler le serveur d'envoi et envoyer un e-mail d'essai. Le serveur d'envoi engage la
+  // réputation du garage et porte un mot de passe : jamais le chef d'atelier ni les autres rôles.
+  'parametrage.envoi_courriel.gerer',
 ] as const;
 
 /**

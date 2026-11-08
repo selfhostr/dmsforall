@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import { providerTransportCourriel } from './provider-transport-courriel';
+import { FabriqueTransportSmtp } from './fabrique-transport-smtp';
 import { ServiceCourriel } from './service-courriel';
+import { ServiceReglageEnvoiCourriel } from './service-reglage-envoi-courriel';
 
 /**
  * Capacité d'envoi de courriel — SOCLE SEUL (aucun branchement métier, voir
@@ -13,7 +15,12 @@ import { ServiceCourriel } from './service-courriel';
  * `JETON_CONFIG`, déjà global (fourni par `ConfigModule.pourRacine`, `AppModule`).
  */
 @Module({
-  providers: [providerTransportCourriel, ServiceCourriel],
-  exports: [ServiceCourriel],
+  providers: [
+    providerTransportCourriel,
+    FabriqueTransportSmtp,
+    ServiceReglageEnvoiCourriel,
+    ServiceCourriel,
+  ],
+  exports: [ServiceCourriel, ServiceReglageEnvoiCourriel],
 })
 export class CourrielModule {}

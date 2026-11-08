@@ -86,71 +86,79 @@ export function GrilleAgendaSemaine({ jours, onCliquerJour, onOuvrirRendezVous }
       aria-label={t('planning:titre')}
       className={cn(
         'grid gap-2',
-        vueSemaine ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-7' : 'grid-cols-1',
+        vueSemaine
+          ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 min-[1360px]:grid-cols-7'
+          : 'grid-cols-1',
       )}
     >
-      {jours.map((jour, index) => {
-        const etat = classerCapaciteJour(jour.minutesOccupees, jour.capaciteMinutes);
-        const ariaJour =
-          jour.capaciteMinutes === null
-            ? t('planning:capacite.ariaJourNonDefinie', {
-                jour: formateurJour.format(jour.date),
-                reserves: jour.nombreRendezVous,
-              })
-            : t('planning:capacite.ariaJourDefinie', {
-                jour: formateurJour.format(jour.date),
-                reserves: jour.nombreRendezVous,
-                occupe: formaterDureeCourte(jour.minutesOccupees),
-                capacite: formaterDureeCourte(jour.capaciteMinutes),
-                etat: t(`planning:capacite.etat.${CLES_ETAT_CAPACITE_ARIA[etat]}`),
-              });
+      {/* ARIA : un `grid` ne contient que des `row`, qui contiennent les `gridcell` (axe-core
+          `aria-required-children`/`-parent`, issue #64). `contents` laisse les cellules se
+          répartir dans la grille CSS responsive comme avant — la ligne n'existe que pour les
+          technologies d'assistance. */}
+      <div role="row" className="contents">
+        {jours.map((jour, index) => {
+          const etat = classerCapaciteJour(jour.minutesOccupees, jour.capaciteMinutes);
+          const ariaJour =
+            jour.capaciteMinutes === null
+              ? t('planning:capacite.ariaJourNonDefinie', {
+                  jour: formateurJour.format(jour.date),
+                  reserves: jour.nombreRendezVous,
+                })
+              : t('planning:capacite.ariaJourDefinie', {
+                  jour: formateurJour.format(jour.date),
+                  reserves: jour.nombreRendezVous,
+                  occupe: formaterDureeCourte(jour.minutesOccupees),
+                  capacite: formaterDureeCourte(jour.capaciteMinutes),
+                  etat: t(`planning:capacite.etat.${CLES_ETAT_CAPACITE_ARIA[etat]}`),
+                });
 
-        return (
-          // BORDURE CONSERVÉE (DESIGN.md « bordure structurelle... le filet du cadre applicatif ») :
-          // ce `<div>` est une cellule d'une vraie grille de données (`role="grid"`/`role="gridcell"`
-          // ci-dessus), pas un groupement décoratif de contenu — même famille que le filet des
-          // tableaux, appliqué ici en cadre complet parce que la cellule est un jour entier, pas
-          // une simple ligne.
-          <div
-            key={jour.dateIso}
-            role="gridcell"
-            className="flex min-w-0 flex-col gap-2 rounded-md border p-2"
-          >
-            <button
-              ref={(element) => {
-                refsEnTetes.current[index] = element;
-              }}
-              type="button"
-              tabIndex={index === 0 ? 0 : -1}
-              onKeyDown={(evenement) => gererClavierEnTete(evenement, index)}
-              onClick={() => onCliquerJour(jour)}
-              aria-label={ariaJour}
-              className="flex min-h-11 min-w-0 flex-col items-start gap-1 rounded-md p-1 text-left anneau-focus hover:bg-muted"
+          return (
+            // BORDURE CONSERVÉE (DESIGN.md « bordure structurelle... le filet du cadre applicatif ») :
+            // ce `<div>` est une cellule d'une vraie grille de données (`role="grid"`/`role="gridcell"`
+            // ci-dessus), pas un groupement décoratif de contenu — même famille que le filet des
+            // tableaux, appliqué ici en cadre complet parce que la cellule est un jour entier, pas
+            // une simple ligne.
+            <div
+              key={jour.dateIso}
+              role="gridcell"
+              className="flex min-w-0 flex-col gap-2 rounded-md border p-2"
             >
-              <span className="texte-corps font-semibold capitalize text-foreground">
-                {formateurJour.format(jour.date)}
-              </span>
-              <BadgeCapaciteJour
-                nombreRendezVous={jour.nombreRendezVous}
-                minutesOccupees={jour.minutesOccupees}
-                capaciteMinutes={jour.capaciteMinutes}
-                niveauDetail={niveauDetailCapacite}
-              />
-            </button>
-
-            <div className="flex flex-col gap-champ" aria-label={t('planning:titre')}>
-              {[...jour.rendezVous].sort(comparerRendezVous).map((rendezVous) => (
-                <CarteRendezVous
-                  key={rendezVous.id}
-                  rendezVous={rendezVous}
-                  dense={!vueSemaine}
-                  onOuvrir={onOuvrirRendezVous}
+              <button
+                ref={(element) => {
+                  refsEnTetes.current[index] = element;
+                }}
+                type="button"
+                tabIndex={index === 0 ? 0 : -1}
+                onKeyDown={(evenement) => gererClavierEnTete(evenement, index)}
+                onClick={() => onCliquerJour(jour)}
+                aria-label={ariaJour}
+                className="flex min-h-11 min-w-0 flex-col items-start gap-1 rounded-md p-1 text-left anneau-focus hover:bg-muted"
+              >
+                <span className="texte-corps font-semibold capitalize text-foreground">
+                  {formateurJour.format(jour.date)}
+                </span>
+                <BadgeCapaciteJour
+                  nombreRendezVous={jour.nombreRendezVous}
+                  minutesOccupees={jour.minutesOccupees}
+                  capaciteMinutes={jour.capaciteMinutes}
+                  niveauDetail={niveauDetailCapacite}
                 />
-              ))}
+              </button>
+
+              <div className="flex flex-col gap-champ" aria-label={t('planning:titre')}>
+                {[...jour.rendezVous].sort(comparerRendezVous).map((rendezVous) => (
+                  <CarteRendezVous
+                    key={rendezVous.id}
+                    rendezVous={rendezVous}
+                    dense={!vueSemaine}
+                    onOuvrir={onOuvrirRendezVous}
+                  />
+                ))}
+              </div>
             </div>
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
     </div>
   );
 }

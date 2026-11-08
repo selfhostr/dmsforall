@@ -33,6 +33,9 @@ FROM deps AS build
 COPY packages/shared/src packages/shared/src
 COPY tsconfig.base.json ./
 COPY apps/web/index.html apps/web/index.html
+# Vite copies public/ (favicon, apple-touch-icon) into dist/: without this line the image shipped
+# without any of them.
+COPY apps/web/public apps/web/public
 COPY apps/web/vite.config.ts apps/web/vite.config.ts
 COPY apps/web/tsconfig.json apps/web/tsconfig.json
 COPY apps/web/components.json apps/web/components.json

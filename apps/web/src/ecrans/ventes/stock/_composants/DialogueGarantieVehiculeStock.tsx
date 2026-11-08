@@ -7,15 +7,9 @@ import { schemaModificationVehicule } from '@dfa/shared';
 import { messageErreur } from '@/api/erreurs';
 import { Button } from '@/components/ui/button';
 import { DateInput } from '@/components/ui/date-input';
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { PanneauLateral } from '@/composants/PanneauLateral';
 import { useModifierGarantieVehiculeStock } from '@/hooks/ventes/stock/useModifierGarantieVehiculeStock';
 
 /** Mêmes bornes que `schemaModificationVehicule` (@dfa/shared) — dupliquées ici pour les attributs
@@ -107,112 +101,110 @@ export function DialogueGarantieVehiculeStock({ ouvert, onOuvertChange, vehicule
   });
 
   return (
-    <Dialog open={ouvert} onOpenChange={onOuvertChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{t('ventes:stock.fiche.garantie.titre')}</DialogTitle>
-        </DialogHeader>
+    <PanneauLateral
+      ouvert={ouvert}
+      onOuvertChange={onOuvertChange}
+      titre={t('ventes:stock.fiche.garantie.titre')}
+      pied={
+        <>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => onOuvertChange(false)}
+            disabled={modifier.isPending}
+          >
+            {t('commun:actions.annuler')}
+          </Button>
+          <Button type="submit" form="garantie-vehicule-stock" disabled={modifier.isPending}>
+            {modifier.isPending ? t('commun:chargement.enCours') : t('commun:actions.enregistrer')}
+          </Button>
+        </>
+      }
+    >
+      <form
+        id="garantie-vehicule-stock"
+        onSubmit={soumettre}
+        noValidate
+        className="flex flex-col gap-4"
+      >
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="garantie-debut">{t('ventes:stock.fiche.garantie.debutLe')}</Label>
+          <Controller
+            control={form.control}
+            name="garantieDebutLe"
+            render={({ field }) => (
+              <DateInput
+                id="garantie-debut"
+                disabled={modifier.isPending}
+                erreur={
+                  form.formState.errors.garantieDebutLe ? t('validation:dateInvalide') : undefined
+                }
+                value={field.value}
+                onChange={(iso) => field.onChange(iso ?? null)}
+              />
+            )}
+          />
+        </div>
 
-        <form onSubmit={soumettre} noValidate className="flex flex-col gap-4">
-          <p className="texte-libelle text-muted-foreground">
-            {t('ventes:stock.fiche.garantie.description')}
-          </p>
-
+        <div className="grid grid-cols-2 gap-3">
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="garantie-debut">{t('ventes:stock.fiche.garantie.debutLe')}</Label>
+            <Label htmlFor="garantie-mois">{t('ventes:stock.fiche.garantie.mois')}</Label>
             <Controller
               control={form.control}
-              name="garantieDebutLe"
+              name="garantieMois"
               render={({ field }) => (
-                <DateInput
-                  id="garantie-debut"
+                <Input
+                  id="garantie-mois"
+                  type="number"
+                  min={0}
+                  max={GARANTIE_MOIS_MAX}
+                  inputMode="numeric"
                   disabled={modifier.isPending}
-                  erreur={
-                    form.formState.errors.garantieDebutLe ? t('validation:dateInvalide') : undefined
-                  }
+                  aria-invalid={form.formState.errors.garantieMois ? true : undefined}
                   value={field.value}
-                  onChange={(iso) => field.onChange(iso ?? null)}
+                  onChange={(evenement) => field.onChange(evenement.target.value)}
                 />
               )}
             />
+            {form.formState.errors.garantieMois ? (
+              <p className="texte-libelle text-destructive">
+                {t('ventes:stock.fiche.garantie.moisHorsPlage')}
+              </p>
+            ) : null}
           </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="garantie-mois">{t('ventes:stock.fiche.garantie.mois')}</Label>
-              <Controller
-                control={form.control}
-                name="garantieMois"
-                render={({ field }) => (
-                  <Input
-                    id="garantie-mois"
-                    type="number"
-                    min={0}
-                    max={GARANTIE_MOIS_MAX}
-                    inputMode="numeric"
-                    disabled={modifier.isPending}
-                    aria-invalid={form.formState.errors.garantieMois ? true : undefined}
-                    value={field.value}
-                    onChange={(evenement) => field.onChange(evenement.target.value)}
-                  />
-                )}
-              />
-              {form.formState.errors.garantieMois ? (
-                <p className="texte-libelle text-destructive">
-                  {t('ventes:stock.fiche.garantie.moisHorsPlage')}
-                </p>
-              ) : null}
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="garantie-km">{t('ventes:stock.fiche.garantie.km')}</Label>
-              <Controller
-                control={form.control}
-                name="garantieKm"
-                render={({ field }) => (
-                  <Input
-                    id="garantie-km"
-                    type="number"
-                    min={0}
-                    max={GARANTIE_KM_MAX}
-                    inputMode="numeric"
-                    disabled={modifier.isPending}
-                    aria-invalid={form.formState.errors.garantieKm ? true : undefined}
-                    value={field.value}
-                    onChange={(evenement) => field.onChange(evenement.target.value)}
-                  />
-                )}
-              />
-              {form.formState.errors.garantieKm ? (
-                <p className="texte-libelle text-destructive">
-                  {t('ventes:stock.fiche.garantie.kmHorsPlage')}
-                </p>
-              ) : null}
-            </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="garantie-km">{t('ventes:stock.fiche.garantie.km')}</Label>
+            <Controller
+              control={form.control}
+              name="garantieKm"
+              render={({ field }) => (
+                <Input
+                  id="garantie-km"
+                  type="number"
+                  min={0}
+                  max={GARANTIE_KM_MAX}
+                  inputMode="numeric"
+                  disabled={modifier.isPending}
+                  aria-invalid={form.formState.errors.garantieKm ? true : undefined}
+                  value={field.value}
+                  onChange={(evenement) => field.onChange(evenement.target.value)}
+                />
+              )}
+            />
+            {form.formState.errors.garantieKm ? (
+              <p className="texte-libelle text-destructive">
+                {t('ventes:stock.fiche.garantie.kmHorsPlage')}
+              </p>
+            ) : null}
           </div>
+        </div>
 
-          {modifier.error ? (
-            <p className="texte-libelle text-destructive" role="alert">
-              {messageErreur(modifier.error, t)}
-            </p>
-          ) : null}
-
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOuvertChange(false)}
-              disabled={modifier.isPending}
-            >
-              {t('commun:actions.annuler')}
-            </Button>
-            <Button type="submit" disabled={modifier.isPending}>
-              {modifier.isPending
-                ? t('commun:chargement.enCours')
-                : t('commun:actions.enregistrer')}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+        {modifier.error ? (
+          <p className="texte-libelle text-destructive" role="alert">
+            {messageErreur(modifier.error, t)}
+          </p>
+        ) : null}
+      </form>
+    </PanneauLateral>
   );
 }

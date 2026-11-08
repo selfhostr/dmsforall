@@ -5,11 +5,12 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 
 import { CadrePermis } from './CadrePermis';
+import { ApercuPhotoFichier } from './ApercuPhotoFichier';
 import type { MotifRefusPhoto } from './analyserQualitePhoto';
 import type { FractionsCadre } from './geometrieCadre';
 
 interface Props {
-  readonly urlApercu: string;
+  readonly fichier: File;
   readonly fractions: FractionsCadre;
   readonly motif: MotifRefusPhoto;
   readonly onReprendre: () => void;
@@ -30,7 +31,7 @@ interface Props {
  * après-coup : l'utilisateur le lit avant de décider, pas une fois l'action lancée.
  */
 export function PanneauRefusPhoto({
-  urlApercu,
+  fichier,
   fractions,
   motif,
   onReprendre,
@@ -46,7 +47,11 @@ export function PanneauRefusPhoto({
           parfois dans le fond de page. Le filet ici délimite le bord RÉEL de la photo, pas un
           simple regroupement de contenu. */}
       <div className="relative overflow-hidden rounded-lg border">
-        <img src={urlApercu} alt={t('scan:refus.apercuAlt')} className="block w-full" />
+        <ApercuPhotoFichier
+          fichier={fichier}
+          alt={t('scan:refus.apercuAlt')}
+          className="block w-full"
+        />
         <CadrePermis fractions={fractions} />
       </div>
 

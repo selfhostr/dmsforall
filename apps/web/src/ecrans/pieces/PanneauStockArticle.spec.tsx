@@ -15,7 +15,7 @@ import { creerQueryClientTest } from '@/test/utils';
 import { PanneauStockArticle } from './PanneauStockArticle';
 
 const SITES: SiteResume[] = [
-  { id: 'site-1', code: 'SION', nom: 'Garage Martin — Sion', actif: true },
+  { id: 'site-1', code: 'SION', codeCourt: 'SION', nom: 'Garage Martin — Sion', actif: true },
 ];
 
 function stock(champs: Partial<StockResumeArticle> = {}): StockResumeArticle {

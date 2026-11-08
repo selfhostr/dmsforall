@@ -10,10 +10,9 @@ import {
   type StatutCommandeFournisseur,
 } from '@dfa/shared';
 
+import { AideContextuelle } from '@/composants/AideContextuelle';
 import { messageErreur } from '@/api/erreurs';
-import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -93,7 +92,6 @@ export function EcranListeCommandesFournisseur() {
   const nomSite = (siteId: string) => sites.find((site) => site.id === siteId)?.nom ?? siteId;
 
   const filtresStructuresActifs = statut !== undefined || avecReliquat;
-  const filtresActifs = q.trim() !== '' || filtresStructuresActifs;
   function effacerFiltres() {
     // Levier de reset (choix produit 26.08.2026) : `effacerFiltres` est un geste de reprise en
     // main, pas une frappe — `q` doit refléter la case vide immédiatement, pas après le même
@@ -173,11 +171,12 @@ export function EcranListeCommandesFournisseur() {
   // titre CONTIENT le libellé de la vue). Défaut cité nommément par @laupernoe le 17.08.2026 (« dans
   // Commandes, "Commandes fournisseur" ») — l'ancien commentaire ici (« pas un doublon », retiré
   // par ce correctif) argumentait l'inverse ; le choix produit a explicitement tranché dans l'autre sens.
-  const boutonCreer = peutEcrireCommandeFournisseur(actions) ? (
-    <Button onClick={() => navigate('/pieces/commandes-fournisseur/nouvelle')}>
-      {t('pieces:commandes.actions.creer')}
-    </Button>
-  ) : undefined;
+  const actionCreer = peutEcrireCommandeFournisseur(actions)
+    ? {
+        libelle: t('pieces:commandes.actions.creerInfobulle'),
+        onClick: () => navigate('/pieces/commandes-fournisseur/nouvelle'),
+      }
+    : undefined;
 
   let contenuVide: ReactNode;
   if (q.trim() !== '') {
@@ -200,29 +199,30 @@ export function EcranListeCommandesFournisseur() {
       <EtatVidePremierUsage
         titre={t('pieces:commandes.vide.premierUsage.titre')}
         description={t('pieces:commandes.vide.premierUsage.description')}
-        action={boutonCreer}
       />
     );
   }
 
   return (
-    <GabaritEcran titre={t('pieces:commandes.titre')} actions={boutonCreer}>
+    <GabaritEcran titre={t('pieces:commandes.titre')}>
       <BarreFiltres
+        actionCreer={actionCreer}
         q={qSaisie}
         onChangeQ={setQSaisie}
         placeholderRecherche={t('pieces:commandes.filtres.rechercherPlaceholder')}
-        filtresActifs={filtresActifs}
-        onEffacerFiltres={effacerFiltres}
       >
         <div className="flex flex-col gap-champ">
-          <Label htmlFor="filtre-statut-commande">{t('pieces:commandes.statut')}</Label>
           <Select
             value={statut ?? 'tous'}
             onValueChange={(valeur) =>
               setStatut(valeur === 'tous' ? undefined : (valeur as StatutCommandeFournisseur))
             }
           >
-            <SelectTrigger id="filtre-statut-commande" aria-label={t('pieces:commandes.statut')}>
+            <SelectTrigger
+              id="filtre-statut-commande"
+              className="w-auto min-w-28"
+              aria-label={t('pieces:commandes.statut')}
+            >
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -247,6 +247,10 @@ export function EcranListeCommandesFournisseur() {
           />
           {t('pieces:commandes.filtres.avecReliquat')}
         </label>
+        <AideContextuelle
+          sujet={t('pieces:commandes.filtres.avecReliquat')}
+          texte={t('aide:pieces.reliquat')}
+        />
       </BarreFiltres>
 
       <TableComptoir

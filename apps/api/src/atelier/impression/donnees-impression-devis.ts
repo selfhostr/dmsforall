@@ -45,6 +45,7 @@ import { formaterDateHeureSuisse, formaterDateSuisse } from './formatage-or';
 import { formaterMontantCentimes } from '../../facturation/impression/formatage-suisse';
 import { libellesImpressionDevis, type LibellesDevis } from './libelles-impression-devis';
 import { libellesImpressionOr } from './libelles-impression-or';
+import { libellesImpression } from '../../facturation/impression/libelles-impression';
 
 /** Identité du garage à imprimer en en-tête — résolue par `service-impression-devis.ts` (lecture
  *  directe de `tenant`/`site`, hors du contrat `ReponseOrdreReparation` qui ne porte que `siteId`). */
@@ -56,6 +57,8 @@ export interface IdentiteGarage {
   readonly localite: string | null;
   /** N° TVA tel que saisi dans les réglages ; absent si non renseigné. */
   readonly numeroTva?: string | null;
+  /** Réglage `tenant.assujetti_tva` ; absent = assujetti (comportement historique). */
+  readonly assujettiTva?: boolean;
 }
 
 export interface LigneImprimeeDevis {
@@ -89,6 +92,14 @@ export interface DonneesImpressionDevis {
   readonly garageAdresseLigne1: string | null;
   readonly garageAdresseLigne2: string | null;
   readonly garageNumeroTva: string | null;
+  /** Garage non assujetti ET devis sans aucune TVA : ni colonne TVA, ni récapitulatif, ni HT/TVA ;
+   *  seul le total et {@link mentionNonAssujetti} (mêmes libellés que la facture) sont imprimés.
+   *  Un devis dont des lignes portent encore de la TVA (figées avant le changement de statut du
+   *  garage) garde son rendu complet : on n'efface jamais une TVA réellement calculée. */
+  readonly sansTva: boolean;
+  readonly mentionNonAssujetti: string;
+  /** « Total » (sans « TTC ») pour le rendu {@link sansTva}. */
+  readonly libelleTotalSansTva: string;
   readonly dateEnvoi: string;
   readonly canal: string;
   readonly statutDevis: string;
@@ -220,6 +231,9 @@ export function construireDonneesImpressionDevis(
   const { ventilation, totalHtCentimes, totalTvaCentimes, totalTtcCentimes } =
     agregerTva(lignesDevis);
   const adresseSite = construireAdresseSite(identite);
+  const libellesFacture = libellesImpression(langue);
+  const sansTva =
+    identite.assujettiTva === false && lignesDevis.every((x) => x.tauxTvaPourmille === 0);
   const canal: CanalDevis = devis.canal;
 
   return {
@@ -229,7 +243,11 @@ export function construireDonneesImpressionDevis(
     garageSiteNom: identite.siteNom,
     garageAdresseLigne1: adresseSite.ligne1,
     garageAdresseLigne2: adresseSite.ligne2,
-    garageNumeroTva: identite.numeroTva?.trim() || null,
+    // Non assujetti : la mention remplace le n° TVA (même règle que l'en-tête de la facture).
+    garageNumeroTva: sansTva ? libellesFacture.nonAssujettiTva : identite.numeroTva?.trim() || null,
+    sansTva,
+    mentionNonAssujetti: libellesFacture.nonAssujettiTva,
+    libelleTotalSansTva: libellesFacture.total,
     dateEnvoi: formaterDateSuisse(devis.envoyeLe),
     canal: l.canaux[canal],
     statutDevis: construireStatutDevis(devis, l),

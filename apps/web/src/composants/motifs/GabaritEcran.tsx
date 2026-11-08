@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { Fragment, type ReactNode } from 'react';
 
 import { useLibellesNavigationAffiches } from '@/composants/layout/useNavigationActive';
 import { cn } from '@/lib/utils';
@@ -32,6 +32,13 @@ interface Props {
    * suivi financement/garantie : « c'est doublé »).
    */
   readonly actions?: ReactNode;
+  /**
+   * Barre de filtres de la liste (`BarreFiltres`). Titre visible : rangée propre sous la ligne
+   * titre + actions. Titre masqué (cas courant, doublon de navigation) : la barre prend la place du
+   * titre et les actions restent à sa droite, sur la MÊME ligne — jamais un bouton seul sur une
+   * ligne haute. Les actions passent sous la barre quand la place manque.
+   */
+  readonly barre?: ReactNode;
   readonly children: ReactNode;
   readonly className?: string;
 }
@@ -137,35 +144,58 @@ export function GabaritEcran({
   sousTitre,
   titreVisible,
   actions,
+  barre,
   children,
   className,
 }: Props) {
   const libellesAffiches = useLibellesNavigationAffiches();
-  const visible = titreVisible ?? !estTitreDoublonNavigation(titre, libellesAffiches);
+  // Un écran de liste (il passe une `barre` de filtres) affiche toujours son titre : titre à
+  // gauche, actions à droite, filtres en dessous. Les autres écrans gardent la détection de doublon.
+  const visible =
+    titreVisible ?? (barre ? true : !estTitreDoublonNavigation(titre, libellesAffiches));
   const classeH1 = cn('texte-titre-page', !visible && 'sr-only');
 
   // Règle anti-trou (§4 du contrat) : rien d'autre que le h1 sr-only ne doit occuper de rangée.
-  if (!visible && !sousTitre && !actions) {
+  if (!visible && !sousTitre && !actions && !barre) {
     return (
       <div className={cn('flex w-full flex-col gap-section', className)}>
         <h1 className={classeH1}>{titre}</h1>
-        {children}
+        <Fragment key="contenu">{children}</Fragment>
       </div>
     );
   }
 
+  // UNE seule structure, que le titre soit visible ou non : la visibilité bascule après le premier
+  // rendu (libellés de navigation connus avec la session) et un changement d'arbre remonterait la
+  // barre de filtres, effaçant la saisie en cours. Seules les classes varient.
+  //  - titre visible : ligne 1 = titre + actions, ligne 2 = barre (pleine largeur) ;
+  //  - titre masqué : barre à gauche, actions à droite, sur la MÊME ligne (jamais un bouton seul).
+  const titreAffiche = visible || Boolean(sousTitre);
   return (
     <div className={cn('flex w-full flex-col gap-section', className)}>
-      <div className="flex flex-wrap items-start justify-between gap-groupe">
-        <div className="space-y-champ">
+      <div
+        key="entete"
+        className="flex flex-wrap items-center justify-between gap-x-groupe gap-y-champ"
+      >
+        <div className={titreAffiche ? 'space-y-champ' : 'contents'}>
           <h1 className={classeH1}>{titre}</h1>
           {sousTitre ? <p className="texte-corps text-muted-foreground">{sousTitre}</p> : null}
         </div>
+        {barre ? (
+          <div
+            className={cn(
+              'min-w-0',
+              titreAffiche ? 'order-last basis-full' : 'flex-1 basis-[32rem]',
+            )}
+          >
+            {barre}
+          </div>
+        ) : null}
         {actions ? (
-          <div className="flex flex-wrap items-center gap-controles">{actions}</div>
+          <div className="flex shrink-0 flex-wrap items-center gap-controles">{actions}</div>
         ) : null}
       </div>
-      {children}
+      <Fragment key="contenu">{children}</Fragment>
     </div>
   );
 }

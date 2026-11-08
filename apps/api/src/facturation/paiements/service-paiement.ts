@@ -35,6 +35,7 @@ import {
   type ServiceIdempotence,
 } from '../../common/idempotence';
 
+import { verifierEspecesMultiple5 } from './arrondi-especes';
 import { appliquerCompensationAvance, appliquerImputationsLettrage } from './imputations';
 import {
   calculerMontantNonImputeCentimes,
@@ -43,6 +44,7 @@ import {
   versPaiement,
 } from './mappeurs';
 import {
+  chargerArrondiEspecesActif,
   chargerPaiement,
   chargerPaiementPourEcriture,
   chargerResumesUtilisateurs,
@@ -219,6 +221,13 @@ export class ServicePaiement {
         },
       );
     }
+    verifierEspecesMultiple5({
+      moyenPaiement: entree.moyen,
+      devise: entree.devise,
+      arrondiEspecesActif:
+        entree.moyen === 'especes' ? await chargerArrondiEspecesActif(tx, ctx) : true,
+      montantCentimes: BigInt(entree.montantCentimes),
+    });
     if (entree.payeurClientId) {
       await verifierClientExiste(tx, ctx, entree.payeurClientId);
     }

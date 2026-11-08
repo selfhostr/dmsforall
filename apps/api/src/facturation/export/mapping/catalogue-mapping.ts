@@ -133,14 +133,25 @@ export const POSTES_CODES_TVA: readonly DefinitionPosteCodeTva[] = [
 ];
 
 /**
- * Codes TVA WinBIZ par défaut : seul le taux normal 8.1 % (`N81`) est proposé. Les codes des
- * taux réduit/hébergement dépendent du paramétrage du garage dans WinBIZ, qu'on n'invente pas.
+ * Codes TVA WinBIZ proposés par défaut : N81 (normal 8.1 %), R26 (réduit 2.6 %), H38
+ * (hébergement 3.8 %). L'aide WinBIZ ne publie PAS de liste de codes par défaut : le champ
+ * `Ecr_vtcode` (`<vt_code=xxx>`) référence un type de TVA défini dans le dossier du garage, et le
+ * taux exporté (`TVA_taux`) est de toute façon porté par la ligne. Ces codes sont donc une
+ * convention (initiale du taux + taux), modifiable par le garage/la fiduciaire dans le mapping.
+ * La ligne exportée est toujours de la TVA due (`TVA_typ = 2`, vente), jamais de l'impôt préalable.
+ * Sources (consultées le 08.11.2026) :
+ * https://helpcenter.winbiz.ch/hc/fr/articles/115002136793 (import d'écritures, champs 20/TVA_typ),
+ * https://helpcentre.winbiz.ch/hc/fr/articles/360005844694 (taux 2024 : 8.1 / 2.6 / 3.8).
  */
-const CODES_TVA_WINBIZ_PAR_DEFAUT: Readonly<Record<string, string>> = { 'normal:81': 'N81' };
+const CODES_TVA_WINBIZ_PAR_DEFAUT: Readonly<Record<string, string>> = {
+  'normal:81': 'N81',
+  'reduit:26': 'R26',
+  'hebergement:38': 'H38',
+};
 
 /**
  * Suggestion de code TVA : la cible `csv` est libre (le taux lui-même est un code lisible) ;
- * WinBIZ reçoit `N81` pour le taux normal. Bexio/Abacus/Banana : codes du logiciel du garage, non
+ * WinBIZ reçoit `N81`/`R26`/`H38`. Bexio/Abacus/Banana : codes du logiciel du garage, non
  * inventés.
  */
 export function codeTvaParDefaut(cible: CibleExport, poste: DefinitionPosteCodeTva): string | null {

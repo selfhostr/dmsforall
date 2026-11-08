@@ -170,3 +170,101 @@ describe('RouteProtegee — redirectionParRole', () => {
     expect(await screen.findByText('CONTENU_PROTEGE')).toBeInTheDocument();
   });
 });
+
+describe('RouteProtegee — modules activables', () => {
+  function rendreSur(chemin: string, modulesActifs: SessionCourante['modulesActifs']) {
+    server.use(
+      http.get('/api/v1/auth/moi', () => HttpResponse.json({ ...SESSION_TEST, modulesActifs })),
+    );
+    render(
+      <QueryClientProvider client={creerQueryClientTest()}>
+        <MemoryRouter initialEntries={[chemin]}>
+          <Routes>
+            <Route path="/" element={<div>ACCUEIL</div>} />
+            <Route
+              path="/pneus"
+              element={
+                <RouteProtegee>
+                  <div>ECRAN_PNEUS</div>
+                </RouteProtegee>
+              }
+            />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+  }
+
+  it('module actif : l’écran s’affiche', async () => {
+    rendreSur('/pneus', ['pneus']);
+    expect(await screen.findByText('ECRAN_PNEUS')).toBeInTheDocument();
+  });
+
+  it('module retiré : redirection vers l’accueil, jamais l’écran', async () => {
+    rendreSur('/pneus', []);
+    expect(await screen.findByText('ACCUEIL')).toBeInTheDocument();
+    expect(screen.queryByText('ECRAN_PNEUS')).not.toBeInTheDocument();
+  });
+});
+
+describe('RouteProtegee — borne murale (poste_atelier)', () => {
+  function rendreBorneSur(chemin: string) {
+    server.use(
+      http.get('/api/v1/auth/moi', () =>
+        HttpResponse.json({
+          ...SESSION_TEST,
+          utilisateur: { ...SESSION_TEST.utilisateur, role: 'poste_atelier' },
+          actions: ['atelier.or.lire', 'atelier.pointage.identifier'],
+        }),
+      ),
+    );
+    render(
+      <QueryClientProvider client={creerQueryClientTest()}>
+        <MemoryRouter initialEntries={[chemin]}>
+          <Routes>
+            <Route path="/pointage/borne" element={<div>ECRAN_BORNE</div>} />
+            <Route
+              path="*"
+              element={
+                <RouteProtegee>
+                  <div>ECRAN_METIER</div>
+                </RouteProtegee>
+              }
+            />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+  }
+
+  it.each(['/ordres-reparation', '/factures', '/clients', '/pointage', '/parametrage/garage'])(
+    'la borne demandant %s est renvoyée vers son écran, jamais le contenu métier',
+    async (chemin) => {
+      rendreBorneSur(chemin);
+      expect(await screen.findByText('ECRAN_BORNE')).toBeInTheDocument();
+      expect(screen.queryByText('ECRAN_METIER')).not.toBeInTheDocument();
+    },
+  );
+
+  it('un employé (chef_atelier) n’est pas redirigé vers la borne', async () => {
+    server.use(http.get('/api/v1/auth/moi', () => HttpResponse.json(SESSION_TEST)));
+    render(
+      <QueryClientProvider client={creerQueryClientTest()}>
+        <MemoryRouter initialEntries={['/ordres-reparation']}>
+          <Routes>
+            <Route path="/pointage/borne" element={<div>ECRAN_BORNE</div>} />
+            <Route
+              path="*"
+              element={
+                <RouteProtegee>
+                  <div>ECRAN_METIER</div>
+                </RouteProtegee>
+              }
+            />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    expect(await screen.findByText('ECRAN_METIER')).toBeInTheDocument();
+  });
+});

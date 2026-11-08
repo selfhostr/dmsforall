@@ -52,6 +52,7 @@ import {
   schemaUuid,
 } from './schemas';
 import { ServiceCommandeFournisseur } from './service-commande-fournisseur';
+import { ExigerModule } from '../common/droits/garde-module';
 
 /**
  * Commande fournisseur (RP-26 → RP-31, §6.2) — priorité 1 du lot. PAS de `PATCH` générique sur
@@ -69,6 +70,7 @@ import { ServiceCommandeFournisseur } from './service-commande-fournisseur';
  */
 @ApiTags('Pièces — Commandes fournisseur')
 @ApiCookieAuth()
+@ExigerModule('pieces')
 @Controller({ path: 'commandes-fournisseur', version: '1' })
 @UseGuards(GardeDroit)
 export class CommandeFournisseurController {

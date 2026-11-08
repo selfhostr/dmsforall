@@ -105,7 +105,7 @@ function adresseEstVide(adresse: ValeursSaisieFormulaire['adressePrincipale']): 
 export const CLE_BROUILLON_NOUVEAU_CLIENT = 'client-nouveau';
 
 /** Champs couverts par le brouillon (issue #78, verbatim terrain : « Nom, prénom, téléphone,
- *  rue : tout parti. ») — l'identité, le moyen de contact et l'adresse, c'est-à-dire tout ce
+ *  rue : tout parti. ») — l'identité et l'adresse (le téléphone n'est PAS persisté, donnée personnelle), c'est-à-dire tout ce
  *  qu'un réceptionniste tape avant de cliquer « Créer le client ». Volontairement PAS `email`/
  *  `ide`/langue de correspondance à part `langueCorrespondance` (nécessaire pour reconstruire des
  *  valeurs de formulaire valides) : portée alignée sur l'incident réel, pas un brouillon
@@ -122,7 +122,6 @@ interface ValeursBrouillonNouveauClient {
   readonly ide?: string | null;
   readonly email?: string | null;
   readonly langueCorrespondance: EntreeCreationClient['langueCorrespondance'];
-  readonly telephoneSaisi: string;
   readonly adressePrincipale?: ValeursSaisieFormulaire['adressePrincipale'];
 }
 
@@ -139,7 +138,6 @@ function brouillonEstVide(valeurs: ValeursBrouillonNouveauClient): boolean {
     !valeurs.raisonSociale?.trim() &&
     !valeurs.ide?.trim() &&
     !valeurs.email?.trim() &&
-    !valeurs.telephoneSaisi.trim() &&
     adresseEstVide(valeurs.adressePrincipale)
   );
 }
@@ -348,7 +346,8 @@ export function FormulaireNouveauClient({ ouvert, onCree }: Props) {
     form.reset(
       aBrouillon ? valeursDepuisBrouillon(brouillon.valeurs) : valeursParDefaut(langueCourante),
     );
-    setTelephoneSaisi(aBrouillon ? brouillon.valeurs.telephoneSaisi : '');
+    // Le téléphone n'est volontairement jamais persisté dans le brouillon (donnée personnelle).
+    setTelephoneSaisi('');
     setBrouillonRepriseLe(aBrouillon ? brouillon.enregistreLe : null);
     setEntreeEnAttente(null);
     // Levier de reset (`hooks/commun/useValeurDebouncee`) : sans lui, l'aperçu de doublon de la
@@ -383,7 +382,6 @@ export function FormulaireNouveauClient({ ouvert, onCree }: Props) {
     ide,
     email,
     langueCorrespondance,
-    telephoneSaisi,
     adressePrincipale,
   });
 
@@ -458,7 +456,7 @@ export function FormulaireNouveauClient({ ouvert, onCree }: Props) {
   const estErreurReseau = erreur instanceof ErreurReseau;
 
   return (
-    <form onSubmit={soumettre} noValidate className="mt-6 space-y-groupe">
+    <form onSubmit={soumettre} noValidate className="space-y-groupe">
       {/* Issue #78 : signale ET permet de rejeter une saisie restaurée — un formulaire qui se
        *  remplit tout seul sans le dire ferait douter de ce qu'on est en train d'envoyer.
        *  `BandeauBrouillon` (partagé) ne porte pas de bouton de rejet lui-même (présentation
@@ -500,7 +498,7 @@ export function FormulaireNouveauClient({ ouvert, onCree }: Props) {
         </Alert>
       ) : null}
 
-      <div className="space-y-champ">
+      <div className="flex flex-col items-start gap-2">
         <Label>{t('clients:liste.filtres.type')}</Label>
         {/* Bordure structurelle : contour d'un contrôle de saisie (bascule particulier/
          *  entreprise, `role="group"` de boutons). */}
@@ -535,7 +533,15 @@ export function FormulaireNouveauClient({ ouvert, onCree }: Props) {
         // d'un champ non contrôlé lors d'une simple mise à jour de props). Constaté en écrivant le
         // test de non-régression du défaut 1 : sans ce `key`, il échouait avec exactement ce
         // symptôme, sur un champ pourtant déjà vidé par `form.reset()`.
-        <div key="identite-particulier" className="grid grid-cols-2 gap-groupe">
+        <div key="identite-particulier" className="grid grid-cols-1 gap-groupe sm:grid-cols-2">
+          <div className="space-y-champ">
+            <Label htmlFor="nc-prenom">{t('clients:identite.prenom')}</Label>
+            <Input
+              id="nc-prenom"
+              readOnly={enCours}
+              {...form.register('prenom', { setValueAs: videVersIndefini })}
+            />
+          </div>
           <div className="space-y-champ">
             <Label htmlFor="nc-nom">{t('clients:identite.nom')}</Label>
             <Input
@@ -553,17 +559,9 @@ export function FormulaireNouveauClient({ ouvert, onCree }: Props) {
               </p>
             ) : null}
           </div>
-          <div className="space-y-champ">
-            <Label htmlFor="nc-prenom">{t('clients:identite.prenom')}</Label>
-            <Input
-              id="nc-prenom"
-              readOnly={enCours}
-              {...form.register('prenom', { setValueAs: videVersIndefini })}
-            />
-          </div>
         </div>
       ) : (
-        <div key="identite-entreprise" className="grid grid-cols-2 gap-groupe">
+        <div key="identite-entreprise" className="grid grid-cols-1 gap-groupe sm:grid-cols-2">
           <div className="space-y-champ">
             <Label htmlFor="nc-raison-sociale">{t('clients:identite.raisonSociale')}</Label>
             <Input
@@ -609,64 +607,9 @@ export function FormulaireNouveauClient({ ouvert, onCree }: Props) {
         </div>
       )}
 
-      <div className="space-y-champ">
-        <Label htmlFor="nc-langue">{t('clients:identite.langue')}</Label>
-        <Select
-          value={form.watch('langueCorrespondance')}
-          onValueChange={(valeur) =>
-            form.setValue(
-              'langueCorrespondance',
-              valeur as EntreeCreationClient['langueCorrespondance'],
-            )
-          }
-        >
-          <SelectTrigger id="nc-langue" aria-label={t('clients:identite.langue')}>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {languesDisponibles.map((code) => (
-              <SelectItem key={code} value={code}>
-                {t(`commun:langues.${code}`)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="grid grid-cols-2 gap-groupe">
-        <div className="space-y-champ">
-          <Label htmlFor="nc-telephone">{t('clients:identite.telephone')}</Label>
-          <Input
-            id="nc-telephone"
-            type="tel"
-            readOnly={enCours}
-            value={telephoneSaisi}
-            onChange={(evenement) => setTelephoneSaisi(evenement.target.value)}
-          />
-        </div>
-        <div className="space-y-champ">
-          <Label htmlFor="nc-email">{t('clients:identite.email')}</Label>
-          <Input
-            id="nc-email"
-            type="email"
-            readOnly={enCours}
-            aria-invalid={form.formState.errors.email ? true : undefined}
-            aria-describedby={form.formState.errors.email ? 'nc-email-erreur' : undefined}
-            {...form.register('email', { setValueAs: videVersIndefini })}
-          />
-          {form.formState.errors.email ? (
-            <p id="nc-email-erreur" className="texte-corps text-destructive">
-              {form.formState.errors.email.type === 'server'
-                ? form.formState.errors.email.message
-                : t('validation:email.invalide')}
-            </p>
-          ) : null}
-        </div>
-      </div>
-
-      <fieldset className="space-y-groupe p-carte">
-        <legend className="px-1 texte-libelle font-medium text-foreground">
-          {t('clients:adresses.types.principale')}
+      <fieldset className="space-y-groupe">
+        <legend className="mb-2 texte-libelle font-medium text-foreground">
+          {t('clients:formulaireNouveau.adresse')}
         </legend>
         <div className="space-y-champ">
           <Label htmlFor="nc-rue">{t('clients:adresses.champs.rue')}</Label>
@@ -687,7 +630,7 @@ export function FormulaireNouveauClient({ ouvert, onCree }: Props) {
             </p>
           ) : null}
         </div>
-        <div className="grid grid-cols-2 gap-groupe">
+        <div className="grid grid-cols-[6rem_1fr] gap-groupe">
           <div className="space-y-champ">
             <Label htmlFor="nc-npa">{t('clients:adresses.champs.npa')}</Label>
             <Input
@@ -729,6 +672,61 @@ export function FormulaireNouveauClient({ ouvert, onCree }: Props) {
         </div>
       </fieldset>
 
+      <div className="grid grid-cols-1 gap-groupe sm:grid-cols-2">
+        <div className="space-y-champ">
+          <Label htmlFor="nc-telephone">{t('clients:identite.telephone')}</Label>
+          <Input
+            id="nc-telephone"
+            type="tel"
+            readOnly={enCours}
+            value={telephoneSaisi}
+            onChange={(evenement) => setTelephoneSaisi(evenement.target.value)}
+          />
+        </div>
+        <div className="space-y-champ">
+          <Label htmlFor="nc-email">{t('clients:identite.email')}</Label>
+          <Input
+            id="nc-email"
+            type="email"
+            readOnly={enCours}
+            aria-invalid={form.formState.errors.email ? true : undefined}
+            aria-describedby={form.formState.errors.email ? 'nc-email-erreur' : undefined}
+            {...form.register('email', { setValueAs: videVersIndefini })}
+          />
+          {form.formState.errors.email ? (
+            <p id="nc-email-erreur" className="texte-corps text-destructive">
+              {form.formState.errors.email.type === 'server'
+                ? form.formState.errors.email.message
+                : t('validation:email.invalide')}
+            </p>
+          ) : null}
+        </div>
+      </div>
+
+      <div className="space-y-champ sm:w-1/2 sm:pr-2">
+        <Label htmlFor="nc-langue">{t('clients:identite.langue')}</Label>
+        <Select
+          value={form.watch('langueCorrespondance')}
+          onValueChange={(valeur) =>
+            form.setValue(
+              'langueCorrespondance',
+              valeur as EntreeCreationClient['langueCorrespondance'],
+            )
+          }
+        >
+          <SelectTrigger id="nc-langue" aria-label={t('clients:identite.langue')}>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {languesDisponibles.map((code) => (
+              <SelectItem key={code} value={code}>
+                {t(`commun:langues.${code}`)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
       {candidats.length > 0 ? (
         // Bordure structurelle : encart d'alerte (doublons potentiels détectés à la saisie).
         <div className="space-y-groupe rounded-md border border-statut-attention bg-statut-attention-fond p-carte">
@@ -757,9 +755,11 @@ export function FormulaireNouveauClient({ ouvert, onCree }: Props) {
         </div>
       ) : null}
 
-      <Button type="submit" className="w-full" disabled={enCours}>
-        {enCours ? t('commun:chargement.enCours') : t('clients:actions.creer')}
-      </Button>
+      <div className="flex justify-end">
+        <Button type="submit" disabled={enCours}>
+          {enCours ? t('commun:chargement.enCours') : t('clients:actions.creer')}
+        </Button>
+      </div>
 
       <AvertissementConfirmable
         ouvert={entreeEnAttente !== null}

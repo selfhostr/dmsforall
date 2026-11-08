@@ -5,15 +5,9 @@ import { schemaModificationReprise, type ReponseReprise } from '@dfa/shared';
 
 import { ErreurApi, messageErreur } from '@/api/erreurs';
 import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
 import { LegendeChampsObligatoires } from '@/components/ui/label';
 import { ChampMontant } from '@/composants/comptoir/ChampMontant';
+import { PanneauLateral } from '@/composants/PanneauLateral';
 import { RefusBloquant } from '@/composants/motifs/RefusBloquant';
 import { useModifierReprise } from '@/hooks/ventes/reprises/useTransitionsReprise';
 
@@ -100,28 +94,51 @@ export function DialogueModifierReprise({
   }
 
   return (
-    <Dialog open={ouvert} onOpenChange={onOuvertChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{t('ventes:reprise.modification.titre')}</DialogTitle>
-        </DialogHeader>
+    <PanneauLateral
+      ouvert={ouvert}
+      onOuvertChange={onOuvertChange}
+      titre={t('ventes:reprise.modification.titre')}
+      pied={
+        <>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => onOuvertChange(false)}
+            disabled={modifier.isPending}
+          >
+            {t('commun:actions.annuler')}
+          </Button>
+          <Button type="submit" form="reprise-modification" disabled={modifier.isPending}>
+            {modifier.isPending
+              ? t('commun:chargement.enCours')
+              : t('ventes:reprise.modification.bouton')}
+          </Button>
+        </>
+      }
+    >
+      <form
+        id="reprise-modification"
+        noValidate
+        className="flex flex-col gap-4"
+        onSubmit={(evenement) => {
+          evenement.preventDefault();
+          soumettre();
+        }}
+      >
+        <LegendeChampsObligatoires>
+          {t('commun:formulaires.champsObligatoiresLegende')}
+        </LegendeChampsObligatoires>
 
-        <div className="flex flex-col gap-4">
-          <LegendeChampsObligatoires>
-            {t('commun:formulaires.champsObligatoiresLegende')}
-          </LegendeChampsObligatoires>
-
-          <ChampMontant
-            label={t('ventes:reprise.creation.valeurEstimee')}
-            obligatoire
-            valeurCentimes={valeurEstimeeCentimes}
-            onChangeCentimes={setValeurEstimeeCentimes}
-          />
-          <ChampDetteFinancementReprise valeurs={dette} onChange={setDette} />
-          {erreurValidation ? (
-            <p className="texte-libelle text-destructive">{erreurValidation}</p>
-          ) : null}
-        </div>
+        <ChampMontant
+          label={t('ventes:reprise.creation.valeurEstimee')}
+          obligatoire
+          valeurCentimes={valeurEstimeeCentimes}
+          onChangeCentimes={setValeurEstimeeCentimes}
+        />
+        <ChampDetteFinancementReprise valeurs={dette} onChange={setDette} />
+        {erreurValidation ? (
+          <p className="texte-libelle text-destructive">{erreurValidation}</p>
+        ) : null}
 
         {erreurActive ? (
           <RefusBloquant
@@ -134,23 +151,7 @@ export function DialogueModifierReprise({
             {messageErreur(modifier.error, t)}
           </p>
         ) : null}
-
-        <DialogFooter>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => onOuvertChange(false)}
-            disabled={modifier.isPending}
-          >
-            {t('commun:actions.annuler')}
-          </Button>
-          <Button type="button" disabled={modifier.isPending} onClick={soumettre}>
-            {modifier.isPending
-              ? t('commun:chargement.enCours')
-              : t('ventes:reprise.modification.bouton')}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+      </form>
+    </PanneauLateral>
   );
 }

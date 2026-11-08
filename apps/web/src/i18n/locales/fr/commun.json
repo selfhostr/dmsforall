@@ -102,11 +102,11 @@
     "employeCree": "Employé créé"
   },
   "densite": {
-    "titre": "Densité d'affichage",
+    "titre": "Taille de l'interface",
     "auto": "Automatique (selon l'appareil)",
     "compacte": "Compacte",
     "aeree": "Aérée",
-    "aide": "Aérée : texte plus grand et lignes plus hautes, pour tablette et doigt."
+    "revenirAuto": "Revenir à la taille automatique"
   },
   "glossaire": {
     "OR": "Ordre de réparation : la fiche de travaux d'un véhicule, de la réception à la restitution.",
@@ -116,5 +116,10 @@
     "QRFacture": "Bulletin de paiement suisse avec code QR, à scanner dans l'e-banking.",
     "Avoir": "Facture de correction qui annule tout ou partie d'une facture émise.",
     "Detenteur": "Personne inscrite sur le permis de circulation ; pas forcément le propriétaire, par exemple en leasing."
+  },
+  "filtreSite": {
+    "libelle": "Site",
+    "tous": "Tous",
+    "titreTous": "Tous les sites"
   }
 }

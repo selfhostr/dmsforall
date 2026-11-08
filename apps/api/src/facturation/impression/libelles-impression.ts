@@ -29,11 +29,17 @@ export interface LibellesFacture {
   readonly totalTva: string;
   readonly totalTtc: string;
   readonly mentionTvaComprise: string;
+  /** Garage non assujetti à la TVA : mention imprimée en en-tête et sous le total. */
+  readonly nonAssujettiTva: string;
   /** Devis : titre, variante brouillon (pas de numéro), validité et mention de non-facture. */
   readonly devisNumero: (numero: string) => string;
   readonly devisBrouillon: string;
   readonly valableJusqu: string;
   readonly devisMention: string;
+  /** Avoir : titre, référence de la facture corrigée, mention de non-paiement. */
+  readonly avoirNumero: (numero: string) => string;
+  readonly avoirSurFacture: (numeroFacture: string) => string;
+  readonly avoirMention: string;
   /** Facture sans bulletin QR : coordonnées bancaires du garage non renseignées. */
   readonly paiementNonRenseigne: string;
 }
@@ -56,10 +62,14 @@ const FR: LibellesFacture = {
   totalTva: 'Total TVA',
   totalTtc: 'Total TTC',
   mentionTvaComprise: 'Prix TVA comprise',
+  nonAssujettiTva: 'Non assujetti à la TVA',
   devisNumero: (numero) => `Devis n° ${numero}`,
   devisBrouillon: 'Devis (brouillon)',
   valableJusqu: "Valable jusqu'au",
   devisMention: "Ce devis n'est pas une facture.",
+  avoirNumero: (n) => `Avoir n° ${n}`,
+  avoirSurFacture: (n) => `Corrige la facture n° ${n}`,
+  avoirMention: "Cet avoir crédite le client : aucun paiement n'est à effectuer.",
   paiementNonRenseigne:
     'Coordonnées de paiement : non renseignées sur ce document — voir les conditions de paiement ou contacter le garage.',
 };
@@ -82,10 +92,14 @@ const DE: LibellesFacture = {
   totalTva: 'Total MWST',
   totalTtc: 'Total Brutto',
   mentionTvaComprise: 'Preise inkl. MWST',
+  nonAssujettiTva: 'Nicht mehrwertsteuerpflichtig',
   devisNumero: (numero) => `Offerte Nr. ${numero}`,
   devisBrouillon: 'Offerte (Entwurf)',
   valableJusqu: 'Gültig bis',
   devisMention: 'Diese Offerte ist keine Rechnung.',
+  avoirNumero: (n) => `Gutschrift Nr. ${n}`,
+  avoirSurFacture: (n) => `Korrigiert Rechnung Nr. ${n}`,
+  avoirMention: 'Diese Gutschrift wird dem Kunden gutgeschrieben: keine Zahlung erforderlich.',
   paiementNonRenseigne:
     'Zahlungsangaben: auf diesem Dokument nicht hinterlegt — siehe Zahlungsbedingungen oder Garage kontaktieren.',
 };
@@ -108,10 +122,14 @@ const IT: LibellesFacture = {
   totalTva: 'Totale IVA',
   totalTtc: 'Totale lordo',
   mentionTvaComprise: 'Prezzi IVA inclusa',
+  nonAssujettiTva: "Non soggetto all'IVA",
   devisNumero: (numero) => `Preventivo n. ${numero}`,
   devisBrouillon: 'Preventivo (bozza)',
   valableJusqu: 'Valido fino al',
   devisMention: 'Questo preventivo non è una fattura.',
+  avoirNumero: (n) => `Nota di credito n. ${n}`,
+  avoirSurFacture: (n) => `Rettifica la fattura n. ${n}`,
+  avoirMention: 'Questa nota di credito accredita il cliente: nessun pagamento da effettuare.',
   paiementNonRenseigne:
     'Coordinate di pagamento: non indicate su questo documento — vedere le condizioni di pagamento o contattare il garage.',
 };

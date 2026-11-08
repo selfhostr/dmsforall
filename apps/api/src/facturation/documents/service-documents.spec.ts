@@ -25,6 +25,7 @@ vi.mock('./references', () => ({
   chargerConditionsPaiementEnVigueur: vi.fn(),
   chargerDossierVentePourRattachement: vi.fn(),
   chargerPlaqueVehiculeCourante: vi.fn(),
+  chargerPrixVehiculeDuDossier: vi.fn(),
   chargerResumeUtilisateur: vi.fn(),
   nomAfficheClient: vi.fn(() => 'Jean Dupont'),
   verifierVehiculeExiste: vi.fn(),
@@ -124,11 +125,17 @@ describe('ServiceDocumentsVente.creer — rattachement à un dossier de vente (R
     });
     const { tx, insert, valuesInsert } = txFactice();
     const { service } = serviceFactice(tx);
+    // Une ligne explicite : le report du prix véhicule (lignes vides) est couvert plus bas et en
+    // intégration ; `inserterLigne` (SQL) est neutralisé, la fausse transaction ne le supporte pas.
+    vi.spyOn(
+      service as unknown as { inserterLigne: () => Promise<unknown> },
+      'inserterLigne',
+    ).mockResolvedValue({});
 
     const resultat = await service.creer(
       CTX,
       principal(),
-      entreeFixture({ dossierVenteId: DOSSIER_ID }),
+      entreeFixture({ dossierVenteId: DOSSIER_ID, lignes: [{ type: 'forfait' } as never] }),
       CLE_IDEMPOTENCE,
     );
 
@@ -142,6 +149,31 @@ describe('ServiceDocumentsVente.creer — rattachement à un dossier de vente (R
     expect(valuesInsert).toHaveBeenCalledWith(
       expect.objectContaining({ dossierVenteId: DOSSIER_ID }) as unknown,
     );
+  });
+
+  it('dossier sans prix (lignes vides) : 422 DOCUMENT_DOSSIER_VENTE_PRIX_REQUIS, aucune écriture', async () => {
+    vi.mocked(references.chargerDossierVentePourRattachement).mockResolvedValue({
+      id: DOSSIER_ID,
+      statut: 'engage',
+    });
+    vi.mocked(references.chargerPrixVehiculeDuDossier).mockRejectedValue(
+      new (await import('../../common/erreurs/erreur-metier')).ErreurMetier(
+        'DOCUMENT_DOSSIER_VENTE_PRIX_REQUIS',
+        'Prix requis.',
+      ),
+    );
+    const { tx, insert } = txFactice();
+    const { service } = serviceFactice(tx);
+
+    await expect(
+      service.creer(
+        CTX,
+        principal(),
+        entreeFixture({ dossierVenteId: DOSSIER_ID }),
+        CLE_IDEMPOTENCE,
+      ),
+    ).rejects.toMatchObject({ code: 'DOCUMENT_DOSSIER_VENTE_PRIX_REQUIS', status: 422 });
+    expect(insert).not.toHaveBeenCalled();
   });
 
   it('aucun dossierVenteId fourni : chargerDossierVentePourRattachement jamais appelé, dossierVenteId inséré à null', async () => {

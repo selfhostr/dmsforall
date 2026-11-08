@@ -1,6 +1,6 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, useNavigate, useSearchParams } from 'react-router';
+import { useNavigate } from 'react-router';
 
 import {
   STATUTS_DOSSIER_VENTE,
@@ -11,7 +11,6 @@ import {
 } from '@dfa/shared';
 
 import { messageErreur } from '@/api/erreurs';
-import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
   Select,
@@ -33,7 +32,8 @@ import { EtatVidePremierUsage } from '@/composants/motifs/EtatVidePremierUsage';
 import { EtatVideRecherche } from '@/composants/motifs/EtatVideRecherche';
 import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
 import { useValeurDebouncee } from '@/hooks/commun/useValeurDebouncee';
-import { useSiteCourant } from '@/hooks/site/ContexteSiteCourant';
+import { FiltreSite } from '@/composants/commun/FiltreSite';
+import { useFiltreSite } from '@/hooks/site/useFiltreSite';
 import { useListeDossiersVente } from '@/hooks/ventes/dossiers/useListeDossiersVente';
 import { useSession } from '@/hooks/useSession';
 import { formaterDate } from '@/lib/formats';
@@ -106,16 +106,10 @@ const CLES_STATUT: Record<StatutDossierVente, string> = {
 export function EcranListeDossiersVente() {
   const { t } = useTranslation(['ventes', 'commun']);
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const { preferenceSiteId } = useSiteCourant();
-  // Défaut CORRIGÉ (issue #161, 16.08.2026) : au premier chargement d'un onglet (arrivée directe,
-  // ou rechargement de la page), aucune navigation interne n'a encore écrit `?site=` dans l'URL —
-  // seule la PRÉFÉRENCE mémorisée du poste (`useSiteCourant`, même résolution que
-  // `SelecteurSiteEntete`/`EcranListeArticles`) sait quel site l'en-tête affiche. Sans ce repli,
-  // `site` valait `undefined` malgré un site actif visible en haut de page, et le bouton « Nouveau
-  // dossier de vente » héritait de cette absence (`chemins.ventes.dossiers.nouveau(site)` ci-dessous)
-  // jusqu'à ce que l'utilisateur rouvre le sélecteur — qui, lui, écrit `?site=` dans l'URL.
-  const site = searchParams.get('site') ?? preferenceSiteId;
+  // Filtre de site LOCAL : site principal par défaut, mémorisé par écran. Le bouton « Nouveau
+  // dossier de vente » hérite du site filtré (sinon le site principal côté formulaire).
+  const filtreSite = useFiltreSite('ventes.dossiers');
+  const site = filtreSite.siteId;
   const { data: session } = useSession();
 
   const [qSaisie, setQSaisie] = useState('');
@@ -153,7 +147,6 @@ export function EcranListeDossiersVente() {
   } = useListeDossiersVente(filtres);
 
   const filtresStructuresActifs = filtreStatut !== 'tous' || afficherTermines;
-  const filtresActifs = q.trim() !== '' || filtresStructuresActifs;
 
   function effacerFiltres() {
     setQSaisie('');
@@ -164,13 +157,12 @@ export function EcranListeDossiersVente() {
 
   const peutCreer = peutEcrireDossierVente(session?.actions);
 
-  const boutonNouveauDossier = peutCreer ? (
-    <Button asChild>
-      <Link to={chemins.ventes.dossiers.nouveau(site)}>
-        {t('ventes:commun.actions.nouveauDossier')}
-      </Link>
-    </Button>
-  ) : undefined;
+  const actionCreerDossier = peutCreer
+    ? {
+        libelle: t('ventes:commun.actions.creerDossier'),
+        to: chemins.ventes.dossiers.nouveau(site),
+      }
+    : undefined;
 
   const colonnes: ColonneComptoir<ReponseDossierVente>[] = [
     {
@@ -233,7 +225,6 @@ export function EcranListeDossiersVente() {
       <EtatVidePremierUsage
         titre={t('ventes:dossier.liste.vide.premierUsage.titre')}
         description={t('ventes:dossier.liste.vide.premierUsage.description')}
-        action={boutonNouveauDossier}
       />
     );
   }
@@ -277,71 +268,59 @@ export function EcranListeDossiersVente() {
   // chantier) : rejoint la rangée filtres + tri ci-dessous, à sa suite, plutôt que de rester isolé.
   return (
     <GabaritEcran titre={t('ventes:dossier.liste.titre')}>
-      {/* Rangée UNIQUE filtres + tri + action (correctif « mise en page ventes », 19.08.2026 : « grands
-          espaces vides entre le titre et le premier contenu ») — `SelecteurTri` tenait auparavant
-          toute une rangée pleine largeur à lui seul sous la barre de filtres, un `gap-6` (24px)
-          de plus rien que pour l'espacer. `BarreFiltres` grandit (`flex-1`), le tri puis le bouton
-          « Nouveau dossier de vente » viennent à sa suite dans le même `flex-wrap` : sur un écran
-          étroit ils repassent sous les filtres comme avant, sur un poste large ils s'alignent à
-          droite au lieu de laisser filer une ligne quasi vide. Le libellé « Statut » retiré
-          au-dessus du sélecteur de statut (defect signalé : le bouton affiche déjà « Tous les
-          statuts », `aria-label` déjà porté par `SelectTrigger` — même correctif que les trois
-          filtres de `EcranListeVehiculesStock`). */}
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <BarreFiltres
-          q={qSaisie}
-          onChangeQ={setQSaisie}
-          placeholderRecherche={t('ventes:dossier.liste.filtres.q')}
-          filtresActifs={filtresActifs}
-          onEffacerFiltres={effacerFiltres}
-          className="min-w-0 flex-1"
+      <BarreFiltres
+        actionCreer={actionCreerDossier}
+        q={qSaisie}
+        onChangeQ={setQSaisie}
+        placeholderRecherche={t('ventes:dossier.liste.filtres.q')}
+        tri={
+          <SelecteurTri
+            options={TRIS_DOSSIERS_VENTE.map((valeur) => ({
+              valeur,
+              libelle: t(CLES_TRI[valeur]),
+            }))}
+            valeur={tri}
+            onChangeValeur={setTri}
+            label={t('ventes:dossier.liste.tri.label')}
+          />
+        }
+      >
+        <FiltreSite filtre={filtreSite} />
+        <Select
+          value={filtreStatut}
+          onValueChange={(valeur) => setFiltreStatut(valeur as FiltreStatut)}
         >
-          <Select
-            value={filtreStatut}
-            onValueChange={(valeur) => setFiltreStatut(valeur as FiltreStatut)}
+          <SelectTrigger
+            id="filtre-statut-dossier-vente"
+            className="w-auto min-w-28 shrink-0"
+            aria-label={t('ventes:dossier.liste.filtres.statutLabel')}
           >
-            <SelectTrigger
-              id="filtre-statut-dossier-vente"
-              className="w-[220px]"
-              aria-label={t('ventes:dossier.liste.filtres.statutLabel')}
-            >
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="tous">{t('ventes:dossier.liste.filtres.statutTous')}</SelectItem>
-              {STATUTS_DOSSIER_VENTE.map((valeur) => (
-                <SelectItem key={valeur} value={valeur}>
-                  {t(`ventes:dossier.statuts.${CLES_STATUT[valeur]}`)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="tous">{t('ventes:dossier.liste.filtres.statutTous')}</SelectItem>
+            {STATUTS_DOSSIER_VENTE.map((valeur) => (
+              <SelectItem key={valeur} value={valeur}>
+                {t(`ventes:dossier.statuts.${CLES_STATUT[valeur]}`)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
-          {filtreStatut === 'tous' ? (
-            <label
-              htmlFor="dossiers-afficher-termines"
-              className="flex items-center gap-2 texte-corps"
-            >
-              <Checkbox
-                id="dossiers-afficher-termines"
-                checked={afficherTermines}
-                onCheckedChange={(coche) => setAfficherTermines(coche === true)}
-              />
-              {t('ventes:dossier.liste.filtres.afficherTermines')}
-            </label>
-          ) : null}
-        </BarreFiltres>
-
-        <SelecteurTri
-          options={TRIS_DOSSIERS_VENTE.map((valeur) => ({ valeur, libelle: t(CLES_TRI[valeur]) }))}
-          valeur={tri}
-          onChangeValeur={setTri}
-          label={t('ventes:dossier.liste.tri.label')}
-          className="w-[220px] shrink-0"
-        />
-
-        {boutonNouveauDossier}
-      </div>
+        {filtreStatut === 'tous' ? (
+          <label
+            htmlFor="dossiers-afficher-termines"
+            className="flex shrink items-center gap-2 texte-corps"
+          >
+            <Checkbox
+              id="dossiers-afficher-termines"
+              checked={afficherTermines}
+              onCheckedChange={(coche) => setAfficherTermines(coche === true)}
+            />
+            {t('ventes:dossier.liste.filtres.afficherTermines')}
+          </label>
+        ) : null}
+      </BarreFiltres>
 
       <TableComptoir
         colonnes={colonnes}

@@ -164,8 +164,8 @@
   },
   "vendeur": {
     "indisponible": {
-      "titre": "Übersicht nicht verfügbar",
-      "description": "Die API erlaubt noch keine Filterung der Verkaufsdossiers nach zuständigem Verkäufer: alle Dossiers des Standorts als „Ihre Dossiers“ anzuzeigen wäre irreführend. Ihre Arbeit finden Sie unter Verkauf › Dossiers.",
+      "titre": "Ihre Verkaufsdossiers",
+      "description": "Die Verkaufsdossiers verfolgen Sie unter Verkauf › Dossiers. Zahlen pro Verkäufer sind noch nicht verfügbar.",
       "lien": "Zu meinen Dossiers"
     }
   },
@@ -182,10 +182,9 @@
     "rendezVousJour": {
       "titre": "Heutige Termine",
       "description": "Für heute bestätigte oder bereits eingetroffene Termine, in Tagesreihenfolge.",
-      "siteRequis": "Wählen Sie einen Standort, um die heutigen Termine zu sehen.",
       "vide": {
         "titre": "Keine Termine heute",
-        "description": "Für heute ist an diesem Standort kein Termin geplant."
+        "description": "Für heute ist kein Termin geplant."
       },
       "erreur": {
         "titre": "Heutige Termine können nicht angezeigt werden"

@@ -39,6 +39,7 @@
     },
     "actions": {
       "nouveauDossier": "Nuova vendita",
+      "creerDossier": "Crea un dossier di vendita",
       "vendre": "Vendere",
       "voirDossier": "Vedi la vendita",
       "assignerVehicule": "Assegnare un veicolo",
@@ -135,11 +136,6 @@
       "non": "No",
       "nonRenseigne": "Non indicato"
     },
-    "vue": {
-      "groupeLabel": "Modalità di visualizzazione",
-      "vendeur": "Vista venditore",
-      "client": "Vista cliente"
-    },
     "joursStock": {
       "libelle": "Giorni in stock",
       "valeur": "{n, plural, one {# giorno} other {# giorni}}"
@@ -192,7 +188,7 @@
           "description": "Immetta il suo primo veicolo in stock."
         }
       },
-      "rechercherPlaceholder": "Targa, VIN o descrizione…",
+      "rechercherPlaceholder": "Targa, VIN…",
       "erreur": {
         "titre": "Impossibile visualizzare i veicoli in stock"
       },
@@ -252,7 +248,6 @@
       "marquerVenduDescription": "Il veicolo passa allo stato «Venduto».",
       "garantie": {
         "titre": "Garanzia",
-        "description": "Inserimento manuale — da compilare quando l'informazione è nota, mai calcolata automaticamente.",
         "debutLe": "Inizio della garanzia",
         "mois": "Durata (mesi)",
         "km": "Limite chilometrico",
@@ -316,7 +311,7 @@
         "statutLabel": "Stato",
         "statutActifs": "Vendite attive",
         "statutTous": "Tutti gli stati",
-        "afficherTermines": "Mostra anche le vendite chiuse, annullate o abbandonate"
+        "afficherTermines": "Includi chiuse e annullate"
       },
       "tri": {
         "label": "Ordina per",
@@ -401,6 +396,10 @@
       "aucuneActionDisponible": "Nessuna azione disponibile al momento.",
       "bonCommande": "Ordine di acquisto",
       "aucunBonCommande": "Nessun ordine di acquisto per questa vendita",
+      "blocageDocument": {
+        "sansVehicule": "Assegnare prima un veicolo alla pratica: il documento riprende il suo prezzo.",
+        "sansPrix": "Il veicolo non ha un prezzo di vendita. Fissare il prezzo nello stock prima di creare questo documento."
+      },
       "creerBonCommande": "Creare l'ordine di acquisto",
       "facture": "Fattura",
       "aucuneFacture": "Nessuna fattura per questa vendita",
@@ -610,7 +609,6 @@
       "champVehiculeIndication": "Digitare una targa o una descrizione per cercare il veicolo permutato.",
       "aucunVehiculeTrouve": "Nessun veicolo corrisponde a questa ricerca.",
       "creerVehiculeBouton": "Crea questo veicolo",
-      "creerVehiculeAide": "Il cliente porta un veicolo che l'officina non conosce ancora? Createlo con le informazioni minime — il resto si completa più tardi dalla sua scheda.",
       "creerVehiculeSoumettre": "Crea e seleziona",
       "vehiculeSelectionne": "Veicolo selezionato: {designation}",
       "champValeurEstimee": "Valore stimato",
@@ -649,7 +647,6 @@
       "enNegociation": "In fase di negoziazione",
       "ecart": "Differenza / gesto commerciale",
       "detteResiduelle": "Debito residuo di finanziamento",
-      "detteAide": "Condizione sospensiva della permuta.",
       "organisme": "Istituto"
     },
     "modification": {
