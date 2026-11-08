@@ -178,8 +178,8 @@ describe('serialiserEcrituresWinbiz — facture mixte 8.1 % / 2.6 %', () => {
         }),
       ],
     });
-    const lignesTva = serialiserEcrituresWinbiz([mixte]).contenu
-      .toString('latin1')
+    const lignesTva = serialiserEcrituresWinbiz([mixte])
+      .contenu.toString('latin1')
       .split(FIN_DE_LIGNE_WINBIZ)
       .map((l) => l.split(SEPARATEUR_CHAMP_WINBIZ))
       .filter((c) => c[4] === '1170');
