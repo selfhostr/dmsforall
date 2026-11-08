@@ -1294,6 +1294,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/documents-vente/{id}/annuler-accord': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Annuler l'accord du client — devis uniquement (devis.accepte → emis), tant qu'aucun OR ni document n'en est issu. */
+    post: operations['DocumentVenteTransitionsController_annulerAccord'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/documents-vente/{id}/creer-ordre-reparation': {
     parameters: {
       query?: never;
@@ -1400,7 +1417,7 @@ export interface paths {
       cookie?: never;
     };
     /**
-     * PDF d’une facture émise (avec bulletin QR) ou d’un devis (sans QR).
+     * PDF d’une facture émise (avec bulletin QR), d’un avoir émis ou d’un devis (sans QR).
      * @description Facture émise : génération paresseuse au premier appel, mise en cache (`document_vente.pdfCle`/`pdfSha256`), Un DEVIS (tout statut, brouillon compris) produit un PDF « Devis » sans bulletin QR, valable 30 jours après sa date, rendu à chaque appel et non mis en cache. JAMAIS régénérée ensuite — une facture émise est immuable, son PDF aussi (DI-3). `RF-116` : la charge QR contient le montant en clair — droit dédié, distinct de `facturation.document.lire`.
      */
     get: operations['ImpressionFactureController_telechargerPdf'];
@@ -15035,6 +15052,76 @@ export interface operations {
       };
     };
   };
+  DocumentVenteTransitionsController_annulerAccord: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': Record<string, never>;
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['EnveloppeDocumentVenteDto'];
+        };
+      };
+      /** @description Type de document invalide (seul un devis a un accord). */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Session absente ou expirée. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Droit insuffisant. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description Document introuvable pour ce tenant. */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description DOCUMENT_TRANSITION_INTERDITE (le devis n’est pas accepté) ou DOCUMENT_SOURCE_DEJA_TRANSFORME (un OR ou un document en est issu). */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+    };
+  };
   DevisVersOrController_creerOrdreReparation: {
     parameters: {
       query?: never;
@@ -15605,7 +15692,7 @@ export interface operations {
           'application/pdf': components['schemas']['ProblemeDetailCommunDto'];
         };
       };
-      /** @description DOCUMENT_PDF_INDISPONIBLE — le document n'est ni un devis ni une facture émise. */
+      /** @description DOCUMENT_PDF_INDISPONIBLE — le document n'est ni un devis, ni une facture ou un avoir émis. */
       409: {
         headers: {
           [name: string]: unknown;
