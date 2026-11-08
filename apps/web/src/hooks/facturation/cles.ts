@@ -20,6 +20,8 @@ export const clesFacturation = {
     liste: (filtres: FiltresDocumentsVente) =>
       ['facturation', 'documents', 'liste', filtres] as const,
     detail: (id: string) => ['facturation', 'documents', 'detail', id] as const,
+    /** Paiements imputés à un document (carte « Paiements » de la fiche facture). */
+    paiements: (id: string) => ['facturation', 'documents', 'paiements', id] as const,
     /** Factures ouvertes d'un client — source de l'écran 3 (encaissement) quand l'entrée se fait
      *  depuis la fiche client plutôt que depuis une facture précise (§5, point d'entrée 2). */
     ouvertesClient: (clientId: string) =>

@@ -255,6 +255,9 @@ export const CODES_ERREUR = [
   // pas le dossier ici, on refuse d'y ATTACHER un nouveau document tant qu'il est dans un état
   // fermé (`clos`/`annule`/`abandonne`).
   'DOCUMENT_DOSSIER_VENTE_RATTACHEMENT_REFUSE',
+  // Recette #64 : bon de commande/facture créé sans ligne depuis un dossier dont le véhicule est
+  // absent ou sans prix de vente — 422, jamais un document à 0.00.
+  'DOCUMENT_DOSSIER_VENTE_PRIX_REQUIS',
   // --- Étape 5 : connecteurs (déclarés, émis après étape 4) ---
   'CONNECTEUR_TYPE_INDISPONIBLE',
   'CONNECTEUR_IDENTIFIANTS_MANQUANTS',
@@ -488,6 +491,7 @@ export const STATUT_HTTP_PAR_CODE_ERREUR: Readonly<Record<CodeErreur, number>> =
   VENTE_REPRISE_VALEUR_NEGOCIEE_REQUISE: 409,
   VENTE_REPRISE_DEJA_EXISTANTE: 409,
   DOCUMENT_DOSSIER_VENTE_RATTACHEMENT_REFUSE: 409,
+  DOCUMENT_DOSSIER_VENTE_PRIX_REQUIS: 422,
   CONNECTEUR_TYPE_INDISPONIBLE: 409,
   CONNECTEUR_IDENTIFIANTS_MANQUANTS: 409,
   CONNECTEUR_ACTIVATION_TRANSITION_INTERDITE: 409,
@@ -629,6 +633,7 @@ export const TITRE_FR_PAR_CODE_ERREUR: Readonly<Record<CodeErreur, string>> = {
   VENTE_REPRISE_VALEUR_NEGOCIEE_REQUISE: 'Valeur de reprise requise',
   VENTE_REPRISE_DEJA_EXISTANTE: 'Reprise déjà existante',
   DOCUMENT_DOSSIER_VENTE_RATTACHEMENT_REFUSE: 'Rattachement au dossier de vente refusé',
+  DOCUMENT_DOSSIER_VENTE_PRIX_REQUIS: 'Prix du véhicule requis',
   CONNECTEUR_TYPE_INDISPONIBLE: 'Type de connecteur indisponible',
   CONNECTEUR_IDENTIFIANTS_MANQUANTS: 'Identifiants du connecteur manquants',
   CONNECTEUR_ACTIVATION_TRANSITION_INTERDITE: 'Activation du connecteur impossible',

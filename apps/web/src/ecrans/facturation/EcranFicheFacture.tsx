@@ -70,6 +70,7 @@ import {
 } from './droits';
 import { IndicateurRetard } from './IndicateurRetard';
 import { messagesErreurMutation } from './messages-erreur-mutation';
+import { CartePaiementsFacture } from './CartePaiementsFacture';
 import { RecapitulatifTVA } from './RecapitulatifTVA';
 import { SheetEncaissement } from './SheetEncaissement';
 
@@ -818,6 +819,18 @@ export function EcranFicheFacture() {
               </CardContent>
             ) : null}
           </Card>
+        ) : null}
+
+        {document_.typeDocument === 'facture' &&
+        !estBrouillon &&
+        document_.montantRegleCentimes !== undefined &&
+        document_.soldeCentimes !== undefined ? (
+          <CartePaiementsFacture
+            documentId={document_.id}
+            montantRegleCentimes={document_.montantRegleCentimes}
+            soldeCentimes={document_.soldeCentimes}
+            devise={document_.devise}
+          />
         ) : null}
 
         <div className="grid items-start gap-6 lg:grid-cols-2">

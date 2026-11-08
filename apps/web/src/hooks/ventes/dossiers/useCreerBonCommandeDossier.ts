@@ -12,6 +12,7 @@ import type {
 import { genererCleIdempotence } from '@/api/idempotence';
 
 import { clesVentesDossiers } from './cles';
+import { ligneVehiculeDuDossier, type BlocageDocumentDossier } from './ligne-vehicule-dossier';
 import { creerBonCommandeDossierVente } from './bon-commande-dossier.api';
 
 /** Sous-ensemble du dossier nécessaire pour composer `EntreeCreationDocumentVente` sans qu'aucun
@@ -33,19 +34,20 @@ type DossierPourCreationBonCommande = Pick<
  * jamais après un simple échec (un échec n'a rien fait avaluer côté serveur, rejouer la même clé
  * doit être traité comme le même geste).
  *
- * `lignes: []` volontairement : le contenu du bon de commande (véhicule, prix, TVA) se saisit dans
- * l'écran facturation existant (`ecrans/facturation/**`, hors périmètre) — ce hook ne fait que
- * poser le brouillon et le rattacher, pour que le sélecteur `bonCommandeDocumentId` de `engager`
- * cesse d'être vide.
+ * Le prix du véhicule du dossier est reporté sur une ligne (`ligneVehiculeDuDossier`) ; sans
+ * véhicule ni prix, le document n'est PAS créé (`blocage`) plutôt que de naître vide à 0.00.
  */
 export function useCreerBonCommandeDossier(dossier: DossierPourCreationBonCommande): {
   readonly enCours: boolean;
   readonly erreur: unknown;
+  /** Non nul : création refusée AVANT tout appel (véhicule ou prix absent) — message métier. */
+  readonly blocage: BlocageDocumentDossier | null;
   readonly creer: (options: {
     readonly onSuccess: (document: ReponseDocumentVente) => void;
   }) => void;
 } {
   const queryClient = useQueryClient();
+  const { ligne, blocage } = ligneVehiculeDuDossier(dossier);
   // Une clé par INTENTION, PAS par appel de `creer()` (voir le commentaire d'en-tête) — même piège
   // documenté par `useCreationDossierVente` : lire `idempotence.cle` juste après régénération
   // renverrait encore l'ancienne clé si on la tenait en `useState` plutôt qu'en `useRef`.
@@ -56,6 +58,8 @@ export function useCreerBonCommandeDossier(dossier: DossierPourCreationBonComman
     unknown,
     EntreeCreationDocumentVente
   > = useMutation({
+    // L'écran affiche déjà l'erreur (`role="alert"` sous le bouton) : pas de second message.
+    meta: { filetErreurIgnore: true },
     mutationFn: (entree: EntreeCreationDocumentVente) =>
       creerBonCommandeDossierVente(entree, cleIdempotenceRef.current),
     onSuccess: () => {
@@ -65,6 +69,7 @@ export function useCreerBonCommandeDossier(dossier: DossierPourCreationBonComman
   });
 
   function creer(options: { readonly onSuccess: (document: ReponseDocumentVente) => void }) {
+    if (blocage) return;
     const entree: EntreeCreationDocumentVente = {
       typeDocument: 'bon_commande',
       siteId: dossier.siteId,
@@ -72,10 +77,10 @@ export function useCreerBonCommandeDossier(dossier: DossierPourCreationBonComman
       vehiculeId: dossier.vehicule?.id ?? null,
       dossierVenteId: dossier.id,
       devise: 'CHF',
-      lignes: [],
+      lignes: ligne ? [ligne] : [],
     };
     mutation.mutate(entree, { onSuccess: (reponse) => options.onSuccess(reponse.donnees) });
   }
 
-  return { enCours: mutation.isPending, erreur: mutation.error, creer };
+  return { enCours: mutation.isPending, erreur: mutation.error, blocage, creer };
 }

@@ -187,7 +187,7 @@
         "reference": "Referenz",
         "quantite": "Menge",
         "prixUnitaire": "Einzelpreis inkl. MWST",
-        "prixUnitaireAide": "Preis inkl. MWST, wie in einer Offerte. Entspricht {{ht}} exkl. MWST beim gewählten Satz. In einem Auftrag wird der Preis exkl. MWST erfasst.",
+        "prixUnitaireAide": "Preis inkl. MWST, wie in einer Offerte. Entspricht {ht} exkl. MWST beim gewählten Satz. In einem Auftrag wird der Preis exkl. MWST erfasst.",
         "taux": "MWST-Satz",
         "datePrestation": "Leistungsdatum"
       },
@@ -212,6 +212,14 @@
         "exonere": "Befreit — 0%",
         "exclu": "Nicht MWST-pflichtig — 0%"
       }
+    },
+    "paiements": {
+      "titre": "Zahlungen",
+      "paye": "Bereits bezahlt",
+      "solde": "Noch zu zahlen",
+      "aucun": "Keine Zahlung erfasst.",
+      "erreur": "Zahlungen konnten nicht geladen werden.",
+      "correctionParAvoir": "Eine erfasste Zahlung wird nicht gelöscht: Um eine bezahlte Rechnung zu korrigieren, erstellen Sie eine Gutschrift."
     },
     "documentsLies": {
       "titre": "Verknüpfte Dokumente",
@@ -294,7 +302,7 @@
         "brouillon": {
           "titre": "Rechnung neu erstellen (Gutschrift + neuer Entwurf)",
           "aide": "Die Rechnung wird durch eine Gutschrift storniert, danach wird ein identischer Entwurf erstellt. Sie ändern ihn frei (Positionen, Preise, MWST), bevor Sie ihn ausstellen. Die MWST folgt der aktuellen Regelung Ihrer Garage.",
-          "dejaRegle": "Nicht verfügbar: Diese Rechnung ist bereits ganz oder teilweise bezahlt. Stornieren Sie zuerst die Zahlung."
+          "dejaRegle": "Nicht verfügbar: Diese Rechnung ist ganz oder teilweise bezahlt (siehe Karte «Zahlungen» der Rechnung). Erstellen Sie eine Gutschrift, um sie zu stornieren."
         }
       },
       "confirmerBrouillon": "Gutschrift und Entwurf erstellen",
@@ -330,7 +338,9 @@
       "montant": "Betrag",
       "ajouter": "Zahlungsart hinzufügen",
       "retirer": "Diese Zahlungsart entfernen",
-      "arrondi": "gerundet {ecart}"
+      "arrondi": "gerundet {ecart}",
+      "especesCinqCentimes": "Bargeld: Vielfaches von 5 Rappen erforderlich (keine 1- oder 2-Rappen-Münzen). Vorschlag: {propose}.",
+      "especesCinqCentimesGenerique": "Bargeld muss ein Vielfaches von 5 Rappen sein."
     },
     "lignesInvalides": "Jede Zahlungsart muss einen Betrag über null aufweisen.",
     "resteAEncaisser": "Noch zu inkassieren",

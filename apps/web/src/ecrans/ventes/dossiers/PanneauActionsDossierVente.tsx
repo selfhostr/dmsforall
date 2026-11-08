@@ -363,7 +363,7 @@ export function PanneauActionsDossierVente({ dossier }: Props) {
                       variant="outline"
                       size="sm"
                       className="self-start"
-                      disabled={creationBonCommande.enCours}
+                      disabled={creationBonCommande.enCours || creationBonCommande.blocage !== null}
                       onClick={() =>
                         creationBonCommande.creer({
                           onSuccess: (document) => setBonCommandeDocumentId(document.id),
@@ -372,6 +372,13 @@ export function PanneauActionsDossierVente({ dossier }: Props) {
                     >
                       {t('ventes:dossier.transitions.creerBonCommande')}
                     </Button>
+                    {creationBonCommande.blocage ? (
+                      <p className="texte-libelle text-destructive" role="alert">
+                        {t(
+                          `ventes:dossier.transitions.blocageDocument.${creationBonCommande.blocage}`,
+                        )}
+                      </p>
+                    ) : null}
                     {creationBonCommande.erreur ? (
                       <p className="texte-libelle text-destructive" role="alert">
                         {messageErreur(creationBonCommande.erreur, t)}
@@ -550,7 +557,7 @@ export function PanneauActionsDossierVente({ dossier }: Props) {
                       variant="outline"
                       size="sm"
                       className="self-start"
-                      disabled={creationFacture.enCours}
+                      disabled={creationFacture.enCours || creationFacture.blocage !== null}
                       onClick={() =>
                         creationFacture.creer({
                           onSuccess: (document) => setFactureCreeeId(document.id),
@@ -559,6 +566,11 @@ export function PanneauActionsDossierVente({ dossier }: Props) {
                     >
                       {t('ventes:dossier.transitions.creerFacture')}
                     </Button>
+                    {creationFacture.blocage ? (
+                      <p className="texte-libelle text-destructive" role="alert">
+                        {t(`ventes:dossier.transitions.blocageDocument.${creationFacture.blocage}`)}
+                      </p>
+                    ) : null}
                     {creationFacture.erreur ? (
                       <p className="texte-libelle text-destructive" role="alert">
                         {messageErreur(creationFacture.erreur, t)}

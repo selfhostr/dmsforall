@@ -395,6 +395,10 @@
       "aucuneActionDisponible": "Aucune action disponible pour le moment.",
       "bonCommande": "Bon de commande",
       "aucunBonCommande": "Aucun bon de commande sur cette vente",
+      "blocageDocument": {
+        "sansVehicule": "Assignez d'abord un véhicule au dossier : le document reprend son prix.",
+        "sansPrix": "Le véhicule n'a pas de prix de vente. Fixez son prix dans le stock avant de créer ce document."
+      },
       "creerBonCommande": "Créer le bon de commande",
       "facture": "Facture",
       "aucuneFacture": "Aucune facture sur cette vente",

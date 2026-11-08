@@ -600,7 +600,7 @@ export function DialogueAjoutLigneOr({ orId, siteId, onAjoutee }: Props) {
                   valeurCentimes={etat.prixUnitaireCentimes}
                   onChangeCentimes={(centimes) => majEtat({ prixUnitaireCentimes: centimes })}
                   label={t('or:lignes.colonnes.prixUnitaire')}
-                  aide={t('or:lignes.colonnes.prixUnitaireAide')}
+                  aide={<AideContextuelle texte={t('or:lignes.colonnes.prixUnitaireAide')} />}
                 />
               </div>
             )}

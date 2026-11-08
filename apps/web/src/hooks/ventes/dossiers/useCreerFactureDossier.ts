@@ -12,6 +12,7 @@ import type {
 import { genererCleIdempotence } from '@/api/idempotence';
 
 import { clesVentesDossiers } from './cles';
+import { ligneVehiculeDuDossier, type BlocageDocumentDossier } from './ligne-vehicule-dossier';
 import { creerFactureDossierVente } from './bon-commande-dossier.api';
 
 /** Jumeau de `DossierPourCreationBonCommande` (`useCreerBonCommandeDossier.ts`) — mêmes champs,
@@ -30,19 +31,20 @@ type DossierPourCreationFacture = Pick<
  * Idempotence : une clé par INTENTION, même doctrine (`useCreerBonCommandeDossier`,
  * `useCreationDossierVente`) — régénérée seulement après un succès.
  *
- * `lignes: []` volontairement : le contenu de la facture (véhicule, prix, TVA) se saisit dans
- * l'écran facturation existant (`ecrans/facturation/**`, hors périmètre) — ce hook ne fait que
- * poser le brouillon et le rattacher, l'émission (qui débloque `livrer`) reste un geste distinct
- * posé depuis `/factures/{id}`.
+ * Le prix du véhicule du dossier est reporté sur une ligne (`ligneVehiculeDuDossier`) ; sans
+ * véhicule ni prix, le document n'est PAS créé (`blocage`) plutôt que de naître vide à 0.00.
  */
 export function useCreerFactureDossier(dossier: DossierPourCreationFacture): {
   readonly enCours: boolean;
   readonly erreur: unknown;
+  /** Non nul : création refusée AVANT tout appel (véhicule ou prix absent) — message métier. */
+  readonly blocage: BlocageDocumentDossier | null;
   readonly creer: (options: {
     readonly onSuccess: (document: ReponseDocumentVente) => void;
   }) => void;
 } {
   const queryClient = useQueryClient();
+  const { ligne, blocage } = ligneVehiculeDuDossier(dossier);
   // Une clé par INTENTION, PAS par appel de `creer()` — voir le commentaire d'en-tête et celui,
   // identique, de `useCreerBonCommandeDossier`.
   const cleIdempotenceRef = useRef(genererCleIdempotence());
@@ -52,6 +54,8 @@ export function useCreerFactureDossier(dossier: DossierPourCreationFacture): {
     unknown,
     EntreeCreationDocumentVente
   > = useMutation({
+    // L'écran affiche déjà l'erreur (`role="alert"` sous le bouton) : pas de second message.
+    meta: { filetErreurIgnore: true },
     mutationFn: (entree: EntreeCreationDocumentVente) =>
       creerFactureDossierVente(entree, cleIdempotenceRef.current),
     onSuccess: () => {
@@ -61,6 +65,7 @@ export function useCreerFactureDossier(dossier: DossierPourCreationFacture): {
   });
 
   function creer(options: { readonly onSuccess: (document: ReponseDocumentVente) => void }) {
+    if (blocage) return;
     const entree: EntreeCreationDocumentVente = {
       typeDocument: 'facture',
       siteId: dossier.siteId,
@@ -68,10 +73,10 @@ export function useCreerFactureDossier(dossier: DossierPourCreationFacture): {
       vehiculeId: dossier.vehicule?.id ?? null,
       dossierVenteId: dossier.id,
       devise: 'CHF',
-      lignes: [],
+      lignes: ligne ? [ligne] : [],
     };
     mutation.mutate(entree, { onSuccess: (reponse) => options.onSuccess(reponse.donnees) });
   }
 
-  return { enCours: mutation.isPending, erreur: mutation.error, creer };
+  return { enCours: mutation.isPending, erreur: mutation.error, blocage, creer };
 }

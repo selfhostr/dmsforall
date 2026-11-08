@@ -150,6 +150,7 @@
     "VENTE_REPRISE_VALEUR_NEGOCIEE_REQUISE": "Indichi il valore concordato del ritiro dell'usato.",
     "VENTE_REPRISE_DEJA_EXISTANTE": "Per questa vendita esiste già un ritiro dell'usato. Lo modifichi invece di crearne un altro.",
     "DOCUMENT_DOSSIER_VENTE_RATTACHEMENT_REFUSE": "Questa vendita è chiusa, annullata o abbandonata: non si può collegare nulla. Scelga una vendita in corso.",
+    "DOCUMENT_DOSSIER_VENTE_PRIX_REQUIS": "Il veicolo di questa vendita non ha un prezzo di vendita (o nessun veicolo è assegnato). Fissare il prezzo nello stock prima di creare questo documento.",
     "CONNECTEUR_TYPE_INDISPONIBLE": "Questo tipo di connettore non è disponibile per la sua officina.",
     "CONNECTEUR_IDENTIFIANTS_MANQUANTS": "Credenziali del connettore mancanti. Inseriscale nelle impostazioni, poi riprovi.",
     "CONNECTEUR_ACTIVATION_TRANSITION_INTERDITE": "Questo connettore non può essere attivato nello stato attuale. Ricarichi la pagina per vedere lo stato.",

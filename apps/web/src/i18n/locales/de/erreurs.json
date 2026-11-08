@@ -150,6 +150,7 @@
     "VENTE_REPRISE_VALEUR_NEGOCIEE_REQUISE": "Geben Sie den vereinbarten Wert der Inzahlungnahme an.",
     "VENTE_REPRISE_DEJA_EXISTANTE": "Für diesen Verkauf gibt es bereits eine Inzahlungnahme. Bearbeiten Sie sie, statt eine weitere anzulegen.",
     "DOCUMENT_DOSSIER_VENTE_RATTACHEMENT_REFUSE": "Dieser Verkauf ist abgeschlossen, storniert oder aufgegeben: Es kann nichts mehr zugeordnet werden. Wählen Sie einen laufenden Verkauf.",
+    "DOCUMENT_DOSSIER_VENTE_PRIX_REQUIS": "Das Fahrzeug dieses Verkaufs hat keinen Verkaufspreis (oder es ist kein Fahrzeug zugewiesen). Legen Sie den Preis im Lagerbestand fest, bevor Sie dieses Dokument erstellen.",
     "CONNECTEUR_TYPE_INDISPONIBLE": "Dieser Konnektortyp ist für Ihren Betrieb nicht verfügbar.",
     "CONNECTEUR_IDENTIFIANTS_MANQUANTS": "Zugangsdaten des Konnektors fehlen. Erfassen Sie sie in den Einstellungen und versuchen Sie es erneut.",
     "CONNECTEUR_ACTIVATION_TRANSITION_INTERDITE": "Dieser Konnektor kann im aktuellen Zustand nicht aktiviert werden. Laden Sie die Seite neu, um den Status zu sehen.",

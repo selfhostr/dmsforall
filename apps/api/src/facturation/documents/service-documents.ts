@@ -72,6 +72,7 @@ import {
   chargerClientLigne,
   chargerConditionsPaiementEnVigueur,
   chargerDossierVentePourRattachement,
+  chargerPrixVehiculeDuDossier,
   chargerPlaqueVehiculeCourante,
   chargerResumeUtilisateur,
   nomAfficheClient,
@@ -136,6 +137,30 @@ export class ServiceDocumentsVente {
         if (entree.dossierVenteId) {
           await chargerDossierVentePourRattachement(tx, ctx, entree.dossierVenteId);
         }
+        // Recette #64 : depuis un dossier de vente, un document SANS ligne reprend le prix du
+        // véhicule (une ligne, TVA normale) ; sans véhicule ni prix → 422, jamais un document à 0.00.
+        let lignesAInserer = entree.lignes;
+        if (entree.dossierVenteId && entree.lignes.length === 0) {
+          const vehiculeDossier = await chargerPrixVehiculeDuDossier(
+            tx,
+            ctx,
+            entree.dossierVenteId,
+          );
+          const situationTva = await chargerSituationTva(tx, ctx);
+          lignesAInserer = [
+            {
+              type: 'forfait',
+              designation: vehiculeDossier.designation,
+              quantiteMillieme: 1000,
+              prixUnitaireTtcCentimes: vehiculeDossier.prixTtcCentimes,
+              regimeTva: 'normal',
+              tauxTvaPourmille: situationTva.assujetti ? 81 : 0,
+              datePrestation: (
+                entree.dateDocument ?? this.horloge.maintenant().toISOString()
+              ).slice(0, 10),
+            },
+          ];
+        }
 
         if (entree.documentSourceId) {
           await this.transformerSource(tx, ctx, entree.documentSourceId, entree.typeDocument);
@@ -195,7 +220,7 @@ export class ServiceDocumentsVente {
           );
 
         let numeroOrdre = 1;
-        for (const ligneEntree of entree.lignes) {
+        for (const ligneEntree of lignesAInserer) {
           await this.inserterLigne(tx, ctx, principal.role, doc.id, numeroOrdre++, ligneEntree);
         }
 

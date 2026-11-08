@@ -187,7 +187,7 @@
         "reference": "Riferimento",
         "quantite": "Quantità",
         "prixUnitaire": "Prezzo unitario IVA incl.",
-        "prixUnitaireAide": "Prezzo IVA inclusa, come in un preventivo. Pari a {{ht}} IVA esclusa all'aliquota scelta. In un ordine di riparazione il prezzo si inserisce IVA esclusa.",
+        "prixUnitaireAide": "Prezzo IVA inclusa, come in un preventivo. Pari a {ht} IVA esclusa all'aliquota scelta. In un ordine di riparazione il prezzo si inserisce IVA esclusa.",
         "taux": "Aliquota IVA",
         "datePrestation": "Data prestazione"
       },
@@ -212,6 +212,14 @@
         "exonere": "Esente — 0%",
         "exclu": "Escluso dal campo IVA — 0%"
       }
+    },
+    "paiements": {
+      "titre": "Pagamenti",
+      "paye": "Già pagato",
+      "solde": "Ancora da pagare",
+      "aucun": "Nessun pagamento registrato.",
+      "erreur": "Impossibile caricare i pagamenti.",
+      "correctionParAvoir": "Un pagamento registrato non si cancella: per correggere una fattura saldata, creare una nota di credito."
     },
     "documentsLies": {
       "titre": "Documenti collegati",
@@ -294,7 +302,7 @@
         "brouillon": {
           "titre": "Rifare la fattura (nota di credito + nuova bozza)",
           "aide": "La fattura viene annullata da una nota di credito, poi viene creata una bozza identica. La modifica liberamente (righe, prezzi, IVA) prima di emetterla. L'IVA segue il regime attuale del Suo garage.",
-          "dejaRegle": "Non disponibile: questa fattura è già pagata in tutto o in parte. Annulli prima il pagamento."
+          "dejaRegle": "Non disponibile: questa fattura è già pagata in tutto o in parte (vedere la scheda «Pagamenti» della fattura). Creare una nota di credito per annullarla."
         }
       },
       "confirmerBrouillon": "Creare la nota di credito e la bozza",
@@ -330,7 +338,9 @@
       "montant": "Importo",
       "ajouter": "Aggiungi una modalità di pagamento",
       "retirer": "Rimuovere questa modalità di pagamento",
-      "arrondi": "arrotondamento {ecart}"
+      "arrondi": "arrotondamento {ecart}",
+      "especesCinqCentimes": "Contanti: multiplo di 5 centesimi richiesto (niente monete da 1 o 2 ct). Importo proposto: {propose}.",
+      "especesCinqCentimesGenerique": "I contanti devono essere un multiplo di 5 centesimi."
     },
     "lignesInvalides": "Ogni modalità di pagamento deve avere un importo superiore a zero.",
     "resteAEncaisser": "Residuo da incassare",

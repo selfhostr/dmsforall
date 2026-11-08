@@ -395,6 +395,10 @@
       "aucuneActionDisponible": "Derzeit keine Aktion verfügbar.",
       "bonCommande": "Bestellung",
       "aucunBonCommande": "Keine Bestellung für diesen Verkauf vorhanden",
+      "blocageDocument": {
+        "sansVehicule": "Weisen Sie dem Dossier zuerst ein Fahrzeug zu: Das Dokument übernimmt dessen Preis.",
+        "sansPrix": "Das Fahrzeug hat keinen Verkaufspreis. Legen Sie den Preis im Lagerbestand fest, bevor Sie dieses Dokument erstellen."
+      },
       "creerBonCommande": "Bestellung erstellen",
       "facture": "Rechnung",
       "aucuneFacture": "Keine Rechnung für diesen Verkauf vorhanden",
