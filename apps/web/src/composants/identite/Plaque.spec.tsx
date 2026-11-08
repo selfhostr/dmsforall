@@ -74,7 +74,7 @@ describe('Plaque', () => {
     // Filet appuyé : `border-2`, pas le `border` (1px) générique.
     expect(conteneur?.className).toMatch(/\bborder-2\b/);
     expect(conteneur?.className).toContain('border-input');
-    // Plex Mono via l'utilitaire dédié à cette famille d'identifiants, poids 600 séparé.
+    // JetBrains Mono via l'utilitaire dédié à cette famille d'identifiants, poids 600 séparé.
     expect(conteneur?.className).toContain('texte-identifiant');
     expect(conteneur?.className).toContain('font-semibold');
   });

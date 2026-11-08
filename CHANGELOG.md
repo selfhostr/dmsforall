@@ -2,6 +2,12 @@
 
 All notable changes to dmsforall are recorded here, for people who run it and for people who use it. Each entry says what changes for you. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/) until 1.0.
 
+## Unreleased
+
+### Changed
+
+- **Fonts.** The interface uses Inter and JetBrains Mono (plates, VIN, document numbers), both self-hosted and under the SIL Open Font License, instead of IBM Plex. Sizes and layout do not change.
+
 ## 0.3.0 (2026-11-08)
 
 This release adds the VAT status of the garage, several sites, activatable modules and invoice correction, and reshapes the dashboard. Read the upgrade notes before you update.

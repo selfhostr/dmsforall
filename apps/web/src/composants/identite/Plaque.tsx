@@ -3,7 +3,7 @@ import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '@/lib/utils';
 
 const variantesPlaque = cva(
-  // Signature visuelle du produit (direction produit) : fond Alu dédié, filet appuyé, Plex Mono 600.
+  // Signature visuelle du produit (direction produit) : fond Alu dédié, filet appuyé, JetBrains Mono 600.
   // - `bg-card` plutôt que `bg-muted` : `bg-muted`/`bg-secondary`/`bg-accent` partagent tous la
   //   même valeur de jeton (voir index.css) et sont le gris générique de toute autre surface
   //   atténuée du produit (survol, fond de menu…) — une plaque qui les réutilise n'a plus de
@@ -22,8 +22,8 @@ const variantesPlaque = cva(
   //   de saisie que DESIGN.md cite explicitement comme cas structurel légitime.
   // - `texte-identifiant` (`index.css`) plutôt que `font-mono` cru : c'est l'utilitaire déjà posé
   //   pour cette famille (« plaque, châssis/VIN, n° d'OR… »), jamais utilisé avant ce composant.
-  //   Porte IBM Plex Mono + tabular-nums + un tracking dédié ; `font-semibold` (600) reste séparé
-  //   pour rester la SEULE source du poids — « Plex Mono 600 », pas 700.
+  //   Porte JetBrains Mono + tabular-nums + un tracking dédié ; `font-semibold` (600) reste séparé
+  //   pour rester la SEULE source du poids — « JetBrains Mono 600 », pas 700.
   'inline-flex w-fit items-center gap-1 rounded border-2 border-input bg-card texte-identifiant font-semibold text-foreground',
   {
     variants: {
@@ -54,7 +54,7 @@ interface Props extends VariantProps<typeof variantesPlaque> {
   readonly className?: string;
 }
 
-/** Plaque d'immatriculation — canton + numéro, fond Alu dédié + filet appuyé + Plex Mono 600 (voir
+/** Plaque d'immatriculation — canton + numéro, fond Alu dédié + filet appuyé + JetBrains Mono 600 (voir
  *  `variantesPlaque` plus haut), une seule variante visuelle pour tout le produit (invariant n°1 :
  *  `IdentiteVehicule` compose ce composant, ne réimplémente jamais l'affichage d'une plaque).
  *  `numero` porte déjà le canton en préfixe côté contrat ; ce composant ne fait que distinguer
