@@ -268,29 +268,6 @@ export class ServiceReglageEnvoiCourriel {
     });
   }
 
-  /** Retire le réglage du garage : il retombe sur le serveur de l'instance, s'il y en a un. */
-  async reinitialiser(ctx: ContexteTenant): Promise<ReponseEnvoiCourriel> {
-    await this.acces.enTenant(ctx, async (tx) => {
-      const supprimees = await tx
-        .delete(table)
-        .where(eq(table.tenantId, ctx.tenantId))
-        .returning({ hote: table.hote });
-      if (supprimees.length === 0) return;
-      await tx.insert(auditAtelier).values({
-        tenantId: ctx.tenantId,
-        entite: 'tenant',
-        entiteId: ctx.tenantId,
-        action: 'modification',
-        champ: 'envoi_courriel.reglage',
-        valeurAvant: 'garage',
-        valeurApres: null,
-        utilisateurId: ctx.utilisateurId,
-        requeteId: ctx.requeteId,
-      });
-    });
-    return this.composerReponse(null);
-  }
-
   /**
    * Réglage du garage prêt à servir, ou `null` s'il n'en a pas. Lève `ErreurHoteSmtpInterdit` si
    * l'hôte vise un réseau privé en production, `ErreurDechiffrementSecret` si le secret est illisible.

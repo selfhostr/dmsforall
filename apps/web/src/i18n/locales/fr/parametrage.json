@@ -617,12 +617,6 @@
     },
     "enregistrer": "Enregistrer le serveur d'envoi",
     "lectureSeule": "Seules la direction et l'administrateur peuvent modifier ce réglage.",
-    "supprimer": {
-      "action": "Supprimer ce réglage",
-      "confirmationInstance": "Les e-mails partiront à nouveau avec le serveur de l'installation.",
-      "confirmationAucun": "Plus aucun e-mail ne pourra partir tant que vous n'aurez pas saisi un nouveau serveur.",
-      "confirmer": "Oui, supprimer"
-    },
     "essai": {
       "titre": "E-mail d'essai",
       "description": "Envoie un message avec le réglage enregistré pour vérifier qu'il fonctionne. Enregistrez d'abord vos modifications.",
@@ -635,8 +629,7 @@
     },
     "chiffre": "Le mot de passe est chiffré dans la base de données et n'est jamais affiché.",
     "toast": {
-      "enregistre": "Serveur d'envoi enregistré",
-      "supprime": "Réglage supprimé"
+      "enregistre": "Serveur d'envoi enregistré"
     }
   }
 }

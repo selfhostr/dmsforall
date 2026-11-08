@@ -64,12 +64,11 @@ async function avec(
 ) {
   const t = tenant === 'A' ? garage.tenantA : garage.tenantB;
   const cookie = await cookiePour(t, role);
-  const base = (m: 'patch' | 'post' | 'delete', chemin: string) =>
+  const base = (m: 'patch' | 'post', chemin: string) =>
     ctx.requete[m](chemin).set('Origin', ctx.config.WEB_URL_PUBLIQUE).set('Cookie', cookie);
   return {
     get: (chemin: string = CHEMIN) => ctx.requete.get(chemin).set('Cookie', cookie),
     patch: (corps: Record<string, unknown>) => base('patch', CHEMIN).send(corps),
-    supprimer: () => base('delete', CHEMIN),
     tester: (destinataire = 'direction@garage-martin.ch') =>
       base('post', `${CHEMIN}/test`).send({ destinataire }),
   };
@@ -238,19 +237,6 @@ describe('serveur d’envoi des e-mails du garage', () => {
     expect(r.status).toBe(422);
     expect(r.body.code).toBe('COURRIEL_TLS_ECHEC');
     await api.patch({ securite: 'aucune' });
-  });
-
-  it('supprimer le réglage : retour à « non configuré », ligne détruite, idempotent', async () => {
-    const api = await avec('A');
-    const r = await api.supprimer();
-    expect(r.status).toBe(200);
-    expect(r.body).toMatchObject({ reglage: null, source: 'aucune', configure: false });
-    expect((await api.supprimer()).status).toBe(200);
-    const { rowCount } = await bdd.poolSuperutilisateur.query(
-      `select 1 from parametre_envoi_courriel where tenant_id = $1`,
-      [garage.tenantA.tenant.id],
-    );
-    expect(rowCount).toBe(0);
   });
 });
 

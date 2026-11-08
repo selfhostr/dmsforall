@@ -27,7 +27,6 @@ import { usePeut } from '@/droits';
 import {
   useEnvoiCourriel,
   useModifierEnvoiCourriel,
-  useReinitialiserEnvoiCourriel,
   useTesterEnvoiCourriel,
 } from '@/hooks/parametrage/useEnvoiCourriel';
 
@@ -138,7 +137,6 @@ function FormulaireEnvoiCourriel({ donnees }: { readonly donnees: ReponseEnvoiCo
   const { t } = useTranslation(['parametrage', 'commun', 'erreurs']);
   const peutModifier = usePeut('parametrage.envoi_courriel.gerer');
   const modifier = useModifierEnvoiCourriel();
-  const reinitialiser = useReinitialiserEnvoiCourriel();
   const { reglage } = donnees;
 
   const [saisie, setSaisie] = useState<SaisieEnvoiCourriel>(() =>
@@ -148,7 +146,6 @@ function FormulaireEnvoiCourriel({ donnees }: { readonly donnees: ReponseEnvoiCo
     reglage ? fournisseurDe(reglage.hote) : 'infomaniak',
   );
   const [erreurs, setErreurs] = useState<readonly ChampEnErreur[]>([]);
-  const [confirmerSuppression, setConfirmerSuppression] = useState(false);
 
   const maj = (partiel: Partial<SaisieEnvoiCourriel>) => {
     setSaisie((s) => ({ ...s, ...partiel }));
@@ -417,11 +414,6 @@ function FormulaireEnvoiCourriel({ donnees }: { readonly donnees: ReponseEnvoiCo
               <AlertDescription>{messageErreur(modifier.error, t)}</AlertDescription>
             </Alert>
           ) : null}
-          {reinitialiser.isError ? (
-            <Alert variant="destructive">
-              <AlertDescription>{messageErreur(reinitialiser.error, t)}</AlertDescription>
-            </Alert>
-          ) : null}
           {peutModifier ? null : (
             <p className="texte-corps text-foreground">
               {t('parametrage:envoiCourriel.lectureSeule')}
@@ -433,44 +425,6 @@ function FormulaireEnvoiCourriel({ donnees }: { readonly donnees: ReponseEnvoiCo
               <Button type="submit" disabled={modifier.isPending || !estModifie(saisie, reglage)}>
                 {t('parametrage:envoiCourriel.enregistrer')}
               </Button>
-              {reglage ? (
-                confirmerSuppression ? (
-                  <>
-                    <span className="texte-corps text-foreground">
-                      {donnees.instanceDisponible
-                        ? t('parametrage:envoiCourriel.supprimer.confirmationInstance')
-                        : t('parametrage:envoiCourriel.supprimer.confirmationAucun')}
-                    </span>
-                    <Button
-                      type="button"
-                      variant="destructive"
-                      disabled={reinitialiser.isPending}
-                      onClick={() =>
-                        reinitialiser.mutate(undefined, {
-                          onSettled: () => setConfirmerSuppression(false),
-                        })
-                      }
-                    >
-                      {t('parametrage:envoiCourriel.supprimer.confirmer')}
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => setConfirmerSuppression(false)}
-                    >
-                      {t('commun:actions.annuler')}
-                    </Button>
-                  </>
-                ) : (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setConfirmerSuppression(true)}
-                  >
-                    {t('parametrage:envoiCourriel.supprimer.action')}
-                  </Button>
-                )
-              ) : null}
             </div>
           ) : null}
         </CardContent>

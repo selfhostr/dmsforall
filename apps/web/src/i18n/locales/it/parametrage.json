@@ -617,12 +617,6 @@
     },
     "enregistrer": "Salva il server di posta in uscita",
     "lectureSeule": "Solo la direzione e l'amministratore possono modificare questa impostazione.",
-    "supprimer": {
-      "action": "Elimina questa impostazione",
-      "confirmationInstance": "Le e-mail partiranno di nuovo con il server dell'installazione.",
-      "confirmationAucun": "Nessuna e-mail potrà più partire finché non inserirà un nuovo server.",
-      "confirmer": "Sì, elimina"
-    },
     "essai": {
       "titre": "E-mail di prova",
       "description": "Invia un messaggio con l'impostazione salvata per verificare che funzioni. Salvi prima le modifiche.",
@@ -635,8 +629,7 @@
     },
     "chiffre": "La password è cifrata nel database e non viene mai mostrata.",
     "toast": {
-      "enregistre": "Server di posta in uscita salvato",
-      "supprime": "Impostazione eliminata"
+      "enregistre": "Server di posta in uscita salvato"
     }
   }
 }

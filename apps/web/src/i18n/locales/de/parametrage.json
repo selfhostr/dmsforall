@@ -617,12 +617,6 @@
     },
     "enregistrer": "Postausgangsserver speichern",
     "lectureSeule": "Nur die Geschäftsleitung und der Administrator können diese Einstellung ändern.",
-    "supprimer": {
-      "action": "Diese Einstellung löschen",
-      "confirmationInstance": "Die E-Mails werden wieder über den Server der Installation versendet.",
-      "confirmationAucun": "Es kann keine E-Mail mehr versendet werden, bis Sie einen neuen Server eintragen.",
-      "confirmer": "Ja, löschen"
-    },
     "essai": {
       "titre": "Testnachricht",
       "description": "Sendet eine Nachricht mit der gespeicherten Einstellung, um zu prüfen, ob sie funktioniert. Speichern Sie zuerst Ihre Änderungen.",
@@ -635,8 +629,7 @@
     },
     "chiffre": "Das Passwort ist in der Datenbank verschlüsselt und wird nie angezeigt.",
     "toast": {
-      "enregistre": "Postausgangsserver gespeichert",
-      "supprime": "Einstellung gelöscht"
+      "enregistre": "Postausgangsserver gespeichert"
     }
   }
 }

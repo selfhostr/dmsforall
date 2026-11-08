@@ -35,12 +35,6 @@ export async function modifierEnvoiCourriel(
   return exigerCorps(reponse, `PATCH ${CHEMIN}`);
 }
 
-/** `DELETE` — retour au serveur de l'instance. */
-export async function reinitialiserEnvoiCourriel(): Promise<ReponseEnvoiCourriel> {
-  const reponse = await requeteApi<ReponseEnvoiCourriel>(CHEMIN, { method: 'DELETE' });
-  return exigerCorps(reponse, `DELETE ${CHEMIN}`);
-}
-
 /** `POST …/test` — e-mail d'essai avec le réglage ENREGISTRÉ. */
 export async function testerEnvoiCourriel(
   entree: EntreeTestEnvoiCourriel,

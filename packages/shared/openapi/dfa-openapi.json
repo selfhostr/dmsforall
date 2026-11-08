@@ -36774,52 +36774,6 @@
       }
     },
     "/parametres-entreprise/envoi-courriel": {
-      "delete": {
-        "description": "Idempotent. Journalisé. Le mot de passe enregistré est détruit.",
-        "operationId": "EnvoiCourrielController_reinitialiser",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ReponseEnvoiCourrielDto"
-                }
-              }
-            },
-            "description": ""
-          },
-          "401": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
-                }
-              }
-            },
-            "description": "Session absente ou expirée."
-          },
-          "403": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
-                }
-              }
-            },
-            "description": "DROIT_INSUFFISANT."
-          }
-        },
-        "security": [
-          {
-            "cookie": []
-          }
-        ],
-        "summary": "Supprime le réglage du garage (retour au serveur de l’instance, s’il existe).",
-        "tags": [
-          "Paramétrage"
-        ]
-      },
       "get": {
         "description": "Priorité : réglage du garage > serveur de l’instance (SMTP_*) > aucun envoi. `source` dit ce qui sert réellement ; `configure: false` = « non configuré ». Le mot de passe n’est jamais renvoyé, seulement `reglage.motDePasseDefini`. `reglage.dernierTest` garde le résultat du dernier e-mail d’essai (remis à `null` à chaque modification).",
         "operationId": "EnvoiCourrielController_obtenir",

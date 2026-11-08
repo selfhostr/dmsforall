@@ -2905,11 +2905,7 @@ export interface paths {
     get: operations['EnvoiCourrielController_obtenir'];
     put?: never;
     post?: never;
-    /**
-     * Supprime le réglage du garage (retour au serveur de l’instance, s’il existe).
-     * @description Idempotent. Journalisé. Le mot de passe enregistré est détruit.
-     */
-    delete: operations['EnvoiCourrielController_reinitialiser'];
+    delete?: never;
     options?: never;
     head?: never;
     /**
@@ -22486,43 +22482,6 @@ export interface operations {
         };
       };
       /** @description DROIT_INSUFFISANT — réservé à la direction et à l’administrateur. */
-      403: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ProblemeDetailCommunDto'];
-        };
-      };
-    };
-  };
-  EnvoiCourrielController_reinitialiser: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ReponseEnvoiCourrielDto'];
-        };
-      };
-      /** @description Session absente ou expirée. */
-      401: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ProblemeDetailCommunDto'];
-        };
-      };
-      /** @description DROIT_INSUFFISANT. */
       403: {
         headers: {
           [name: string]: unknown;

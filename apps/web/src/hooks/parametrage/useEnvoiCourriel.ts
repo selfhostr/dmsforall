@@ -10,7 +10,6 @@ import { clesParametrage } from './cles';
 import {
   modifierEnvoiCourriel,
   recupererEnvoiCourriel,
-  reinitialiserEnvoiCourriel,
   testerEnvoiCourriel,
   type EntreeModificationEnvoiCourriel,
   type EntreeTestEnvoiCourriel,
@@ -37,17 +36,6 @@ export function useModifierEnvoiCourriel(): UseMutationResult<
   return useMutation({
     mutationFn: modifierEnvoiCourriel,
     meta: { succes: 'parametrage:envoiCourriel.toast.enregistre' },
-    onSuccess: (reponse) => {
-      queryClient.setQueryData(clesParametrage.envoiCourriel(), reponse);
-    },
-  });
-}
-
-export function useReinitialiserEnvoiCourriel(): UseMutationResult<ReponseEnvoiCourriel> {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: reinitialiserEnvoiCourriel,
-    meta: { succes: 'parametrage:envoiCourriel.toast.supprime' },
     onSuccess: (reponse) => {
       queryClient.setQueryData(clesParametrage.envoiCourriel(), reponse);
     },

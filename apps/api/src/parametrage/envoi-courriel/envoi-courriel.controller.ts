@@ -1,12 +1,12 @@
 /**
- * `GET|PATCH|DELETE /parametres-entreprise/envoi-courriel` et `POST …/test` — le serveur d'envoi
+ * `GET|PATCH /parametres-entreprise/envoi-courriel` et `POST …/test` — le serveur d'envoi
  * des e-mails du garage (relances, factures, mots de passe oubliés).
  *
  * Droit unique `parametrage.envoi_courriel.gerer` : direction et admin (comptes de gestion), jamais
  * le chef d'atelier ni les autres rôles. Le garage est celui de la session ; le mot de passe n'est
  * jamais renvoyé.
  */
-import { Controller, Delete, Get, HttpCode, Patch, Post } from '@nestjs/common';
+import { Controller, Get, HttpCode, Patch, Post } from '@nestjs/common';
 import { ApiCookieAuth, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import {
   schemaModificationEnvoiCourriel,
@@ -89,19 +89,6 @@ export class EnvoiCourrielController {
     corps: EntreeModificationEnvoiCourriel,
   ): Promise<ReponseEnvoiCourrielDto> {
     return this.service.modifier(this.contexte.contexteTenant(), corps);
-  }
-
-  @ExigerDroit('parametrage.envoi_courriel.gerer')
-  @Delete()
-  @ApiOperation({
-    summary: 'Supprime le réglage du garage (retour au serveur de l’instance, s’il existe).',
-    description: 'Idempotent. Journalisé. Le mot de passe enregistré est détruit.',
-  })
-  @ApiOkResponse({ type: ReponseEnvoiCourrielDto })
-  @ApiReponseProbleme(401, 'Session absente ou expirée.')
-  @ApiReponseProbleme(403, 'DROIT_INSUFFISANT.')
-  async reinitialiser(): Promise<ReponseEnvoiCourrielDto> {
-    return this.service.reinitialiser(this.contexte.contexteTenant());
   }
 
   @ExigerDroit('parametrage.envoi_courriel.gerer')
