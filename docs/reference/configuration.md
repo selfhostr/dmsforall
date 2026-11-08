@@ -35,8 +35,8 @@ Booleans take the values `true` or `false`. Durations are in minutes, seconds or
 
 ## Valkey
 
-| Variable    | Default  | Effect                                                                                 |
-| ----------- | -------- | -------------------------------------------------------------------------------------- |
+| Variable    | Default  | Effect                                                                                                     |
+| ----------- | -------- | ---------------------------------------------------------------------------------------------------------- |
 | `REDIS_URL` | required | Valkey URL (Redis protocol, so it starts with `redis`). Used for queues, real-time events and rate limits. |
 
 ## Sessions and sign-in
