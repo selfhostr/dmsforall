@@ -47,6 +47,18 @@ afterAll(async () => {
   await bdd?.fermer();
 });
 
+interface CorpsReponse {
+  readonly code?: string;
+  readonly donnees: {
+    readonly id: string;
+    readonly lignes: readonly { prixUnitaireTtcCentimes: number; quantiteMillieme: number }[];
+    readonly totalTtcCentimes: number;
+    readonly totalTvaCentimes: number;
+    readonly totalHtCentimes: number;
+    readonly imputations: readonly { nature: string; montantCentimes: number }[];
+  };
+}
+
 async function post(cookie: string, chemin: string, corps: Record<string, unknown>) {
   const r = await ctx.requete
     .post(chemin)
@@ -54,7 +66,7 @@ async function post(cookie: string, chemin: string, corps: Record<string, unknow
     .set('Cookie', cookie)
     .set(EN_TETE_IDEMPOTENCE, randomUUID())
     .send(corps);
-  return { status: r.status, body: r.body as Record<string, any> };
+  return { status: r.status, body: r.body as CorpsReponse };
 }
 
 async function dossierAvecVehicule(prix: number | null | 'sans-vehicule') {
@@ -163,7 +175,7 @@ describe('espèces arrondies au 5 centimes', () => {
     expect(c.status, JSON.stringify(c.body)).toBe(201);
     const e = await emettreDocument(ctx, cookie, c.body.donnees.id);
     expect(e.status, JSON.stringify(e.body)).toBe(200);
-    return { cookie, site, client, id: c.body.donnees.id as string };
+    return { cookie, site, client, id: c.body.donnees.id };
   }
 
   it('facture 100.03 payée 100.05 : solde 0, imputation arrondi -2 ct enregistrée', async () => {
@@ -182,7 +194,7 @@ describe('espèces arrondies au 5 centimes', () => {
       ],
     });
     expect(p.status, JSON.stringify(p.body)).toBe(201);
-    const imputations = p.body.donnees.imputations as { nature: string; montantCentimes: number }[];
+    const imputations = p.body.donnees.imputations;
     expect(imputations.find((i) => i.nature === 'arrondi')?.montantCentimes).toBe(-2);
     expect(imputations.find((i) => i.nature === 'reglement')?.montantCentimes).toBe(10005);
     const doc = await ctx.requete.get(`/api/v1/documents-vente/${f.id}`).set('Cookie', f.cookie);
