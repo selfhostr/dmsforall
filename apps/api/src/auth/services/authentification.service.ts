@@ -285,6 +285,7 @@ export class ServiceAuthentificationImpl implements ServiceAuthentification {
             voitMontants: utilisateur.voitMontants,
             voitPrixAchat: utilisateur.voitPrixAchat,
             avoirsPlafonnes: utilisateur.avoirsPlafonnes,
+            motDePasseAChanger: utilisateur.motDePasseAChanger,
           })
           .from(utilisateur)
           .where(
@@ -374,6 +375,7 @@ export class ServiceAuthentificationImpl implements ServiceAuthentification {
             role: ligneUtilisateur.role,
             langue: ligneUtilisateur.langue,
           },
+          motDePasseAChanger: ligneUtilisateur.motDePasseAChanger,
           tenant: tenantCourant,
           sites: lignesSites,
           siteRattachementId,

@@ -9,7 +9,7 @@
 import { z } from 'zod';
 
 import type { CapacitesPersonne } from './capacites';
-import type { Langue, RoleUtilisateur } from './enums';
+import { LANGUES, type Langue, type RoleUtilisateur } from './enums';
 import type { ModuleApp } from './modules';
 import type { SiteResume, TenantCourant } from './socle';
 
@@ -105,6 +105,25 @@ export type EntreeConfirmationReinitialisationMotDePasse = z.infer<
   typeof schemaConfirmationReinitialisationMotDePasse
 >;
 
+/**
+ * Corps de `POST /auth/mot-de-passe/changement` (issue #58) -- la personne connectée remplace son
+ * mot de passe. Le mot de passe actuel est exigé (un cookie volé ne suffit pas à le changer).
+ */
+export const schemaChangementMotDePasse = z
+  .object({
+    motDePasseActuel: z.string().min(1).max(256),
+    nouveauMotDePasse: schemaMotDePasseNouveau,
+  })
+  .strict();
+export type EntreeChangementMotDePasse = z.infer<typeof schemaChangementMotDePasse>;
+
+/**
+ * Corps de `PATCH /auth/moi/langue` (issue #62) -- la langue d'interface est une préférence du
+ * PROFIL (jamais du poste) : un poste partagé affiche la langue de la personne connectée.
+ */
+export const schemaChangementLangue = z.object({ langue: z.enum(LANGUES) }).strict();
+export type EntreeChangementLangue = z.infer<typeof schemaChangementLangue>;
+
 export interface UtilisateurCourant {
   readonly id: string;
   readonly email: string;
@@ -117,6 +136,12 @@ export interface UtilisateurCourant {
 /** Corps identique pour POST /auth/connexion et GET /auth/moi. */
 export interface SessionCourante {
   readonly utilisateur: UtilisateurCourant;
+  /**
+   * `true` tant que la personne n'a pas remplacé son mot de passe temporaire (issue #58) : le
+   * serveur refuse alors tout sauf le changement de mot de passe. Absent = `false` (anciennes
+   * réponses).
+   */
+  readonly motDePasseAChanger?: boolean;
   readonly tenant: TenantCourant;
   /**
    * Sites sur lesquels CE compte peut agir — jamais « tous les sites du tenant » par principe.

@@ -1,5 +1,5 @@
 import { AlertCircle, Camera, CheckCircle2, IdCard, Loader2, LogOut, WifiOff } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, Navigate, useSearchParams } from 'react-router';
 
@@ -42,7 +42,6 @@ type EtapeScan =
   | {
       readonly phase: 'refus';
       readonly fichier: File;
-      readonly urlApercu: string;
       readonly zone: RectanglePixels;
       readonly fractions: FractionsCadre;
       readonly motif: MotifRefusPhoto;
@@ -50,7 +49,6 @@ type EtapeScan =
   | {
       readonly phase: 'cadrage';
       readonly fichier: File;
-      readonly urlApercu: string;
       readonly zone: RectanglePixels;
       readonly fractions: FractionsCadre;
     }
@@ -200,18 +198,9 @@ export function EcranScan() {
     setEtape({ phase: 'capture' });
   }
 
-  // L'aperçu affiché en phase `refus` OU `cadrage` (`PanneauRefusPhoto`/`PanneauConfirmationCadrage`)
-  // garde une URL d'objet vivante tant que l'utilisateur regarde ce panneau — jamais plus longtemps :
-  // ce nettoyage se déclenche à CHAQUE changement de `etape` (donc dès qu'on QUITTE l'une de ces
-  // deux phases, quel que soit le chemin — reprendre, envoyer quand même/continuer/photo entière, ou
-  // même une navigation qui démonte l'écran) et ne fait rien les autres fois (aucune URL créée hors
-  // de ces phases). Centraliser ici plutôt que dans chaque gestionnaire de sortie : une seule règle,
-  // jamais oubliable à un futur point de sortie supplémentaire.
-  useEffect(() => {
-    if (etape.phase !== 'refus' && etape.phase !== 'cadrage') return;
-    const url = etape.urlApercu;
-    return () => URL.revokeObjectURL(url);
-  }, [etape]);
+  // L'aperçu des phases `refus` et `cadrage` est dessiné par le panneau qui l'affiche
+  // (`ApercuPhotoFichier`, à partir du `File`) : aucune URL d'objet ne transite par cet état, donc
+  // rien à révoquer ici. Le panneau ferme son bitmap au démontage, quel que soit le chemin de sortie.
 
   /**
    * ÉTAPE 1/2 du traitement d'une photo : contrôle qualité AVANT tout envoi réseau — jamais un
@@ -252,7 +241,6 @@ export function EcranScan() {
       setEtape({
         phase: 'refus',
         fichier,
-        urlApercu: URL.createObjectURL(fichier),
         zone: resultat.zone,
         fractions: resultat.fractions,
         motif: resultat.motifRefus,
@@ -264,7 +252,6 @@ export function EcranScan() {
       setEtape({
         phase: 'cadrage',
         fichier,
-        urlApercu: URL.createObjectURL(fichier),
         zone: resultat.zone,
         fractions: resultat.fractions,
       });
@@ -490,7 +477,7 @@ export function EcranScan() {
 
         {etape.phase === 'refus' ? (
           <PanneauRefusPhoto
-            urlApercu={etape.urlApercu}
+            fichier={etape.fichier}
             fractions={etape.fractions}
             motif={etape.motif}
             onReprendre={recommencer}
@@ -500,7 +487,7 @@ export function EcranScan() {
 
         {etape.phase === 'cadrage' ? (
           <PanneauConfirmationCadrage
-            urlApercu={etape.urlApercu}
+            fichier={etape.fichier}
             fractions={etape.fractions}
             onContinuer={confirmerCadrage}
             onPhotoEntiere={utiliserPhotoEntiere}

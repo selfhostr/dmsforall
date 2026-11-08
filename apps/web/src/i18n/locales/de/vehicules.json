@@ -102,7 +102,7 @@
       "recherche": "Suche läuft…",
       "aucunResultat": "Kein Treffer im Referenzverzeichnis — freie Eingabe möglich.",
       "resultats": "{count, plural, one {# Treffer} other {# Treffer}}",
-      "horsReferentiel": "Nicht im Referenzverzeichnis — wird so gespeichert, wie eingegeben.",
+      "horsReferentiel": "Nicht in der Liste: freie Eingabe möglich, wird so gespeichert.",
       "nombreModeles": "{count, plural, one {# Modell} other {# Modelle}}",
       "erreurRecherche": "Vorschläge derzeit nicht verfügbar — freie Eingabe möglich."
     }

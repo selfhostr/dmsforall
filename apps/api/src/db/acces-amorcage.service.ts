@@ -251,12 +251,13 @@ export class ServiceAccesAmorcage implements AccesAmorcage, OnModuleDestroy {
         voit_montants: boolean;
         voit_prix_achat: boolean;
         avoirs_plafonnes: boolean;
+        mot_de_passe_a_changer: boolean;
       }>(sql`
       select session_id, tenant_id, utilisateur_id, cree_le, expire_le, vu_le,
              revoquee_le, role, langue, statut_utilisateur, statut_tenant, site_id,
              niveau_atelier, niveau_accueil, niveau_facturation, niveau_pieces, niveau_ventes,
              niveau_finances, peut_encadrer, peut_gerer_employes, est_patron, voit_montants,
-             voit_prix_achat, avoirs_plafonnes
+             voit_prix_achat, avoirs_plafonnes, mot_de_passe_a_changer
         from amorcage.session_par_empreinte(${empreinte}::bytea)
     `),
     );
@@ -285,6 +286,8 @@ export class ServiceAccesAmorcage implements AccesAmorcage, OnModuleDestroy {
       // contrôle fail-closed de `siteImposeAuPrincipal()` (auth/comptes-de-service.ts) repose
       // dessus.
       siteId: l.site_id ?? null,
+      // Migration 0096 obligatoire au déploiement ; `=== true` écarte un `undefined` éventuel.
+      motDePasseAChanger: l.mot_de_passe_a_changer === true,
       capacites: {
         niveaux: {
           atelier: l.niveau_atelier,

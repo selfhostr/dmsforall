@@ -187,6 +187,19 @@ async function photographier(
   await utilisateur.upload(entree, fausseImage);
 }
 
+/**
+ * Aperçu des panneaux refus/cadrage : `ApercuPhotoFichier` décode via `createImageBitmap` (absent de
+ * jsdom). Renvoie le `close` espionné du bitmap factice, pour vérifier la libération au démontage.
+ */
+function installerBitmapFactice(): ReturnType<typeof vi.fn> {
+  const fermer = vi.fn();
+  vi.stubGlobal(
+    'createImageBitmap',
+    vi.fn(async () => ({ width: 100, height: 100, close: fermer })),
+  );
+  return fermer;
+}
+
 describe('EcranScan', () => {
   beforeEach(() => {
     Object.defineProperty(URL, 'createObjectURL', {
@@ -196,6 +209,7 @@ describe('EcranScan', () => {
     Object.defineProperty(URL, 'revokeObjectURL', { value: vi.fn(), configurable: true });
     FauxEventSource.instances = [];
     vi.stubGlobal('EventSource', FauxEventSource);
+    installerBitmapFactice();
     // Filet de sécurité au cas où quelque chose déclencherait un refetch de la session (le cache
     // pré-rempli par `rendre()` suffit normalement) : jamais un 401 par défaut ici, contrairement
     // au reste du dépôt — cette suite porte sur le parcours de scan, pas sur la session.
@@ -305,8 +319,7 @@ describe('EcranScan', () => {
   });
 
   it('« Reprendre une photo » depuis un refus ramène à l’étape de capture et libère l’aperçu (aucun piège)', async () => {
-    const revoquer = vi.fn();
-    Object.defineProperty(URL, 'revokeObjectURL', { value: revoquer, configurable: true });
+    const fermer = installerBitmapFactice();
     installerImageEtCanvasFactices('succes', 'photoFloue');
     const utilisateur = userEvent.setup();
     rendre();
@@ -316,7 +329,7 @@ describe('EcranScan', () => {
     await utilisateur.click(screen.getByRole('button', { name: 'Reprendre une photo' }));
 
     expect(screen.getByRole('button', { name: 'Prendre la photo' })).toBeInTheDocument();
-    expect(revoquer).toHaveBeenCalledWith('blob:objet-1');
+    expect(fermer).toHaveBeenCalled();
   });
 
   it('« Envoyer quand même » depuis un refus poursuit normalement jusqu’au formulaire (le contournement n’est jamais un blocage)', async () => {
@@ -652,6 +665,7 @@ describe('cadrage automatique détecté', () => {
     Object.defineProperty(URL, 'revokeObjectURL', { value: vi.fn(), configurable: true });
     FauxEventSource.instances = [];
     vi.stubGlobal('EventSource', FauxEventSource);
+    installerBitmapFactice();
   });
 
   afterEach(() => {
@@ -714,8 +728,7 @@ describe('cadrage automatique détecté', () => {
   });
 
   it('quitter la confirmation de cadrage libère l’aperçu (aucune fuite d’URL, même patron que le panneau de refus)', async () => {
-    const revoquer = vi.fn();
-    Object.defineProperty(URL, 'revokeObjectURL', { value: revoquer, configurable: true });
+    const fermer = installerBitmapFactice();
     installerImageEtCanvasPourCadrageDetecte();
     server.use(
       http.post('/api/v1/scan/permis-circulation', () => HttpResponse.json(reponseScan())),
@@ -728,7 +741,7 @@ describe('cadrage automatique détecté', () => {
     await utilisateur.click(screen.getByRole('button', { name: 'Continuer' }));
     await screen.findByRole('button', { name: 'Valider et enregistrer' });
 
-    expect(revoquer).toHaveBeenCalledWith('blob:objet-1');
+    expect(fermer).toHaveBeenCalled();
   });
 });
 
@@ -749,6 +762,7 @@ describe('session', () => {
     Object.defineProperty(URL, 'revokeObjectURL', { value: vi.fn(), configurable: true });
     FauxEventSource.instances = [];
     vi.stubGlobal('EventSource', FauxEventSource);
+    installerBitmapFactice();
   });
 
   afterEach(() => {

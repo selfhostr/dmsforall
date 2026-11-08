@@ -86,6 +86,8 @@ describe('ServiceSessionImpl.resoudre — expiration absolue vs glissante', () =
       siteId: null,
       // Grille relue de la base à chaque requête (migration 0087), jamais d'un jeton.
       capacites: PREREGLAGES.admin.grille,
+      // Issue #58 : obligation de changer le mot de passe, relue à chaque requête.
+      motDePasseAChanger: false,
     });
   });
 

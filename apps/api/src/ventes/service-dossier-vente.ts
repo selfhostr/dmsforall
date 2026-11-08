@@ -401,7 +401,7 @@ export class ServiceDossierVente {
             coalesce(cl.raison_sociale, cl.nom || ' ' || coalesce(cl.prenom, ''), '')
           ) like public.normaliser_recherche(${motif})
           or public.normaliser_recherche(
-            coalesce(cl.raison_sociale, concat_ws(' ', cl.prenom, cl.nom), '')
+            coalesce(cl.raison_sociale, coalesce(cl.prenom || ' ', '') || cl.nom, '')
           ) like public.normaliser_recherche(${motif})
           or public.normaliser_recherche(vp.valeur) like public.normaliser_recherche(${motif})
         )`);

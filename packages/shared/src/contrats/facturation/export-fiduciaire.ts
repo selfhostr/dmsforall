@@ -108,6 +108,8 @@ export interface TrouNumerotation {
 
 export interface EcritureDesequilibree {
   readonly reference: string;
+  /** N° des factures concernées (vide : avance ou écriture de document, `reference` fait foi). */
+  readonly pieces: readonly string[];
   readonly totalDebitCentimes: number;
   readonly totalCreditCentimes: number;
 }
@@ -140,8 +142,8 @@ export type PrerequisExport =
 /**
  * Une limite de l'export, en données structurées. Codes :
  *  - `ADAPTATEUR_NON_CABLE` — `{ cible }` : aucun adaptateur pour cette cible ;
- *  - `COMPENSATION_NON_SUPPORTEE` — `{ paiementId, documentId }` ;
- *  - `TAUX_MULTIPLES_NON_SUPPORTE` — `{ paiementId, documentId, nature: 'escompte' | 'perte' }`.
+ *  - `COMPENSATION_NON_SUPPORTEE` — `{ paiementId, documentId, documentNumero }` ;
+ *  - `TAUX_MULTIPLES_NON_SUPPORTE` — `{ paiementId, documentId, documentNumero, nature: 'escompte' | 'perte' }`.
  */
 export interface LimiteExport {
   readonly code:

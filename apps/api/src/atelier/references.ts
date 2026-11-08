@@ -230,6 +230,55 @@ export async function chargerDernierKilometrage(
   return ligne ?? null;
 }
 
+/**
+ * Relevé « réception » écrit à l'ouverture directe d'un OR (statut initial `ouvert`) avec un
+ * kilométrage d'entrée : sans lui, la fiche véhicule afficherait « Aucun kilométrage relevé »
+ * alors que l'OR porte 84'500 km. Le chemin planifié -> ouvert l'écrit déjà (`receptionner`).
+ * Idempotent (un relevé « réception » existe déjà pour cet OR : rien) et jamais bloquant : un
+ * kilométrage inférieur au dernier relevé n'est pas inscrit, la correction passe par la
+ * saisie dédiée (motif + droit fort, RM-24).
+ */
+export async function enregistrerReleveReception(
+  tx: TransactionDfa,
+  ctx: ContexteTenant,
+  params: {
+    readonly vehiculeId: string;
+    readonly orId: string;
+    readonly valeur: number;
+    readonly unite: LigneVehiculeKilometrage['unite'];
+    readonly valeurKm: number;
+    readonly releveLe: Date;
+    readonly saisiParId: string;
+  },
+): Promise<boolean> {
+  const [existant] = await tx
+    .select({ id: vehiculeKilometrage.id })
+    .from(vehiculeKilometrage)
+    .where(
+      and(
+        eq(vehiculeKilometrage.tenantId, ctx.tenantId),
+        eq(vehiculeKilometrage.ordreReparationId, params.orId),
+        eq(vehiculeKilometrage.source, 'reception'),
+      ),
+    )
+    .limit(1);
+  if (existant) return false;
+  const dernier = await chargerDernierKilometrage(tx, ctx, params.vehiculeId);
+  if (dernier?.valeurKm != null && params.valeurKm < dernier.valeurKm) return false;
+  await tx.insert(vehiculeKilometrage).values({
+    tenantId: ctx.tenantId,
+    vehiculeId: params.vehiculeId,
+    valeur: params.valeur,
+    unite: params.unite,
+    releveLe: params.releveLe,
+    source: 'reception',
+    motifRegression: null,
+    ordreReparationId: params.orId,
+    saisiParId: params.saisiParId,
+  });
+  return true;
+}
+
 /** Détenteur courant d'un véhicule (`au is null`), `null` si aucun (véhicule jamais rattaché). */
 export async function chargerDetenteurCourantId(
   tx: TransactionDfa,

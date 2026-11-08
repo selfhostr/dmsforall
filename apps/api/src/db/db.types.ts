@@ -139,6 +139,8 @@ export interface SessionAmorcage {
    * session. Valeurs de la borne : grille vide (profil d'appareil figé, jamais lu).
    */
   readonly capacites: GrilleCapacites;
+  /** Migration 0096 : la personne doit choisir son mot de passe avant tout usage (issue #58). */
+  readonly motDePasseAChanger?: boolean;
 }
 
 /** Entrée du journal de sécurité. `tenantId` nullable : un échec sur email inconnu n'a pas de tenant. */

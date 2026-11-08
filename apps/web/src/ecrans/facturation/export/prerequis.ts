@@ -86,10 +86,11 @@ export function prerequisDepuisBlocages(
   if (code === 'EXPORT_ECRITURES_DESEQUILIBREES') {
     const ecritures = donnees.flatMap((d) => {
       const reference = texte(d.reference);
+      const pieces = references(d.pieces);
       const debit = nombre(d.totalDebitCentimes);
       const credit = nombre(d.totalCreditCentimes);
       return reference && debit !== undefined && credit !== undefined
-        ? [{ reference, totalDebitCentimes: debit, totalCreditCentimes: credit }]
+        ? [{ reference, pieces, totalDebitCentimes: debit, totalCreditCentimes: credit }]
         : [];
     });
     return ecritures.length > 0 ? { code, ecritures } : undefined;
@@ -105,7 +106,18 @@ export function prerequisDepuisBlocages(
         : limite === 'taux_multiples_non_supporte'
           ? 'TAUX_MULTIPLES_NON_SUPPORTE'
           : undefined;
-    return code ? [{ code, donnees: { paiementId: b.donnees?.paiementId, documentId: b.id } }] : [];
+    return code
+      ? [
+          {
+            code,
+            donnees: {
+              paiementId: b.donnees?.paiementId,
+              documentId: b.id,
+              documentNumero: b.donnees?.documentNumero,
+            },
+          },
+        ]
+      : [];
   });
   return limites.length > 0 ? { code, limites, details } : undefined;
 }

@@ -36,6 +36,7 @@ function ligneBorne(champs: Partial<LigneUtilisateur> = {}): LigneUtilisateur {
     echecsConnexion: 0,
     verrouilleJusquA: null,
     derniereConnexionLe: null,
+    motDePasseAChanger: false,
     creeLe: new Date('2026-08-01T08:00:00.000Z'),
     modifieLe: new Date('2026-08-01T08:00:00.000Z'),
     // Borne = profil figé : grille vide (contrainte `utilisateur_borne_sans_grille_chk`).

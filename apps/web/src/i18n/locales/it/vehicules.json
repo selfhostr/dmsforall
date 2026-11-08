@@ -102,7 +102,7 @@
       "recherche": "Ricerca in corso…",
       "aucunResultat": "Nessuna corrispondenza nel repertorio — la digitazione libera resta possibile.",
       "resultats": "{count, plural, one {# risultato} other {# risultati}}",
-      "horsReferentiel": "Non presente nel repertorio — verrà registrato così com'è.",
+      "horsReferentiel": "Non presente nell'elenco: digitazione libera accettata, registrato così com'è.",
       "nombreModeles": "{count, plural, one {# modello} other {# modelli}}",
       "erreurRecherche": "Suggerimenti non disponibili al momento — la digitazione libera resta possibile."
     }
