@@ -34,7 +34,10 @@ export async function chargerPretsParOr(
       and(eq(client.tenantId, pretCourtoisie.tenantId), eq(client.id, pretCourtoisie.clientId)),
     )
     .where(
-      and(eq(pretCourtoisie.tenantId, ctx.tenantId), inArray(pretCourtoisie.ordreReparationId, [...orIds])),
+      and(
+        eq(pretCourtoisie.tenantId, ctx.tenantId),
+        inArray(pretCourtoisie.ordreReparationId, [...orIds]),
+      ),
     )
     .orderBy(desc(pretCourtoisie.debutLe), desc(pretCourtoisie.id));
 

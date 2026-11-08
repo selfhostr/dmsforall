@@ -21,6 +21,7 @@ import {
   type ReponseLigneOr,
   type ReponseOrdreReparation,
   type ReponseOrdreReparationDemande,
+  type ReponsePretCourtoisie,
   type ReponseSignatureOr,
   type TotauxPayeurOr,
   type ValeursFigeesOr,
@@ -375,9 +376,10 @@ export class ReponseOrdreReparationDto implements ReponseOrdreReparation {
     type: 'object',
     nullable: true,
     additionalProperties: true,
-    description: 'Prêt de véhicule de courtoisie lié (même représentation que `GET /courtoisie/prets`) : le prêt réservé/en cours, sinon le plus récent ; `null` seulement si aucun prêt n’est lié à cet OR.',
+    description:
+      'Prêt de véhicule de courtoisie lié (même représentation que `GET /courtoisie/prets`) : le prêt réservé/en cours, sinon le plus récent ; `null` seulement si aucun prêt n’est lié à cet OR.',
   })
-  readonly pret!: Readonly<Record<string, unknown>> | null;
+  readonly pret!: ReponsePretCourtoisie | null;
 
   @ApiProperty({ type: () => CumulsPointageOrDto })
   readonly cumulsPointage!: CumulsPointageOr;

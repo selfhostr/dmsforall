@@ -4,6 +4,7 @@ import type { ClientResume } from './client';
 import type { ReponseDevisComplementaire } from './devis';
 import type { MontantsLigneOr, ReponseLigneOr } from './ligne';
 import type { VehiculeResume } from './vehicule';
+import type { ReponsePretCourtoisie } from '../courtoisie/courtoisie';
 import {
   ACTIONS_AUDITEES,
   ATTENTES_ORDRE_REPARATION,
@@ -264,7 +265,7 @@ export interface ReponseOrdreReparation {
   readonly controleQualite: ReponseControleQualiteOr | null;
   readonly signatures: readonly ReponseSignatureOr[];
   /** Prêt de véhicule de courtoisie lié (même représentation que `GET /courtoisie/prets`) : le prêt réservé/en cours, sinon le plus récent ; `null` seulement si aucun prêt n’est lié à cet OR. */
-  readonly pret: Readonly<Record<string, unknown>> | null;
+  readonly pret: ReponsePretCourtoisie | null;
   readonly cumulsPointage: CumulsPointageOr;
   /** Absents pour un rôle sans droit aux montants. */
   readonly totauxParPayeur?: readonly TotauxPayeurOr[];
