@@ -72,6 +72,10 @@ export const EcranModules = paresseux(() =>
   import('@/ecrans/parametrage/EcranModules').then((m) => m.EcranModules),
 );
 
+export const EcranEnvoiCourriel = paresseux(() =>
+  import('@/ecrans/parametrage/EcranEnvoiCourriel').then((m) => m.EcranEnvoiCourriel),
+);
+
 export const EcranParametrageAtelier = paresseux(() =>
   import('@/ecrans/parametrage/EcranParametrageAtelier').then((m) => m.EcranParametrageAtelier),
 );

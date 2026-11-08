@@ -255,4 +255,22 @@ describe('droits vus par le menu et l’accueil (audit navigateur du 07.11.2026)
     expect(MATRICE_DROITS.chef_atelier).not.toContain('parametrage.modules.modifier');
     expect(MATRICE_DROITS.chef_atelier).toContain('parametrage.atelier.lire');
   });
+
+  it('parametrage.envoi_courriel.gerer : direction et admin seulement, aucun autre rôle (chef d’atelier compris)', () => {
+    const titulaires = ROLES_UTILISATEUR.filter((r) =>
+      MATRICE_DROITS[r].includes('parametrage.envoi_courriel.gerer'),
+    ).sort();
+    expect(titulaires).toEqual(['admin', 'direction']);
+    for (const role of [
+      'chef_atelier',
+      'comptable',
+      'vendeur',
+      'receptionnaire',
+      'technicien',
+      'magasinier',
+      'poste_atelier',
+    ] as const) {
+      expect(MATRICE_DROITS[role], role).not.toContain('parametrage.envoi_courriel.gerer');
+    }
+  });
 });

@@ -179,7 +179,13 @@
     "REPRISE_AJUSTEMENT_ELEMENT_INCONNU": "Cet ajustement ne correspond à aucun élément du plan de reprise. Rechargez la page ; si le problème persiste, prévenez le support.",
     "AUTH_CHANGEMENT_MOT_DE_PASSE_REQUIS": "Choisissez votre propre mot de passe avant de continuer.",
     "AUTH_JETON_REINITIALISATION_INVALIDE": "Ce lien de réinitialisation n'est plus valide. Demandez un nouveau lien depuis la page de connexion.",
-    "FACTURE_DESTINATAIRE_COURRIEL_ABSENT": "Ce client n'a pas d'adresse courriel enregistrée. Complétez la fiche client, puis réessayez."
+    "FACTURE_DESTINATAIRE_COURRIEL_ABSENT": "Ce client n'a pas d'adresse courriel enregistrée. Complétez la fiche client, puis réessayez.",
+    "COURRIEL_NON_CONFIGURE": "L'envoi des e-mails n'est pas configuré. Renseignez le serveur d'envoi dans Réglages > Envoi des e-mails.",
+    "COURRIEL_CLE_CHIFFREMENT_ABSENTE": "Le mot de passe ne peut pas être enregistré : la clé de chiffrement n'est pas définie sur ce serveur. Contactez la personne qui administre l'installation.",
+    "COURRIEL_AUTHENTIFICATION_ECHEC": "Le serveur d'envoi a refusé l'identifiant ou le mot de passe. Vérifiez-les (avec Gmail ou Microsoft 365, un mot de passe d'application est souvent requis).",
+    "COURRIEL_CONNEXION_ECHEC": "Impossible de joindre le serveur d'envoi. Vérifiez le nom du serveur et le port.",
+    "COURRIEL_TLS_ECHEC": "La connexion sécurisée avec le serveur a échoué. Essayez un autre type de sécurité (STARTTLS avec le port 587, ou TLS avec le port 465).",
+    "COURRIEL_ENVOI_ECHEC": "Le serveur a refusé le message d'essai. Vérifiez l'adresse d'expédition et l'adresse du destinataire."
   },
   "actions": {
     "CREER_DEVIS_COMPLEMENTAIRE": "Créer un devis complémentaire",

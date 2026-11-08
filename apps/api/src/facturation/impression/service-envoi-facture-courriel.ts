@@ -99,6 +99,7 @@ export class ServiceEnvoiFactureCourriel {
     });
 
     const resultat = await this.serviceCourriel.envoyer({
+      ctx,
       destinataires: [clientEmail],
       sujet: contenu.sujet,
       corpsTexte: contenu.texte,

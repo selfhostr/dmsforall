@@ -8,6 +8,8 @@ import { ServiceJournal } from '../common/journal';
 import type { AdaptateurNotificationSender } from '../connecteurs';
 import { RegistreConnecteursService } from '../connecteurs';
 import type { Config } from '../config';
+import type { FabriqueTransportSmtp } from '../courriel/fabrique-transport-smtp';
+import type { ServiceReglageEnvoiCourriel } from '../courriel/service-reglage-envoi-courriel';
 import { ServiceCourriel } from '../courriel/service-courriel';
 import { TransportCapture } from '../courriel/transport-capture';
 import type { MessageCourriel } from '../courriel/service-courriel';
@@ -651,6 +653,8 @@ describe('ServiceRelancesFacture.envoyerPretes', () => {
         transportCapture,
         configFactice({ SMTP_EXPEDITEUR: 'no-reply@dmsforall.example' }),
         journalFactice(),
+        { resoudreEnvoiGarage: vi.fn(async () => null) } as unknown as ServiceReglageEnvoiCourriel,
+        { creer: vi.fn() } as unknown as FabriqueTransportSmtp,
       );
 
       const pdf = Buffer.from('%PDF-1.4 contenu factice F-42');

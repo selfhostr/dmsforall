@@ -8,6 +8,7 @@ export * from './contrats/socle';
 export * from './contrats/systeme';
 export * from './contrats/tenant';
 export * from './contrats/modules';
+export * from './contrats/envoi-courriel';
 export * from './contrats/auth';
 export * from './contrats/capacites';
 export * from './contrats/atelier';

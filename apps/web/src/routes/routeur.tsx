@@ -22,6 +22,7 @@ import {
   EcranConsolePlateforme,
   EcranParametragePieces,
   EcranModules,
+  EcranEnvoiCourriel,
   EcranParametrageAtelier,
   EcranChiffres,
   EcranExportFiduciaire,
@@ -77,6 +78,7 @@ import {
 } from '@/ecrans/EcranChangementMotDePasse';
 import {
   ACCES_BORNE_POINTAGE,
+  ACCES_ENVOI_COURRIEL,
   ACCES_GESTION_UTILISATEURS,
   ACCES_LECTURE_RENDEZ_VOUS,
   ACCES_PARAMETRAGE_PIECES,
@@ -350,6 +352,15 @@ export const routesConfig: RouteObject[] = [
         element: (
           <RouteProtegee accesAutorise={ACCES_MENU_PARAMETRAGE_ATELIER}>
             <EcranModules />
+          </RouteProtegee>
+        ),
+      },
+      // Réglages > Envoi des e-mails : direction/admin seuls (`parametrage.envoi_courriel.gerer`), l'API répond 403 sinon.
+      {
+        path: 'parametrage/envoi-courriel',
+        element: (
+          <RouteProtegee accesAutorise={ACCES_ENVOI_COURRIEL}>
+            <EcranEnvoiCourriel />
           </RouteProtegee>
         ),
       },

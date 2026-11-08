@@ -57,7 +57,8 @@
     "reglagesUtilisateurs": "Benutzer",
     "reglagesRelances": "Zahlungserinnerungen",
     "atelierCourtoisie": "Ersatzwagen",
-    "reglagesModules": "Module"
+    "reglagesModules": "Module",
+    "reglagesEnvoiCourriel": "E-Mail-Versand"
   },
   "liens": {
     "clients": "Kunden",

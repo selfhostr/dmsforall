@@ -4,6 +4,14 @@ All notable changes to dmsforall are recorded here, for people who run it and fo
 
 ## Unreleased
 
+### Added
+
+- **Sending e-mails.** Réglages › Envoi des e-mails lets each garage set its own sending server (Infomaniak, Gmail / Google Workspace, Microsoft 365 or another), with a test e-mail button. The password is encrypted and never shown again. Without its own setting a garage uses the server of the installation, and without either, the screen says "Not configured" and invoices or reminders are not sent. New variables `CLE_CHIFFREMENT_SECRETS` (key that encrypts the passwords) and `COURRIEL_RESEAU_PRIVE_AUTORISE`; see the [configuration reference](docs/reference/configuration.md). Migration 0098.
+
+### Changed
+
+- In production with no sending server at all, an e-mail is now reported as not sent instead of being silently set aside.
+
 ### Fixed
 
 - **WinBIZ export proposes VAT codes for all Swiss rates.** The account mapping now suggests N81 (8.1 %), R26 (2.6 %) and H38 (3.8 %). WinBIZ publishes no default code list, so these are editable: change them in the mapping to match your WinBIZ VAT types.

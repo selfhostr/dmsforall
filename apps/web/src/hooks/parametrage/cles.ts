@@ -20,6 +20,9 @@ export const clesParametrage = {
   /** Modules activables (`GET|PATCH /parametres-entreprise/modules`). */
   modules: () => ['parametrage', 'modules'] as const,
 
+  /** Serveur d'envoi des e-mails (`/parametres-entreprise/envoi-courriel`). */
+  envoiCourriel: () => ['parametrage', 'envoiCourriel'] as const,
+
   /** Logo du garage (`GET|PUT|DELETE /parametres-entreprise/logo`). */
   logo: () => ['parametrage', 'entreprise', 'logo'] as const,
 

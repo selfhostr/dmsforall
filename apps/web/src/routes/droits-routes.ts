@@ -15,6 +15,8 @@ export const ACCES_MENU_FINANCIER: Acces = ['facturation.export.lire'];
 export const ACCES_PIECES: Acces = ['pieces.article.lire'];
 export const ACCES_PARAMETRAGE_PIECES: Acces = ['pieces.parametrage.lire'];
 export const ACCES_GESTION_UTILISATEURS: Acces = ['socle.utilisateur.lire'];
+/** Serveur d'envoi des e-mails du garage : direction et admin (`parametrage.envoi_courriel.gerer`). */
+export const ACCES_ENVOI_COURRIEL: Acces = ['parametrage.envoi_courriel.gerer'];
 export const ACCES_VENTES: Acces = ['ventes.dossier.lire'];
 export const ACCES_PNEUS: Acces = ['pneus.depot.lire'];
 export const ACCES_TABLEAU_BORD_ACTIVITE: Acces = ['tableau_bord.activite.lire'];

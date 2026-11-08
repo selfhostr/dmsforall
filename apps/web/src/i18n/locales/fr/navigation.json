@@ -57,7 +57,8 @@
     "reglagesUtilisateurs": "Utilisateurs",
     "reglagesRelances": "Rappels de paiement",
     "atelierCourtoisie": "Courtoisie",
-    "reglagesModules": "Modules"
+    "reglagesModules": "Modules",
+    "reglagesEnvoiCourriel": "Envoi des e-mails"
   },
   "liens": {
     "clients": "Clients",
