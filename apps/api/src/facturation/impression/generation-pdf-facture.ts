@@ -420,3 +420,61 @@ export async function genererPdfDevis(
     pdf.end();
   });
 }
+
+/**
+ * PDF d'un AVOIR émis : même corps que la facture (lignes, récapitulatif TVA, totaux — montants
+ * négatifs tels que figés), titre « Avoir n° … », référence de la facture corrigée
+ * (`numeroFactureCorrigee`, absente pour un avoir libre) et mention de non-paiement. AUCUN
+ * bulletin QR : un avoir crédite le client. L'en-tête (nom, adresse, n° TVA, logo) vient de
+ * `expediteur`, comme pour le devis. Déterministe : `CreationDate` = `emisLe`.
+ */
+export async function genererPdfAvoir(
+  document: ReponseDocumentVente,
+  expediteur: ExpediteurImpression,
+  numeroFactureCorrigee: string | null,
+  logo?: Buffer | null,
+): Promise<Buffer> {
+  if (document.typeDocument !== 'avoir' || document.statut === 'brouillon') {
+    throw new ErreurMetier(
+      'ERREUR_INTERNE',
+      `genererPdfAvoir appelé sur le document ${document.id} qui n'est pas un avoir émis.`,
+    );
+  }
+  const langueClient = document.figees.clientLangue;
+  const libelles = libellesImpression(
+    langueClient === 'de' || langueClient === 'it' ? langueClient : 'fr',
+  );
+  const totaux = exigerMontantsVisibles(document);
+  const sansTva = expediteur.nonAssujettiTva === true;
+  const reference = numeroFactureCorrigee ? [libelles.avoirSurFacture(numeroFactureCorrigee)] : [];
+  const dateEmission = document.emisLe ?? document.modifieLe;
+
+  const pdf = new PDFDocument({
+    size: 'A4',
+    autoFirstPage: true,
+    margin: MARGE_PT,
+    info: { CreationDate: new Date(dateEmission), ModDate: new Date(dateEmission) },
+  });
+
+  return new Promise<Buffer>((resolve, reject) => {
+    const morceaux: Buffer[] = [];
+    pdf.on('data', (chunk: Buffer) => morceaux.push(chunk));
+    pdf.on('end', () => resolve(Buffer.concat(morceaux)));
+    pdf.on('error', reject);
+
+    dessinerEnTete(
+      pdf,
+      document,
+      expediteur,
+      libelles.avoirNumero(document.numero ?? ''),
+      libelles,
+      reference,
+      logo,
+    );
+    dessinerLignes(pdf, document.lignes, libelles, document.devise, sansTva);
+    dessinerRecapitulatifTva(pdf, totaux, libelles, document.devise, sansTva);
+    pdf.moveDown(1.5);
+    pdf.fontSize(8).fillColor('#666666').text(libelles.avoirMention, MARGE_PT);
+    pdf.end();
+  });
+}

@@ -486,6 +486,8 @@ export type EntreeEmissionDocumentVente = z.infer<typeof schemaEmissionDocumentV
 
 /** `POST /documents-vente/{id}/accepter` — devis uniquement. */
 export const schemaAccepterDevis = z.object({}).extend(schemaConfirmations.shape).strict();
+/** `POST /documents-vente/{id}/annuler-accord` — devis uniquement ; aucun champ. */
+export const schemaAnnulerAccordDevis = z.object({}).strict();
 /** `POST /documents-vente/{id}/refuser` — devis ou bon de commande. */
 export const schemaRefuserDocument = z.object({ motif: schemaTexteLong.optional() }).strict();
 /** `POST /documents-vente/{id}/annuler` — bon de commande uniquement ; motif OBLIGATOIRE, même
@@ -493,6 +495,7 @@ export const schemaRefuserDocument = z.object({ motif: schemaTexteLong.optional(
 export const schemaAnnulerDocument = z.object({ motif: schemaTexteLong }).strict();
 
 export type EntreeAccepterDevis = z.infer<typeof schemaAccepterDevis>;
+export type EntreeAnnulerAccordDevis = z.infer<typeof schemaAnnulerAccordDevis>;
 export type EntreeRefuserDocument = z.infer<typeof schemaRefuserDocument>;
 export type EntreeAnnulerDocument = z.infer<typeof schemaAnnulerDocument>;
 

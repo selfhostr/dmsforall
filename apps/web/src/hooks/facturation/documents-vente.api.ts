@@ -346,6 +346,19 @@ export async function accepterDevis(id: string): Promise<ReponseDocumentVente> {
   return reponse.donnees;
 }
 
+/** `POST /documents-vente/{id}/annuler-accord` — annule l'accord du client (`accepte` -> `emis`).
+ *  Refusé (409 DOCUMENT_SOURCE_DEJA_TRANSFORME) si un OR ou un document est déjà issu du devis. */
+export async function annulerAccordDevis(id: string): Promise<ReponseDocumentVente> {
+  const reponse = await requeteApi<ReponseAvecAvertissements<ReponseDocumentVente>>(
+    `/documents-vente/${id}/annuler-accord`,
+    { method: 'POST', body: JSON.stringify({}) },
+  );
+  if (!reponse) {
+    throw new Error('Réponse vide inattendue : POST /documents-vente/annuler-accord.');
+  }
+  return reponse.donnees;
+}
+
 /** `POST /documents-vente/{id}/creer-ordre-reparation` — ouvre un OR depuis un devis (client,
  *  véhicule, site et lignes viennent du devis). `Idempotency-Key` OBLIGATOIRE. */
 export async function creerOrdreDepuisDevis(

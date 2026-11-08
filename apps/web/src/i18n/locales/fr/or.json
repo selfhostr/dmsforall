@@ -74,6 +74,7 @@
       "tempsBareme": "Temps forfaitaire",
       "tempsPointe": "Temps pointé",
       "prixUnitaire": "Prix unitaire HT",
+      "prixUnitaireAide": "Prix hors TVA. Dans un devis, le prix se saisit TVA comprise : divisez par 1 + taux pour reprendre un prix de devis.",
       "rabais": "Rabais",
       "payeur": "Qui paie",
       "technicien": "Technicien",

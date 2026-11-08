@@ -6,13 +6,14 @@ import type { AccesBase, ContexteTenant } from '../../db';
 import { site, tenant } from '../../db/schema';
 import type { ServiceDocumentsVente } from '../documents/service-documents';
 
-import { genererPdfDevis, genererPdfFacture } from './generation-pdf-facture';
+import { genererPdfAvoir, genererPdfDevis, genererPdfFacture } from './generation-pdf-facture';
 import { ServiceImpressionFacture } from './service-impression-facture';
 import type { StockagePdf } from './stockage-pdf';
 
 vi.mock('./generation-pdf-facture', () => ({
   genererPdfFacture: vi.fn(),
   genererPdfDevis: vi.fn(),
+  genererPdfAvoir: vi.fn(),
 }));
 
 const CTX: ContexteTenant = { tenantId: 't-1', utilisateurId: 'u-1', requeteId: 'req-1' };
@@ -336,11 +337,13 @@ describe('ServiceImpressionFacture', () => {
     });
   });
 
-  it('refuse un avoir (crédite le client, ne se paie pas)', async () => {
+  it('refuse un avoir brouillon (ni numéro ni montants figés)', async () => {
     const serviceDocuments = {
       obtenirComplet: vi
         .fn()
-        .mockResolvedValue(documentFacture({ typeDocument: 'avoir', qr: null })),
+        .mockResolvedValue(
+          documentFacture({ typeDocument: 'avoir', qr: null, statut: 'brouillon' }),
+        ),
     } as unknown as ServiceDocumentsVente;
     const service = new ServiceImpressionFacture(
       accesBaseFake(),
@@ -351,6 +354,30 @@ describe('ServiceImpressionFacture', () => {
     await expect(service.obtenirPdf(CTX, PRINCIPAL, 'doc-1')).rejects.toMatchObject({
       code: 'DOCUMENT_PDF_INDISPONIBLE',
     });
+  });
+
+  it('un avoir émis s’imprime via genererPdfAvoir, nom de fichier Avoir-<numero>.pdf', async () => {
+    vi.mocked(genererPdfAvoir).mockResolvedValue(Buffer.from('%PDF-avoir'));
+    const serviceDocuments = {
+      obtenirComplet: vi.fn().mockResolvedValue(
+        documentFacture({
+          typeDocument: 'avoir',
+          qr: null,
+          numero: '2026-AV-00001',
+          factureAnnuleeId: null,
+        }),
+      ),
+    } as unknown as ServiceDocumentsVente;
+    const service = new ServiceImpressionFacture(
+      accesBaseFake(),
+      new StockagePdfMemoire(),
+      serviceDocuments,
+    );
+
+    const r = await service.obtenirPdf(CTX, PRINCIPAL, 'doc-1');
+    expect(r.nomFichier).toBe('Avoir-2026-AV-00001.pdf');
+    expect(r.buffer.toString()).toBe('%PDF-avoir');
+    expect(vi.mocked(genererPdfAvoir).mock.calls[0]?.[2]).toBeNull();
   });
 
   it('première demande : génère, met en cache (stockage + pdfCle/pdfSha256), renvoie le buffer', async () => {

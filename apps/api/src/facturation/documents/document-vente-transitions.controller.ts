@@ -20,6 +20,7 @@ import type { Response } from 'express';
 import {
   EN_TETE_IDEMPOTENCE,
   schemaAccepterDevis,
+  schemaAnnulerAccordDevis,
   schemaAnnulerDocument,
   schemaCorrectionFacture,
   schemaCreationAvoir,
@@ -71,6 +72,7 @@ const EnveloppeCorrectionFactureDto = EnveloppeDocumentDto(
  */
 const schemaEmissionDocumentVenteCorpsOptionnel = schemaEmissionDocumentVente.optional();
 const schemaAccepterDevisCorpsOptionnel = schemaAccepterDevis.optional();
+const schemaAnnulerAccordDevisCorpsOptionnel = schemaAnnulerAccordDevis.optional();
 
 /**
  * Transitions de la chaîne documentaire — émission (`RF-5`, `RF-10`, `RF-22`→`RF-28`), acceptation/
@@ -148,6 +150,32 @@ export class DocumentVenteTransitionsController {
     const ctx = this.contexte.contexteTenant();
     const principal = this.contexte.exigerPrincipal();
     return this.emission.accepter(ctx, principal, id);
+  }
+
+  @Post(':id/annuler-accord')
+  @HttpCode(HttpStatus.OK)
+  @ExigerDroit('facturation.document.transitionner')
+  @ApiOperation({
+    summary:
+      "Annuler l'accord du client — devis uniquement (devis.accepte → emis), tant qu'aucun OR ni document n'en est issu.",
+  })
+  @ApiParam({ name: 'id', format: 'uuid' })
+  @ApiResponse({ status: 200, type: EnveloppeDocumentVenteDto })
+  @ApiReponseProbleme(400, 'Type de document invalide (seul un devis a un accord).')
+  @ApiReponseProbleme(401, 'Session absente ou expirée.')
+  @ApiReponseProbleme(403, 'Droit insuffisant.')
+  @ApiReponseProbleme(404, 'Document introuvable pour ce tenant.')
+  @ApiReponseProbleme(
+    409,
+    'DOCUMENT_TRANSITION_INTERDITE (le devis n’est pas accepté) ou DOCUMENT_SOURCE_DEJA_TRANSFORME (un OR ou un document en est issu).',
+  )
+  async annulerAccord(
+    @Param('id', new PipeZod(schemaIdentifiant)) id: string,
+    @CorpsZod(schemaAnnulerAccordDevisCorpsOptionnel, { exemple: {} }) _entree: unknown,
+  ) {
+    const ctx = this.contexte.contexteTenant();
+    const principal = this.contexte.exigerPrincipal();
+    return this.emission.annulerAccord(ctx, principal, id);
   }
 
   @Post(':id/refuser')

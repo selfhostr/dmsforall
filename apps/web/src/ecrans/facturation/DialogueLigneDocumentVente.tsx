@@ -28,6 +28,7 @@ import {
   useModifierLigneDocument,
 } from '@/hooks/facturation/useLignesDocumentVente';
 
+import { formaterMontant } from '@/lib/formats';
 import { messagesErreurMutation } from './messages-erreur-mutation';
 
 /**
@@ -374,6 +375,17 @@ export function DialogueLigneDocumentVente({ documentId, ligne, enfantDeclencheu
                 valeurCentimes={etat.prixUnitaireCentimes}
                 onChangeCentimes={(centimes) => majEtat({ prixUnitaireCentimes: centimes })}
                 label={t('facturation:fiche.lignes.champs.prixUnitaire')}
+                aide={t('facturation:fiche.lignes.champs.prixUnitaireAide', {
+                  ht:
+                    etat.prixUnitaireCentimes === null
+                      ? '—'
+                      : formaterMontant(
+                          Math.round(
+                            (etat.prixUnitaireCentimes * 1000) /
+                              (1000 + OPTIONS_TAUX[etat.clefTaux].tauxTvaPourmille),
+                          ),
+                        ),
+                })}
                 obligatoire={!estTexte}
                 disabled={estTexte}
               />

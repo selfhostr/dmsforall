@@ -187,6 +187,7 @@
         "reference": "Riferimento",
         "quantite": "Quantità",
         "prixUnitaire": "Prezzo unitario IVA incl.",
+        "prixUnitaireAide": "Prezzo IVA inclusa, come in un preventivo. Pari a {{ht}} IVA esclusa all'aliquota scelta. In un ordine di riparazione il prezzo si inserisce IVA esclusa.",
         "taux": "Aliquota IVA",
         "datePrestation": "Data prestazione"
       },
@@ -250,6 +251,7 @@
       "telechargerPdf": "Scarica il PDF",
       "envoyerDevis": "Inviare il preventivo",
       "accordClient": "Accordo del cliente",
+      "annulerAccord": "Annulla l'accordo",
       "creerOr": "Creare l'OR"
     },
     "dialogueEmission": {
@@ -505,7 +507,8 @@
   },
   "toasts": {
     "devisEnvoye": "Preventivo inviato",
-    "devisAccepte": "Accordo del cliente registrato"
+    "devisAccepte": "Accordo del cliente registrato",
+    "accordAnnule": "Accordo del cliente annullato"
   },
   "chiffres": {
     "titre": "Cifre",

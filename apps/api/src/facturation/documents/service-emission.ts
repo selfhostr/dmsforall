@@ -1,5 +1,5 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, ne } from 'drizzle-orm';
 import type {
   Avertissement,
   EntreeAnnulerDocument,
@@ -14,6 +14,7 @@ import {
   documentVente,
   documentVenteTva,
   ligneDocument,
+  ordreReparation,
   type LigneDocumentVente,
 } from '../../db/schema';
 import { type Action } from '../../auth/matrice-droits';
@@ -726,6 +727,95 @@ export class ServiceEmissionDocument {
           ],
         });
       }
+    });
+  }
+
+  /**
+   * `POST /documents-vente/{id}/annuler-accord` — devis uniquement (`accepte -> emis`). Seule
+   * sortie d'un état « terminal » de la liste blanche (migration 0094), réservée à la correction
+   * d'un clic par erreur. Refusée dès que l'accord a produit quelque chose : un OR ouvert depuis
+   * ce devis, ou un document de vente tiré de lui (bon de commande, facture) — l'accord n'est
+   * alors plus un simple statut. L'audit `document_vente` (trigger) journalise l'avant/après.
+   */
+  async annulerAccord(
+    ctx: ContexteTenant,
+    principal: PrincipalAuthentifie,
+    documentId: string,
+  ): Promise<ReponseAvecAvertissements<ReponseDocumentVente>> {
+    return this.acces.enTenant(ctx, async (tx) => {
+      const doc = await chargerDocumentPourEcriture(tx, ctx, documentId);
+      if (doc.typeDocument !== 'devis') {
+        throw new ErreurMetier(
+          'VALIDATION_ECHOUEE',
+          "Seul l'accord sur un devis peut être annulé.",
+          {
+            erreurs: [
+              {
+                champ: 'typeDocument',
+                code: 'type_invalide',
+                message: `« ${doc.typeDocument} » n'a pas d'accord à annuler.`,
+              },
+            ],
+          },
+        );
+      }
+      if (doc.statut === 'accepte') {
+        const [or] = await tx
+          .select({ id: ordreReparation.id, numero: ordreReparation.numero })
+          .from(ordreReparation)
+          .where(
+            and(
+              eq(ordreReparation.tenantId, ctx.tenantId),
+              eq(ordreReparation.devisOrigineId, documentId),
+            ),
+          )
+          .limit(1);
+        if (or) {
+          throw new ErreurMetier(
+            'DOCUMENT_SOURCE_DEJA_TRANSFORME',
+            `Ce devis a déjà ouvert l'ordre de réparation ${or.numero} : l'accord ne peut plus être annulé.`,
+            {
+              blocages: [{ type: 'ordre_reparation', id: or.id, libelle: or.numero }],
+              actionsProposees: [{ code: 'RAFRAICHIR' }],
+            },
+          );
+        }
+        const [derive] = await tx
+          .select({ id: documentVente.id, numero: documentVente.numero })
+          .from(documentVente)
+          .where(
+            and(
+              eq(documentVente.tenantId, ctx.tenantId),
+              eq(documentVente.documentSourceId, documentId),
+              ne(documentVente.statut, 'abandonne'),
+            ),
+          )
+          .limit(1);
+        if (derive) {
+          throw new ErreurMetier(
+            'DOCUMENT_SOURCE_DEJA_TRANSFORME',
+            `Ce devis a déjà servi de source au document ${derive.numero ?? derive.id} : l'accord ne peut plus être annulé.`,
+            {
+              blocages: [
+                { type: 'document_vente', id: derive.id, libelle: derive.numero ?? derive.id },
+              ],
+              actionsProposees: [{ code: 'RAFRAICHIR' }],
+            },
+          );
+        }
+      }
+      try {
+        await tx
+          .update(documentVente)
+          .set({ statut: 'emis' })
+          .where(and(eq(documentVente.tenantId, ctx.tenantId), eq(documentVente.id, documentId)));
+      } catch (erreur) {
+        const traduite = traduireErreurDocument(erreur, documentId, doc.numero);
+        if (traduite) throw traduite;
+        throw erreur;
+      }
+      const document = await this.documents.assemblerDocument(tx, ctx, principal.role, documentId);
+      return { donnees: document, avertissements: [] };
     });
   }
 

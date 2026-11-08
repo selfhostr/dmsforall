@@ -74,6 +74,7 @@
       "tempsBareme": "Tempo forfettario",
       "tempsPointe": "Tempo registrato",
       "prixUnitaire": "Prezzo unitario IVA esclusa",
+      "prixUnitaireAide": "Prezzo IVA esclusa. In un preventivo il prezzo si inserisce IVA inclusa: dividere per 1 + aliquota per riprendere un prezzo di preventivo.",
       "rabais": "Sconto",
       "payeur": "Chi paga",
       "technicien": "Tecnico",

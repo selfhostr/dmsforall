@@ -187,6 +187,7 @@
         "reference": "Référence",
         "quantite": "Quantité",
         "prixUnitaire": "Prix unitaire TTC",
+        "prixUnitaireAide": "Prix TVA comprise, comme dans un devis. Soit {{ht}} hors TVA au taux choisi. Dans un OR, le prix se saisit hors TVA.",
         "taux": "Taux de TVA",
         "datePrestation": "Date de prestation"
       },
@@ -250,6 +251,7 @@
       "telechargerPdf": "Télécharger le PDF",
       "envoyerDevis": "Envoyer le devis",
       "accordClient": "Accord du client",
+      "annulerAccord": "Annuler l'accord",
       "creerOr": "Créer l'OR"
     },
     "dialogueEmission": {
@@ -505,7 +507,8 @@
   },
   "toasts": {
     "devisEnvoye": "Devis envoyé",
-    "devisAccepte": "Accord du client enregistré"
+    "devisAccepte": "Accord du client enregistré",
+    "accordAnnule": "Accord du client annulé"
   },
   "chiffres": {
     "titre": "Chiffres",

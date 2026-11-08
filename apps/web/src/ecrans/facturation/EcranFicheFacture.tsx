@@ -34,6 +34,7 @@ import { BoutonImprimerDocument } from '@/composants/motifs/BoutonImprimerDocume
 import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
 import { obtenirEnv } from '@/config/env';
 import { useAccepterDevis } from '@/hooks/facturation/useAccepterDevis';
+import { useAnnulerAccordDevis } from '@/hooks/facturation/useAnnulerAccordDevis';
 import { useDocumentVente } from '@/hooks/facturation/useDocumentVente';
 import { useTelechargerPdfDocument } from '@/hooks/facturation/useTelechargerPdfDocument';
 import { useEmettreDocumentVente } from '@/hooks/facturation/useEmettreDocumentVente';
@@ -123,6 +124,7 @@ export function EcranFicheFacture() {
     estDevis ? { succes: 'facturation:toasts.devisEnvoye' } : {},
   );
   const accord = useAccepterDevis();
+  const annulationAccord = useAnnulerAccordDevis();
   const suppressionLigne = useSupprimerLigneDocument();
   const pdfDevis = useTelechargerPdfDocument();
 
@@ -225,6 +227,11 @@ export function EcranFicheFacture() {
   // déjà ouvert, il peut devenir un OR (le serveur reprend client, véhicule et lignes).
   const proposeAccord =
     documentEstDevis && document_.statut === 'emis' && peutAccepterDevis(actions);
+  const proposeAnnulerAccord =
+    documentEstDevis &&
+    document_.statut === 'accepte' &&
+    document_.ordreReparationId === null &&
+    peutAccepterDevis(actions);
   const proposeCreerOr =
     documentEstDevis &&
     (document_.statut === 'emis' || document_.statut === 'accepte') &&
@@ -242,7 +249,10 @@ export function EcranFicheFacture() {
   // PDF d'un DEVIS : pas de lien direct (`qr` est toujours `null` hors facture émise) mais un
   // téléchargement qui affiche l'échec — `DOCUMENT_PDF_INDISPONIBLE` tant que l'API ne le produit
   // pas, plutôt qu'un onglet vide. Réservé aux rôles qui voient les montants.
-  const peutPdfDevis = document_.typeDocument === 'devis' && peutVoirMontantsFacturation(actions);
+  const peutPdfDevis =
+    (document_.typeDocument === 'devis' ||
+      (document_.typeDocument === 'avoir' && document_.statut !== 'brouillon')) &&
+    peutVoirMontantsFacturation(actions);
   const urlPdf = `${obtenirEnv().VITE_API_URL}/documents-vente/${document_.id}/pdf`;
   // Titre de FICHE (chantier « titres doublés & espacements », 17.08.2026) — « Facture 2026-00002 »
   // / « Avoir 2026-AV-00001 » : CONTRE-EXEMPLE cité par le contrat du chantier, il ne fait PAS
@@ -333,6 +343,15 @@ export function EcranFicheFacture() {
     <Button type="button" disabled={accord.isPending} onClick={() => accord.mutate(document_.id)}>
       {t('facturation:fiche.actions.accordClient')}
     </Button>
+  ) : proposeAnnulerAccord ? (
+    <Button
+      type="button"
+      variant="outline"
+      disabled={annulationAccord.isPending}
+      onClick={() => annulationAccord.mutate(document_.id)}
+    >
+      {t('facturation:fiche.actions.annulerAccord')}
+    </Button>
   ) : proposeEncaisser ? (
     <Button type="button" onClick={() => setEncaissementOuvert(true)}>
       {t('facturation:fiche.actions.encaisser')}
@@ -405,6 +424,11 @@ export function EcranFicheFacture() {
     <GabaritEcran titre={titreDocument} actions={actionsEnTete}>
       <FilAriane segments={segmentsFilAriane} pageCourante={titreDocument} />
 
+      {annulationAccord.isError ? (
+        <p role="alert" className="texte-corps text-destructive">
+          {messageErreur(annulationAccord.error, t)}
+        </p>
+      ) : null}
       {accord.isError ? (
         <p role="alert" className="texte-corps text-destructive">
           {messageErreur(accord.error, t)}

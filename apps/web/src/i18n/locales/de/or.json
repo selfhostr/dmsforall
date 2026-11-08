@@ -74,6 +74,7 @@
       "tempsBareme": "Vorgabezeit",
       "tempsPointe": "Erfasste Zeit",
       "prixUnitaire": "Einzelpreis exkl. MWST",
+      "prixUnitaireAide": "Preis exkl. MWST. In einer Offerte wird der Preis inkl. MWST erfasst: durch 1 + Satz teilen, um einen Offertpreis zu übernehmen.",
       "rabais": "Rabatt",
       "payeur": "Zahlungspflichtig",
       "technicien": "Techniker",

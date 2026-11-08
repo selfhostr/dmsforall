@@ -22,6 +22,7 @@ import { ErreurMetier } from '../../common/erreurs/erreur-metier';
 
 import { ServiceDocumentsVente } from '../documents/service-documents';
 import {
+  genererPdfAvoir,
   genererPdfDevis,
   genererPdfFacture,
   type ExpediteurImpression,
@@ -64,11 +65,15 @@ export class ServiceImpressionFacture {
       return this.obtenirPdfDevis(ctx, document);
     }
 
+    if (document.typeDocument === 'avoir' && document.statut !== 'brouillon') {
+      return this.obtenirPdfAvoir(ctx, document);
+    }
+
     if (!estEligibleImpression(document)) {
       throw new ErreurMetier(
         'DOCUMENT_PDF_INDISPONIBLE',
         `Le document ${documentId} n'a pas de PDF : seuls un devis et une FACTURE ÉMISE ` +
-          "s'impriment (un bon de commande, un avoir ou un brouillon de facture, non).",
+          "s'impriment (un bon de commande ou un brouillon, non).",
       );
     }
 
@@ -104,6 +109,41 @@ export class ServiceImpressionFacture {
     await this.stockage.ecrire(cle, buffer);
     await this.persisterCleEtEmpreinte(ctx, documentId, cle, sha256);
 
+    return { buffer, sha256, nomFichier };
+  }
+
+  /**
+   * Avoir ÉMIS : PDF sans bulletin QR, avec la référence de la facture corrigée (numéro lu en
+   * base, scoping tenant explicite). Rendu à chaque demande, octets déterministes (immuable).
+   */
+  private async obtenirPdfAvoir(
+    ctx: ContexteTenant,
+    document: ReponseDocumentVente,
+  ): Promise<PdfFactureResultat> {
+    const expediteur = await this.lireExpediteur(ctx, document.siteId, document.lignes);
+    const numeroFacture = document.factureAnnuleeId
+      ? await this.acces.enTenant(ctx, async (tx) => {
+          const [f] = await tx
+            .select({ numero: documentVente.numero })
+            .from(documentVente)
+            .where(
+              and(
+                eq(documentVente.tenantId, ctx.tenantId),
+                eq(documentVente.id, document.factureAnnuleeId as string),
+              ),
+            )
+            .limit(1);
+          return f?.numero ?? null;
+        })
+      : null;
+    const buffer = await genererPdfAvoir(
+      document,
+      expediteur,
+      numeroFacture,
+      await lireLogoImprimable(this.stockage, ctx.tenantId),
+    );
+    const sha256 = sha256Hex(buffer);
+    const nomFichier = `Avoir-${(document.numero ?? document.id).replace(/[^A-Za-z0-9._-]/g, '_')}.pdf`;
     return { buffer, sha256, nomFichier };
   }
 
