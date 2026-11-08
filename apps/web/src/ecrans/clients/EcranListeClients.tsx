@@ -1,4 +1,3 @@
-import { Plus } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useSearchParams } from 'react-router';
@@ -179,25 +178,22 @@ export function EcranListeClients() {
     // auparavant, qui demandait ce même h1 visible : l'onglet « Clients », déjà affiché à
     // l'écran, porte désormais ce libellé, le h1 devient `sr-only` (jamais retiré du DOM).
     // Aucun padding local : `AppShell` pose déjà `p-4 sm:p-6` sur tout écran routé.
-    // « Nouveau client » est l'action du gabarit : titre et action sur la même ligne, filtres
-    // en dessous sur une seule ligne (BarreFiltres).
+    // « Créer un client » est le bouton « + » en bout de la barre de filtres (BarreFiltres).
     <GabaritEcran
       titre={t('clients:titre')}
-      actions={
-        <Button type="button" onClick={() => setSheetOuvert(true)}>
-          <Plus aria-hidden className="h-4 w-4" />
-          {t('clients:nouveau')}
-        </Button>
-      }
       barre={
-        <BarreFiltres q={qSaisi} onChangeQ={setQSaisi}>
+        <BarreFiltres
+          q={qSaisi}
+          onChangeQ={setQSaisi}
+          actionCreer={{ libelle: t('clients:creerInfobulle'), onClick: () => setSheetOuvert(true) }}
+        >
           <Select
             value={type ?? 'tous'}
             onValueChange={(valeur) =>
               setType(valeur === 'tous' ? undefined : (valeur as TypeClient))
             }
           >
-            <SelectTrigger className="w-[200px]" aria-label={t('clients:liste.filtres.type')}>
+            <SelectTrigger className="w-auto min-w-28" aria-label={t('clients:liste.filtres.type')}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>

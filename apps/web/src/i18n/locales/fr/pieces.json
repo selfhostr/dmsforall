@@ -389,6 +389,7 @@
     },
     "actions": {
       "creer": "Créer une commande",
+      "creerInfobulle": "Créer une commande fournisseur",
       "envoyer": "Envoyer",
       "receptionner": "Enregistrer une réception",
       "annulerReliquat": "Annuler le reliquat",
@@ -673,6 +674,7 @@
     },
     "actions": {
       "deposer": "Déposer une facture",
+      "deposerInfobulle": "Déposer une facture fournisseur",
       "voirDocument": "Voir le document",
       "valider": "Valider la facture fournisseur",
       "rejeter": "Rejeter",

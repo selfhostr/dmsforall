@@ -158,13 +158,12 @@ export function EcranListeDossiersVente() {
 
   const peutCreer = peutEcrireDossierVente(session?.actions);
 
-  const boutonNouveauDossier = peutCreer ? (
-    <Button asChild>
-      <Link to={chemins.ventes.dossiers.nouveau(site)}>
-        {t('ventes:commun.actions.nouveauDossier')}
-      </Link>
-    </Button>
-  ) : undefined;
+  const actionCreerDossier = peutCreer
+    ? {
+        libelle: t('ventes:commun.actions.creerDossier'),
+        to: chemins.ventes.dossiers.nouveau(site),
+      }
+    : undefined;
 
   const colonnes: ColonneComptoir<ReponseDossierVente>[] = [
     {
@@ -270,12 +269,11 @@ export function EcranListeDossiersVente() {
   // chantier) : rejoint la rangée filtres + tri ci-dessous, à sa suite, plutôt que de rester isolé.
   return (
     <GabaritEcran titre={t('ventes:dossier.liste.titre')}>
-      <div className="flex items-center gap-3">
         <BarreFiltres
+          actionCreer={actionCreerDossier}
           q={qSaisie}
           onChangeQ={setQSaisie}
           placeholderRecherche={t('ventes:dossier.liste.filtres.q')}
-          className="min-w-0 flex-1"
           tri={
             <SelecteurTri
               options={TRIS_DOSSIERS_VENTE.map((valeur) => ({
@@ -295,7 +293,7 @@ export function EcranListeDossiersVente() {
           >
             <SelectTrigger
               id="filtre-statut-dossier-vente"
-              className="w-auto min-w-44 shrink-0"
+              className="w-auto min-w-28 shrink-0"
               aria-label={t('ventes:dossier.liste.filtres.statutLabel')}
             >
               <SelectValue />
@@ -324,8 +322,6 @@ export function EcranListeDossiersVente() {
             </label>
           ) : null}
         </BarreFiltres>
-        {boutonNouveauDossier}
-      </div>
 
       <TableComptoir
         colonnes={colonnes}

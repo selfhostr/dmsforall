@@ -245,11 +245,12 @@ export function EcranListeVehiculesStock() {
   const colonnes = colonnesToutes.filter((c) => c.id !== 'emplacement' || afficherEmplacement);
 
   // « Mettre en stock » : à droite de la barre d'outils, indépendant des données de la requête.
-  const boutonMettreEnStock = peutEcrireVehiculeStock(actions) ? (
-    <Button onClick={() => navigate(chemins.ventes.stock.nouveau(site))}>
-      {t('ventes:stock.liste.actions.mettreEnStock')}
-    </Button>
-  ) : undefined;
+  const actionMettreEnStock = peutEcrireVehiculeStock(actions)
+    ? {
+        libelle: t('ventes:stock.liste.actions.mettreEnStock'),
+        onClick: () => navigate(chemins.ventes.stock.nouveau(site)),
+      }
+    : undefined;
 
   // Titres d'état vide nommant l'ABSENCE (jamais « Véhicules en parc », qui répéterait l'onglet
   // actif/le menu — même défaut que celui corrigé le 17.08.2026 sur `EcranListeFactures.tsx`).
@@ -292,12 +293,6 @@ export function EcranListeVehiculesStock() {
     // fait tomber la détection automatique juste dans les trois langues.
     <GabaritEcran
       titre={t('ventes:stock.liste.titre')}
-      actions={
-        <>
-          <BasculeAffichageStock affichage={affichage} onChangeAffichage={definirAffichage} />
-          {boutonMettreEnStock}
-        </>
-      }
       barre={
         <div className="flex flex-wrap items-center gap-3">
           <BarreFiltres
@@ -305,6 +300,10 @@ export function EcranListeVehiculesStock() {
             onChangeQ={setQSaisie}
             placeholderRecherche={t('ventes:stock.liste.rechercherPlaceholder')}
             className="min-w-0 flex-1 basis-[28rem]"
+            actionCreer={actionMettreEnStock}
+            actionsSecondaires={
+              <BasculeAffichageStock affichage={affichage} onChangeAffichage={definirAffichage} />
+            }
             tri={
               affichage === 'liste' ? (
                 <SelecteurTri
@@ -328,7 +327,7 @@ export function EcranListeVehiculesStock() {
             >
               <SelectTrigger
                 id="filtre-type-vehicule"
-                className="w-auto min-w-36 shrink-0"
+                className="w-auto min-w-28 shrink-0"
                 aria-label={t('ventes:stock.champs.typeVehicule')}
               >
                 <SelectValue />
@@ -352,7 +351,7 @@ export function EcranListeVehiculesStock() {
             >
               <SelectTrigger
                 id="filtre-statut-commercial"
-                className="w-auto min-w-36 shrink-0"
+                className="w-auto min-w-28 shrink-0"
                 aria-label={t('ventes:stock.champs.statutCommercial')}
               >
                 <SelectValue />
@@ -372,7 +371,7 @@ export function EcranListeVehiculesStock() {
             >
               <SelectTrigger
                 id="filtre-provenance"
-                className="w-auto min-w-36 shrink-0"
+                className="w-auto min-w-28 shrink-0"
                 aria-label={t('ventes:stock.champs.provenance')}
               >
                 <SelectValue />

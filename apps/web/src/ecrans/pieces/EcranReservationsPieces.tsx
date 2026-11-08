@@ -249,6 +249,7 @@ export function EcranReservationsPieces() {
           >
             <SelectTrigger
               id="filtre-statut-reservation"
+              className="w-auto min-w-28"
               aria-label={t('pieces:reservations.statut')}
             >
               <SelectValue />

@@ -173,7 +173,7 @@ export function EcranConsolePlateforme() {
             >
               <SelectTrigger
                 id="filtre-statut-garage"
-                className="w-[160px]"
+                className="w-auto min-w-28"
                 aria-label={t('console:plateforme.statutFiltre.label')}
               >
                 <SelectValue />

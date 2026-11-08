@@ -389,6 +389,7 @@
     },
     "actions": {
       "creer": "Bestellung erstellen",
+      "creerInfobulle": "Lieferantenbestellung erstellen",
       "envoyer": "Senden",
       "receptionner": "Empfang erfassen",
       "annulerReliquat": "Offene Menge stornieren",
@@ -673,6 +674,7 @@
     },
     "actions": {
       "deposer": "Rechnung hochladen",
+      "deposerInfobulle": "Lieferantenrechnung hochladen",
       "voirDocument": "Dokument anzeigen",
       "valider": "Lieferantenrechnung bestätigen",
       "rejeter": "Ablehnen",

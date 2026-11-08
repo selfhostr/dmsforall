@@ -1,6 +1,7 @@
 {
   "titre": "Véhicules",
   "nouveau": "Nouveau véhicule",
+  "creerInfobulle": "Créer un véhicule",
   "nouveauPourClient": "Ce véhicule sera rattaché à {nom}.",
   "creer": "Créer le véhicule",
   "liste": {
