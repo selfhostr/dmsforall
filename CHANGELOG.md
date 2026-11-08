@@ -2,20 +2,6 @@
 
 All notable changes to dmsforall are recorded here, for people who run it and for people who use it. Each entry says what changes for you. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/) until 1.0.
 
-## Unreleased
-
-### Added
-
-- **Sending e-mails.** Réglages › Envoi des e-mails lets each garage set its own sending server (Infomaniak, Gmail / Google Workspace, Microsoft 365 or another), with a test e-mail button. The password is encrypted and never shown again. Without its own setting a garage uses the server of the installation, and without either, the screen says "Not configured" and invoices or reminders are not sent. New variables `CLE_CHIFFREMENT_SECRETS` (key that encrypts the passwords) and `COURRIEL_RESEAU_PRIVE_AUTORISE`; see the [configuration reference](docs/reference/configuration.md). Migration 0098.
-
-### Changed
-
-- In production with no sending server at all, an e-mail is now reported as not sent instead of being silently set aside.
-
-### Fixed
-
-- **WinBIZ export proposes VAT codes for all Swiss rates.** The account mapping now suggests N81 (8.1 %), R26 (2.6 %) and H38 (3.8 %). WinBIZ publishes no default code list, so these are editable: change them in the mapping to match your WinBIZ VAT types.
-
 ## 0.3.0 (2026-11-08)
 
 This release adds the VAT status of the garage, several sites, activatable modules and invoice correction, and reshapes the dashboard. Read the upgrade notes before you update.
@@ -31,23 +17,27 @@ This release adds the VAT status of the garage, several sites, activatable modul
 - **Invoice correction.** An issued invoice cannot be edited. "Corriger" creates a full credit note and a new pre-filled draft to review and issue.
 - **Account menu and search.** Settings, theme, text size and language are in the account menu. Search is a menu entry.
 - **Complete demonstration data.** A demonstration data set covers the whole garage screen and can be reloaded at any time.
+- **Sending e-mails.** Réglages › Envoi des e-mails lets each garage set its own sending server (Infomaniak, Gmail / Google Workspace, Microsoft 365 or another), with a test e-mail button. The password is encrypted and never shown again. Without its own setting a garage uses the server of the installation, and without either, the screen says "Not configured" and invoices or reminders are not sent. New variables `CLE_CHIFFREMENT_SECRETS` (key that encrypts the passwords) and `COURRIEL_RESEAU_PRIVE_AUTORISE`; see the [configuration reference](docs/reference/configuration.md). Migration 0098.
 
 ### Changed
 
 - **Uniform interface.** Headers, one-line filters, sort by icon, entry forms in a side panel, common status badges, and a "?" help button on each screen.
 - **Time clock.** The PIN is only used at the time-clock terminal, not on the workshop screen.
 - **Roles.** The home screen, the terminal, the logo and the time clock only show and call what your role allows.
+- In production with no sending server at all, an e-mail is now reported as not sent instead of being silently set aside.
 
 ### Fixed
 
 - List titles are visible. Layouts of the used-car stock, the planning and the invoice sheet are corrected.
 - The VAT regime and the modules are readable by every role.
 - The start-up checklist asks for the street number, as issuing an invoice does.
+- **WinBIZ export proposes VAT codes for all Swiss rates.** The account mapping now suggests N81 (8.1 %), R26 (2.6 %) and H38 (3.8 %). WinBIZ publishes no default code list, so these are editable: change them in the mapping to match your WinBIZ VAT types.
 
 ### Upgrade notes
 
 - Existing garages are marked as subject to VAT, so nothing changes silently. A garage that is subject to VAT but has no VAT number saved can no longer issue invoices until it enters the number (or answers No if it is not subject to VAT).
-- Migrations 0089 to 0093 are reversible (`down/`): `entite_auditee.tenant` (audit of the company name), `tenant.assujetti_tva`, a main site and a short code per site, `tenant.modules_desactives`, `tenant.mode_signalement`.
+- Migrations 0089 to 0098 are reversible (`down/`): `entite_auditee.tenant` (audit of the company name), `tenant.assujetti_tva`, a main site and a short code per site, `tenant.modules_desactives`, `tenant.mode_signalement`, cancelling the acceptance of a quote, mandatory password change, a "first name last name" search index and the sending server settings. Number 0095 is unused.
+- Set `CLE_CHIFFREMENT_SECRETS` before a garage saves its own sending server: without it the password cannot be stored.
 
 ## 0.2.0 (2026-11-07)
 
