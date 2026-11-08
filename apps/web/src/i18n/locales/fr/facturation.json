@@ -187,7 +187,7 @@
         "reference": "Référence",
         "quantite": "Quantité",
         "prixUnitaire": "Prix unitaire TTC",
-        "prixUnitaireAide": "Prix TVA comprise, comme dans un devis. Soit {{ht}} hors TVA au taux choisi. Dans un OR, le prix se saisit hors TVA.",
+        "prixUnitaireAide": "Prix TVA comprise, comme dans un devis. Soit {ht} hors TVA au taux choisi. Dans un OR, le prix se saisit hors TVA.",
         "taux": "Taux de TVA",
         "datePrestation": "Date de prestation"
       },
@@ -212,6 +212,14 @@
         "exonere": "Exonéré — 0%",
         "exclu": "Exclu du champ de la TVA — 0%"
       }
+    },
+    "paiements": {
+      "titre": "Paiements",
+      "paye": "Déjà payé",
+      "solde": "Reste à payer",
+      "aucun": "Aucun paiement enregistré.",
+      "erreur": "Impossible de charger les paiements.",
+      "correctionParAvoir": "Un paiement enregistré ne s'efface pas : pour corriger une facture réglée, créez un avoir."
     },
     "documentsLies": {
       "titre": "Documents liés",
@@ -294,7 +302,7 @@
         "brouillon": {
           "titre": "Refaire la facture (avoir + nouveau brouillon)",
           "aide": "La facture est annulée par un avoir, puis un brouillon identique est créé. Vous le modifiez librement (lignes, prix, TVA) avant de l'émettre. La TVA suit le régime actuel de votre garage.",
-          "dejaRegle": "Indisponible : cette facture est déjà réglée en tout ou partie. Annulez d'abord le paiement."
+          "dejaRegle": "Indisponible : cette facture est déjà réglée en tout ou partie (voir la carte « Paiements » de la fiche). Créez un avoir pour l'annuler."
         }
       },
       "confirmerBrouillon": "Créer l'avoir et le brouillon",
@@ -330,7 +338,9 @@
       "montant": "Montant",
       "ajouter": "Ajouter un moyen de paiement",
       "retirer": "Retirer ce moyen de paiement",
-      "arrondi": "arrondi {ecart}"
+      "arrondi": "arrondi {ecart}",
+      "especesCinqCentimes": "Espèces : multiple de 5 centimes requis (pas de pièce de 1 ou 2 ct). Montant proposé : {propose}.",
+      "especesCinqCentimesGenerique": "Les espèces doivent être un multiple de 5 centimes."
     },
     "lignesInvalides": "Chaque moyen de paiement doit porter un montant supérieur à zéro.",
     "resteAEncaisser": "Reste à encaisser",

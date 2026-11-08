@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   ARRONDI_ESPECES_MAGNITUDE_MAX_CENTIMES,
   verifierArrondiEspeces,
+  verifierEspecesMultiple5,
   type ContexteVerificationArrondi,
 } from './arrondi-especes';
 
@@ -173,5 +174,28 @@ describe('verifierArrondiEspeces — arrondi vers le haut ET vers le bas (RF-52,
         }),
       ),
     ).toThrow(expect.objectContaining({ code: 'VALIDATION_ECHOUEE' }));
+  });
+});
+
+describe('verifierEspecesMultiple5 — recette #64 (espèces 100.03)', () => {
+  const base = {
+    moyenPaiement: 'especes',
+    devise: 'CHF',
+    arrondiEspecesActif: true,
+    montantCentimes: 10003n,
+  } as const;
+
+  it.each([10003n, 10001n, 10004n, 10007n, 1n])('refuse %s ct en espèces CHF', (montantCentimes) => {
+    expect(() => verifierEspecesMultiple5({ ...base, montantCentimes })).toThrow(/multiple de 5/);
+  });
+
+  it.each([10000n, 10005n, 5n, 1310005n])('accepte %s ct en espèces CHF', (montantCentimes) => {
+    expect(() => verifierEspecesMultiple5({ ...base, montantCentimes })).not.toThrow();
+  });
+
+  it('ne contraint ni la carte, ni une autre devise, ni un tenant sans arrondi', () => {
+    expect(() => verifierEspecesMultiple5({ ...base, moyenPaiement: 'carte' })).not.toThrow();
+    expect(() => verifierEspecesMultiple5({ ...base, devise: 'EUR' })).not.toThrow();
+    expect(() => verifierEspecesMultiple5({ ...base, arrondiEspecesActif: false })).not.toThrow();
   });
 });

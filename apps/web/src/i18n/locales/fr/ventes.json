@@ -42,6 +42,10 @@
       "vendre": "Vendre",
       "voirDossier": "Voir la vente",
       "assignerVehicule": "Assigner un véhicule",
+      "blocageDocument": {
+        "sansVehicule": "Assignez d'abord un véhicule au dossier : le document reprend son prix.",
+        "sansPrix": "Le véhicule n'a pas de prix de vente. Fixez son prix dans le stock avant de créer ce document."
+      },
       "creerBonCommande": "Créer le bon de commande",
       "creerDevis": "Créer un devis",
       "proposerFinancement": "Proposer un financement",

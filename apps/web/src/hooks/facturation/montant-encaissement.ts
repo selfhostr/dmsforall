@@ -130,3 +130,12 @@ function repartirSansArrondi(
   });
   return imputations;
 }
+
+/**
+ * Espèces saisies à la main qui ne sont pas un multiple de 5 centimes (aucune pièce de 1 ou 2 ct) :
+ * rendu `true` -> la ligne est refusée à l'écran (comme par l'API), jamais corrigée en douce. Le
+ * montant proposé (`arrondirA5Centimes`) est affiché dans le message.
+ */
+export function especesHorsCinqCentimes(moyen: MoyenPaiement, centimes: number | null): boolean {
+  return moyen === 'especes' && centimes !== null && centimes > 0 && centimes % 5 !== 0;
+}

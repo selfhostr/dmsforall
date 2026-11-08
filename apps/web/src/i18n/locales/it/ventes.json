@@ -42,6 +42,10 @@
       "vendre": "Vendere",
       "voirDossier": "Vedi la vendita",
       "assignerVehicule": "Assegnare un veicolo",
+      "blocageDocument": {
+        "sansVehicule": "Assegnare prima un veicolo alla pratica: il documento riprende il suo prezzo.",
+        "sansPrix": "Il veicolo non ha un prezzo di vendita. Fissare il prezzo nello stock prima di creare questo documento."
+      },
       "creerBonCommande": "Creare l'ordine di acquisto",
       "creerDevis": "Creare un preventivo",
       "proposerFinancement": "Proporre un finanziamento",

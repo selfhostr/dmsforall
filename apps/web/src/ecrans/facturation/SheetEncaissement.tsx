@@ -26,7 +26,12 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import { EtatChargement } from '@/composants/commun/EtatChargement';
 import { ChampMontant } from '@/composants/comptoir/ChampMontant';
 import { clesFacturation } from '@/hooks/facturation/cles';
-import { montantPourMoyen, repartirImputations } from '@/hooks/facturation/montant-encaissement';
+import {
+  arrondirA5Centimes,
+  especesHorsCinqCentimes,
+  montantPourMoyen,
+  repartirImputations,
+} from '@/hooks/facturation/montant-encaissement';
 import { useEncaissement } from '@/hooks/facturation/useEncaissement';
 import { useFacturesOuvertesClient } from '@/hooks/facturation/useFacturesOuvertesClient';
 import { formaterDate, formaterMontant, formaterMontantAvecDevise } from '@/lib/formats';
@@ -198,6 +203,10 @@ export function SheetEncaissement({
     totalSelectionneCentimes - sommeLignesCentimes + sommeEcartsCentimes;
   const tropPercuCentimes = sommeLignesCentimes - sommeEcartsCentimes - totalSelectionneCentimes;
 
+  const especesInvalides = lignes.some((ligne) =>
+    especesHorsCinqCentimes(ligne.moyen, ligne.montantCentimes),
+  );
+
   function basculerFacture(id: string) {
     setSelection((valeur) => {
       const suivant = new Set(valeur);
@@ -330,6 +339,10 @@ export function SheetEncaissement({
       lignes.some((ligne) => ligne.montantCentimes === null || ligne.montantCentimes <= 0)
     ) {
       setErreurGenerique(t('facturation:encaissement.lignesInvalides'));
+      return;
+    }
+    if (especesInvalides) {
+      setErreurGenerique(t('facturation:encaissement.lignes.especesCinqCentimesGenerique'));
       return;
     }
 
@@ -567,6 +580,15 @@ export function SheetEncaissement({
                             onChangeCentimes={(centimes) => modifierMontant(ligne.id, centimes)}
                             label={t('facturation:encaissement.lignes.montant')}
                             devise={deviseSelectionCommune}
+                            erreur={
+                              especesHorsCinqCentimes(ligne.moyen, ligne.montantCentimes)
+                                ? t('facturation:encaissement.lignes.especesCinqCentimes', {
+                                    propose: formaterMontant(
+                                      arrondirA5Centimes(ligne.montantCentimes ?? 0),
+                                    ),
+                                  })
+                                : undefined
+                            }
                           />
                           <Button
                             type="button"
@@ -638,7 +660,7 @@ export function SheetEncaissement({
                     <Button
                       type="button"
                       onClick={() => void soumettre()}
-                      disabled={enCours || lignes.length === 0}
+                      disabled={enCours || lignes.length === 0 || especesInvalides}
                     >
                       {enCours
                         ? t('facturation:encaissement.enCours')

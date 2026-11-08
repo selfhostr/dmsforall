@@ -10,6 +10,7 @@ import {
 } from '@dfa/shared';
 
 import { genererCleIdempotence } from '@/api/idempotence';
+import { AideContextuelle } from '@/composants/AideContextuelle';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label, LegendeChampsObligatoires } from '@/components/ui/label';
@@ -375,7 +376,10 @@ export function DialogueLigneDocumentVente({ documentId, ligne, enfantDeclencheu
                 valeurCentimes={etat.prixUnitaireCentimes}
                 onChangeCentimes={(centimes) => majEtat({ prixUnitaireCentimes: centimes })}
                 label={t('facturation:fiche.lignes.champs.prixUnitaire')}
-                aide={t('facturation:fiche.lignes.champs.prixUnitaireAide', {
+                aide={
+                  <AideContextuelle
+                    sujet={t('facturation:fiche.lignes.champs.prixUnitaire')}
+                    texte={t('facturation:fiche.lignes.champs.prixUnitaireAide', {
                   ht:
                     etat.prixUnitaireCentimes === null
                       ? '—'
@@ -386,6 +390,8 @@ export function DialogueLigneDocumentVente({ documentId, ligne, enfantDeclencheu
                           ),
                         ),
                 })}
+                  />
+                }
                 obligatoire={!estTexte}
                 disabled={estTexte}
               />

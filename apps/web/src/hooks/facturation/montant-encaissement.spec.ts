@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
-import { arrondirA5Centimes, montantPourMoyen, repartirImputations } from './montant-encaissement';
+import {
+  arrondirA5Centimes,
+  especesHorsCinqCentimes, montantPourMoyen, repartirImputations } from './montant-encaissement';
 
 describe('montantPourMoyen', () => {
   it('arrondit les espèces au 5 centimes et expose l’écart', () => {
@@ -148,5 +150,19 @@ describe('repartirImputations — règlement = espèces remises, arrondi signé,
     expect(imputations).toEqual([
       { documentId: 'f1', montantCentimes: 10944, nature: 'reglement' },
     ]);
+  });
+});
+
+describe('especesHorsCinqCentimes', () => {
+  it.each([10003, 10001, 10004, 10007])('refuse %i ct en espèces', (c) => {
+    expect(especesHorsCinqCentimes('especes', c)).toBe(true);
+  });
+  it.each([10000, 10005, 5])('accepte %i ct en espèces', (c) => {
+    expect(especesHorsCinqCentimes('especes', c)).toBe(false);
+  });
+  it('ne touche ni la carte, ni TWINT, ni un champ vide', () => {
+    expect(especesHorsCinqCentimes('carte', 10003)).toBe(false);
+    expect(especesHorsCinqCentimes('twint', 10003)).toBe(false);
+    expect(especesHorsCinqCentimes('especes', null)).toBe(false);
   });
 });

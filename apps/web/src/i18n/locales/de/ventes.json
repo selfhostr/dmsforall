@@ -42,6 +42,10 @@
       "vendre": "Verkaufen",
       "voirDossier": "Verkauf anzeigen",
       "assignerVehicule": "Fahrzeug zuweisen",
+      "blocageDocument": {
+        "sansVehicule": "Weisen Sie dem Dossier zuerst ein Fahrzeug zu: Das Dokument übernimmt dessen Preis.",
+        "sansPrix": "Das Fahrzeug hat keinen Verkaufspreis. Legen Sie den Preis im Lagerbestand fest, bevor Sie dieses Dokument erstellen."
+      },
       "creerBonCommande": "Bestellung erstellen",
       "creerDevis": "Kostenvoranschlag erstellen",
       "proposerFinancement": "Finanzierung vorschlagen",
