@@ -35,6 +35,7 @@
     "AUTH_ORIGINE_REFUSEE": "Richiesta bloccata per sicurezza. Ricarichi la pagina; se si ripete, avvisi il supporto.",
     "DROIT_INSUFFISANT": "Il suo ruolo non consente questa azione. Chieda alla direzione di abilitarla o la faccia eseguire da un collega autorizzato.",
     "MODULE_DESACTIVE": "Questo modulo è stato rimosso per la vostra autorimessa. La direzione può riattivarlo in Impostazioni > Moduli.",
+    "SERVICE_LECTURE_INDISPONIBLE": "Il servizio di lettura delle licenze di circolazione non risponde al momento. Riprovi tra poco, oppure inserisca il veicolo a mano.",
     "RESSOURCE_INTROUVABLE": "Questo elemento non esiste più o è stato eliminato. Torni all'elenco e lo cerchi di nuovo.",
     "CONFLIT": "Nel frattempo qualcuno ha modificato questo elemento. Ricarichi la pagina per vedere la versione attuale e ripeta la modifica.",
     "ERREUR_INTERNE": "Si è verificato un problema imprevisto. Riprovi tra poco; se ritorna, avvisi il supporto indicando l'ora.",

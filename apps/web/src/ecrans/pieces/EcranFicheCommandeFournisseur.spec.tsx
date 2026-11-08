@@ -70,6 +70,9 @@ function rendre(role: (typeof SESSION_TEST)['utilisateur']['role'] = 'magasinier
     ),
     http.get('/api/v1/commandes-fournisseur/cmd-1', () => HttpResponse.json(COMMANDE)),
     http.get('/api/v1/fournisseurs/fourn-1', () => HttpResponse.json(FOURNISSEUR)),
+    http.get('/api/v1/articles/article-1', () =>
+      HttpResponse.json({ id: 'article-1', designation: 'Plaquettes de frein avant' }),
+    ),
   );
   const queryClient = creerQueryClientTest();
   render(
@@ -93,6 +96,31 @@ describe('EcranFicheCommandeFournisseur', () => {
     expect(await screen.findByText('Bosch Service SA')).toBeInTheDocument();
     expect(screen.getByText('Envoyée')).toBeInTheDocument();
     expect(screen.getByText('20.00')).toBeInTheDocument(); // montant attendu : 5 x 4.00
+  });
+
+  it('nomme la ligne par la désignation de l’article, et les champs de réception aussi', async () => {
+    rendre('magasinier');
+    const utilisateur = userEvent.setup();
+
+    expect(await screen.findByRole('link', { name: 'Plaquettes de frein avant' })).toBeVisible();
+
+    await utilisateur.click(await screen.findByRole('button', { name: 'Modifier' }));
+    await utilisateur.click(
+      await screen.findByRole('menuitem', { name: 'Enregistrer une réception' }),
+    );
+    const dialogue = await screen.findByRole('dialog');
+    await utilisateur.click(within(dialogue).getByRole('checkbox'));
+
+    expect(
+      within(dialogue).getByRole('textbox', {
+        name: 'Quantité reçue — Ligne 1 — Plaquettes de frein avant',
+      }),
+    ).toBeInTheDocument();
+    expect(
+      within(dialogue).getByRole('textbox', {
+        name: "Prix d'achat réel — Ligne 1 — Plaquettes de frein avant",
+      }),
+    ).toBeInTheDocument();
   });
 
   it('un magasinier peut réceptionner une ligne, avec quantité et prix réel', async () => {

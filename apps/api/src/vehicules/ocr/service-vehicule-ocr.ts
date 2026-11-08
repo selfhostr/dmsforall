@@ -151,9 +151,10 @@ export class ServiceVehiculeOcr {
       if (echec?.code === 'FORMAT_NON_SUPPORTE') {
         throw new ErreurMetier('VALIDATION_ECHOUEE', echec.message);
       }
-      throw new ErreurMetier('ERREUR_INTERNE', 'Service OCR indisponible, réessayez.', {
-        status: 503,
-      });
+      throw new ErreurMetier(
+        'SERVICE_LECTURE_INDISPONIBLE',
+        'Service OCR indisponible, réessayez.',
+      );
     }
 
     return this.acces.enTenant(ctx, async (tx) => {

@@ -7079,7 +7079,8 @@ export interface components {
         | 'FACTURE_DEJA_CORRIGEE'
         | 'FACTURE_CORRECTION_REGLEMENT_EXISTANT'
         | 'MODULE_DESACTIVE'
-        | 'AUTH_CHANGEMENT_MOT_DE_PASSE_REQUIS';
+        | 'AUTH_CHANGEMENT_MOT_DE_PASSE_REQUIS'
+        | 'SERVICE_LECTURE_INDISPONIBLE';
       /** @description Détail technique — jamais affiché à l'utilisateur final. */
       detail?: string;
       erreurs?: components['schemas']['ErreurChampCommunDto'][];
@@ -7227,7 +7228,8 @@ export interface components {
         | 'FACTURE_DEJA_CORRIGEE'
         | 'FACTURE_CORRECTION_REGLEMENT_EXISTANT'
         | 'MODULE_DESACTIVE'
-        | 'AUTH_CHANGEMENT_MOT_DE_PASSE_REQUIS';
+        | 'AUTH_CHANGEMENT_MOT_DE_PASSE_REQUIS'
+        | 'SERVICE_LECTURE_INDISPONIBLE';
       detail?: string;
       erreurs?: components['schemas']['ErreurChampDto'][];
       instance: string;

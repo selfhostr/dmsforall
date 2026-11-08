@@ -236,6 +236,17 @@ describe('statutApresEchecEnvoi — §6.1/§8, politique de réessai', () => {
     }
   });
 
+  it.each(['canal_non_supporte', 'destinataire_invalide'])(
+    'echouee tout de suite pour %s : un réessai ne peut rien changer',
+    (raison) => {
+      expect(statutApresEchecEnvoi(1, raison)).toBe('echouee');
+    },
+  );
+
+  it('une raison transitoire (quota_depasse) reste retentable', () => {
+    expect(statutApresEchecEnvoi(1, 'quota_depasse')).toBe('prete');
+  });
+
   it('echouee (définitif) une fois les tentatives épuisées', () => {
     expect(statutApresEchecEnvoi(NOMBRE_MAX_TENTATIVES_ENVOI)).toBe('echouee');
     expect(statutApresEchecEnvoi(NOMBRE_MAX_TENTATIVES_ENVOI + 1)).toBe('echouee');

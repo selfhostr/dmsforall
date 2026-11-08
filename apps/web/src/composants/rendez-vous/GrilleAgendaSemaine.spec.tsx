@@ -37,6 +37,21 @@ function construireRendezVous(overrides: Partial<RendezVousCarte> = {}): RendezV
 }
 
 describe('GrilleAgendaSemaine', () => {
+  it('structure ARIA valide : chaque cellule est dans une ligne, elle-même dans la grille', () => {
+    const jours = Array.from({ length: 3 }, (_, index) =>
+      construireJour({ dateIso: `2026-08-1${index}`, date: new Date(2026, 7, 10 + index) }),
+    );
+    render(
+      <GrilleAgendaSemaine jours={jours} onCliquerJour={vi.fn()} onOuvrirRendezVous={vi.fn()} />,
+    );
+    const cellules = screen.getAllByRole('gridcell');
+    expect(cellules).toHaveLength(3);
+    for (const cellule of cellules) {
+      expect(cellule.parentElement).toHaveAttribute('role', 'row');
+      expect(cellule.parentElement?.parentElement).toHaveAttribute('role', 'grid');
+    }
+  });
+
   it('rend sept jours avec un aria-label complet (jamais un chiffre isolé)', () => {
     const jours = Array.from({ length: 7 }, (_, index) =>
       construireJour({ dateIso: `2026-08-1${index}`, date: new Date(2026, 7, 10 + index) }),

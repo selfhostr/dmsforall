@@ -18,6 +18,7 @@ import { EtatErreur } from '@/composants/commun/EtatErreur';
 import { FilAriane, type SegmentFilAriane } from '@/composants/layout/FilAriane';
 import { GabaritEcran } from '@/composants/motifs/GabaritEcran';
 import { useCommandeFournisseur } from '@/hooks/pieces/useCommandeFournisseur';
+import { useDesignationsArticles } from '@/hooks/pieces/useDesignationsArticles';
 import { useFournisseur } from '@/hooks/pieces/useFournisseur';
 import {
   useAnnulerCommandeFournisseur,
@@ -74,6 +75,10 @@ export function EcranFicheCommandeFournisseur() {
   const requeteCommande = useCommandeFournisseur(session.isLoading || !peutLire ? undefined : id);
   const commande = requeteCommande.data;
   const requeteFournisseur = useFournisseur(commande?.fournisseurId);
+
+  const designations = useDesignationsArticles(
+    commande?.lignes.map((ligne) => ligne.articleId) ?? [],
+  );
 
   const envoyer = useEnvoyerCommandeFournisseur(id ?? '');
   const annuler = useAnnulerCommandeFournisseur(id ?? '');
@@ -306,7 +311,8 @@ export function EcranFicheCommandeFournisseur() {
                   to={`/pieces/articles/${ligne.articleId}`}
                   className="font-medium text-primary underline"
                 >
-                  {t('pieces:commandes.lignes.article')} {ligne.numeroOrdre}
+                  {designations.get(ligne.articleId) ??
+                    `${t('pieces:commandes.lignes.article')} ${ligne.numeroOrdre}`}
                 </Link>
                 {ligne.quantiteReliquatMillieme > 0 &&
                 ligne.reliquatAnnuleLe === null &&
