@@ -14,6 +14,7 @@ import type {
   ReponseDevisComplementaire,
   ReponseOrdreReparation,
   ReponseOrdreReparationDemande,
+  ReponsePretCourtoisie,
   TotauxPayeurOr,
 } from '@dfa/shared';
 
@@ -59,6 +60,7 @@ import type { ServiceCompteurs } from '../parametrage/compteurs/compteurs.types'
 import { JETON_LECTURE_POINTAGE, type LecturePointage } from './atelier.jetons';
 import { verifierConfirmation } from './confirmations';
 import { calculerActionsDisponiblesPourRole, calculerEtatAffiche } from './etat-affiche';
+import { chargerPretsParOr } from './courtoisie/pret-or';
 import { convertirEnKm } from './kilometrage';
 import {
   chargerLotListeOr,
@@ -83,7 +85,6 @@ import {
 } from './or-requetes';
 import {
   chargerClientLigne,
-  enregistrerReleveReception,
   chargerParametresAtelier,
   chargerPlaqueCourante,
   chargerResumesUtilisateurs,
@@ -299,17 +300,6 @@ export class ServiceOr {
     }
 
     if (ligne.statut === 'ouvert') {
-      if (entree.kilometrageEntree != null && kilometrageEntreeKm !== null) {
-        await enregistrerReleveReception(tx, ctx, {
-          vehiculeId: entree.vehiculeId,
-          orId: ligne.id,
-          valeur: entree.kilometrageEntree,
-          unite: entree.uniteKilometrage,
-          valeurKm: kilometrageEntreeKm,
-          releveLe: maintenant,
-          saisiParId: principal.utilisateurId,
-        });
-      }
       await this.evenements.publier(tx, ctx, {
         type: 'ordre_reparation.ouvert',
         versionSchema: 1,
@@ -1030,6 +1020,12 @@ export class ServiceOr {
     if (ors.length === 0) return [];
     const voitMontants = roleVoitLesMontants(role);
     const lot = await chargerLotListeOr(tx, ctx, ors, voitMontants);
+    const prets = await chargerPretsParOr(
+      tx,
+      ctx,
+      ors.map((o) => o.id),
+      this.horloge.maintenant(),
+    );
     const resumePour = (id: string | null) => (id ? (lot.utilisateurs.get(id) ?? null) : null);
 
     return ors.map((or) => {
@@ -1049,6 +1045,7 @@ export class ServiceOr {
         lignesToutes,
         controle: lot.controles.get(or.id) ?? null,
         nombrePointagesOuverts: lot.pointagesOuverts.get(or.id) ?? 0,
+        pret: prets.get(or.id) ?? null,
         modifiePar: null,
         totauxParPayeur: voitMontants
           ? calculerTotauxParPayeur(
@@ -1152,6 +1149,8 @@ export class ServiceOr {
       ? await this.calculerTotauxAvecDestinataires(tx, ctx, lignesToutes, clientResume)
       : undefined;
 
+    const prets = await chargerPretsParOr(tx, ctx, [or.id], this.horloge.maintenant());
+
     return this.construireReponse({
       or,
       clientResume,
@@ -1162,6 +1161,7 @@ export class ServiceOr {
       lignesToutes,
       controle,
       nombrePointagesOuverts: pointagesOuverts.length,
+      pret: prets.get(or.id) ?? null,
       modifiePar,
       totauxParPayeur,
       role,
@@ -1185,6 +1185,7 @@ export class ServiceOr {
       devis,
       lignesToutes,
       controle,
+      pret,
       modifiePar,
       totauxParPayeur,
       role,
@@ -1303,6 +1304,7 @@ export class ServiceOr {
           }
         : null,
       signatures: [],
+      pret,
       // `pointagesOuverts` : réel, câblé sur le port FIGÉ `LecturePointage.pointagesOuvertsPourOr`
       // (même appel que la garde I-09), donc sans écart de connexion supplémentaire (§ note
       // ci-dessus). `totalCentiemes`/`parTechnicien` RESTENT à zéro/vide, SIGNALÉ : `LecturePointage`
@@ -1507,6 +1509,7 @@ interface EntreeConstructionReponseOr {
   readonly lignesToutes: readonly LigneLigneOr[];
   readonly controle: LigneOrControleQualite | null;
   readonly nombrePointagesOuverts: number;
+  readonly pret: ReponsePretCourtoisie | null;
   readonly modifiePar: ResumeUtilisateur | null;
   readonly totauxParPayeur: readonly TotauxPayeurOr[] | undefined;
   readonly role: PrincipalAuthentifie['role'];

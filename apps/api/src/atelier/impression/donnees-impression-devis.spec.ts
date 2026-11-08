@@ -133,6 +133,7 @@ function ordreReparationFixture(
     devisComplementaires: [],
     controleQualite: null,
     signatures: [],
+    pret: null,
     cumulsPointage: { totalCentiemes: 0, parTechnicien: [], pointagesOuverts: 0 },
     totauxParPayeur: [],
     attentes: { accord: true, pieces: false, externe: false },
