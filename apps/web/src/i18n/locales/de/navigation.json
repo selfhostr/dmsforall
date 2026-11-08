@@ -93,10 +93,7 @@
     "titre": "Design",
     "clair": "Hell",
     "sombre": "Dunkel",
-    "systeme": "System",
-    "passerSysteme": "Dem System-Design folgen",
-    "passerClair": "Zu hellem Design wechseln",
-    "passerSombre": "Zu dunklem Design wechseln"
+    "systeme": "System"
   },
   "pied": {
     "version": "Version {info}"
@@ -105,10 +102,22 @@
     "entree": "Garage einrichten",
     "pastille": "Garage noch einzurichten"
   },
-  "rangee": {
-    "aria": "Schnelleinstellungen"
-  },
   "signalement": {
     "entree": "Problem melden"
+  },
+  "taille": {
+    "titre": "Textgrösse",
+    "auto": "Automatisch",
+    "compacte": "Kompakt",
+    "aeree": "Luftig"
+  },
+  "version": {
+    "installee": "Version {version}",
+    "disponible": "Version {version} verfügbar",
+    "pastille": "Neue Version verfügbar"
+  },
+  "externes": {
+    "documentation": "Dokumentation",
+    "codeSource": "Quellcode (GitHub)"
   }
 }
