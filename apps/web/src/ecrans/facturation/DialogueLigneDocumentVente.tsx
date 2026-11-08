@@ -378,18 +378,17 @@ export function DialogueLigneDocumentVente({ documentId, ligne, enfantDeclencheu
                 label={t('facturation:fiche.lignes.champs.prixUnitaire')}
                 aide={
                   <AideContextuelle
-                    sujet={t('facturation:fiche.lignes.champs.prixUnitaire')}
                     texte={t('facturation:fiche.lignes.champs.prixUnitaireAide', {
-                  ht:
-                    etat.prixUnitaireCentimes === null
-                      ? '—'
-                      : formaterMontant(
-                          Math.round(
-                            (etat.prixUnitaireCentimes * 1000) /
-                              (1000 + OPTIONS_TAUX[etat.clefTaux].tauxTvaPourmille),
-                          ),
-                        ),
-                })}
+                      ht:
+                        etat.prixUnitaireCentimes === null
+                          ? '—'
+                          : formaterMontant(
+                              Math.round(
+                                (etat.prixUnitaireCentimes * 1000) /
+                                  (1000 + OPTIONS_TAUX[etat.clefTaux].tauxTvaPourmille),
+                              ),
+                            ),
+                    })}
                   />
                 }
                 obligatoire={!estTexte}

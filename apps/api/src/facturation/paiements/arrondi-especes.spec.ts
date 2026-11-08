@@ -185,9 +185,12 @@ describe('verifierEspecesMultiple5 — recette #64 (espèces 100.03)', () => {
     montantCentimes: 10003n,
   } as const;
 
-  it.each([10003n, 10001n, 10004n, 10007n, 1n])('refuse %s ct en espèces CHF', (montantCentimes) => {
-    expect(() => verifierEspecesMultiple5({ ...base, montantCentimes })).toThrow(/multiple de 5/);
-  });
+  it.each([10003n, 10001n, 10004n, 10007n, 1n])(
+    'refuse %s ct en espèces CHF',
+    (montantCentimes) => {
+      expect(() => verifierEspecesMultiple5({ ...base, montantCentimes })).toThrow(/multiple de 5/);
+    },
+  );
 
   it.each([10000n, 10005n, 5n, 1310005n])('accepte %s ct en espèces CHF', (montantCentimes) => {
     expect(() => verifierEspecesMultiple5({ ...base, montantCentimes })).not.toThrow();

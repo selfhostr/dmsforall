@@ -2,7 +2,10 @@ import { describe, expect, it } from 'vitest';
 
 import {
   arrondirA5Centimes,
-  especesHorsCinqCentimes, montantPourMoyen, repartirImputations } from './montant-encaissement';
+  especesHorsCinqCentimes,
+  montantPourMoyen,
+  repartirImputations,
+} from './montant-encaissement';
 
 describe('montantPourMoyen', () => {
   it('arrondit les espèces au 5 centimes et expose l’écart', () => {

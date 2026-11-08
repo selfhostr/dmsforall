@@ -17,7 +17,9 @@ interface Props {
  *  remboursé ou contre-passé porte un montant négatif : il apparaît tel quel, en négatif. */
 export function montantImputeAuDocument(paiement: ReponsePaiement, documentId: string): number {
   return paiement.imputations
-    .filter((imputation) => imputation.documentId === documentId && imputation.nature === 'reglement')
+    .filter(
+      (imputation) => imputation.documentId === documentId && imputation.nature === 'reglement',
+    )
     .reduce((somme, imputation) => somme + imputation.montantCentimes, 0);
 }
 

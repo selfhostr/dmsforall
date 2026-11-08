@@ -584,7 +584,11 @@ describe('EcranFicheDossierVente', () => {
 
     server.use(
       http.get('/api/v1/dossiers-vente/dossier-1', () =>
-        HttpResponse.json({ ...DOSSIER, documents: documentsDossier }),
+        HttpResponse.json({
+          ...DOSSIER,
+          vehicule: construireVehiculeStock(),
+          documents: documentsDossier,
+        }),
       ),
       http.post('/api/v1/documents-vente', async ({ request }) => {
         corpsRecu = (await request.json()) as Record<string, unknown>;
@@ -609,6 +613,10 @@ describe('EcranFicheDossierVente', () => {
       siteId: 'site-1',
       clientId: 'client-1',
     });
+    // Le prix du véhicule (45'000.00 = 4500000 ct) est reporté sur une ligne, jamais 0.00.
+    expect(corpsRecu?.lignes).toMatchObject([
+      { designation: 'VW Golf 8 GTI', quantiteMillieme: 1000, prixUnitaireTtcCentimes: 4_500_000 },
+    ]);
 
     // Le dossier refetché (invalidation post-création) porte désormais le bon de commande : le
     // message d'état vide disparaît au profit du sélecteur.
@@ -638,6 +646,7 @@ describe('EcranFicheDossierVente', () => {
       http.get('/api/v1/dossiers-vente/dossier-1', () =>
         HttpResponse.json({
           ...DOSSIER,
+          vehicule: construireVehiculeStock(),
           statut: 'pret_a_livrer',
           actionsDisponibles: ['livrer'],
           documents: documentsDossier,
@@ -666,6 +675,9 @@ describe('EcranFicheDossierVente', () => {
       siteId: 'site-1',
       clientId: 'client-1',
     });
+    expect(corpsRecu?.lignes).toMatchObject([
+      { designation: 'VW Golf 8 GTI', quantiteMillieme: 1000, prixUnitaireTtcCentimes: 4_500_000 },
+    ]);
 
     // Le lien apparaît immédiatement (via `factureCreeeId`, pas d'attente du refetch) et pointe
     // vers l'écran facturation où le vendeur ajoute les lignes et émet le document.
@@ -720,7 +732,9 @@ describe('EcranFicheDossierVente', () => {
   // avec un message actionnable — pas un échec silencieux ni un `ERREUR_INTERNE` générique.
   it('rattachement refusé par le serveur (409) : message explicite, pas un échec silencieux', async () => {
     server.use(
-      http.get('/api/v1/dossiers-vente/dossier-1', () => HttpResponse.json(DOSSIER)),
+      http.get('/api/v1/dossiers-vente/dossier-1', () =>
+        HttpResponse.json({ ...DOSSIER, vehicule: construireVehiculeStock() }),
+      ),
       http.post('/api/v1/documents-vente', () =>
         HttpResponse.json(
           {
@@ -747,4 +761,41 @@ describe('EcranFicheDossierVente', () => {
       ),
     ).toBeInTheDocument();
   });
+
+  // Recette #64 : un dossier sans prix ne doit jamais produire un bon de commande à 0.00 — le
+  // blocage est métier, affiché avant tout appel, en UN SEUL message.
+  it.each([
+    [
+      'véhicule sans prix',
+      { ...construireVehiculeStock(), prixVenteAfficheCentimes: null },
+      "Le véhicule n'a pas de prix de vente. Fixez son prix dans le stock avant de créer ce document.",
+    ],
+    [
+      'aucun véhicule',
+      null,
+      "Assignez d'abord un véhicule au dossier : le document reprend son prix.",
+    ],
+  ])(
+    '%s : « Créer le bon de commande » est bloqué avant tout appel',
+    async (_nom, vehicule, message) => {
+      let appels = 0;
+      server.use(
+        http.get('/api/v1/dossiers-vente/dossier-1', () =>
+          HttpResponse.json({ ...DOSSIER, vehicule, documents: [] }),
+        ),
+        http.post('/api/v1/documents-vente', () => {
+          appels += 1;
+          return HttpResponse.json({}, { status: 500 });
+        }),
+      );
+
+      rendre();
+      const utilisateur = userEvent.setup();
+      await utilisateur.click(await screen.findByRole('button', { name: 'Engager' }));
+
+      expect(await screen.findByText(message)).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Créer le bon de commande' })).toBeDisabled();
+      expect(appels).toBe(0);
+    },
+  );
 });

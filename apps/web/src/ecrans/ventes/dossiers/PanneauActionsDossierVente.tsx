@@ -374,7 +374,9 @@ export function PanneauActionsDossierVente({ dossier }: Props) {
                     </Button>
                     {creationBonCommande.blocage ? (
                       <p className="texte-libelle text-destructive" role="alert">
-                        {t(`ventes:dossier.transitions.blocageDocument.${creationBonCommande.blocage}`)}
+                        {t(
+                          `ventes:dossier.transitions.blocageDocument.${creationBonCommande.blocage}`,
+                        )}
                       </p>
                     ) : null}
                     {creationBonCommande.erreur ? (

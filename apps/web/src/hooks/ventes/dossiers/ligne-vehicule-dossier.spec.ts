@@ -13,7 +13,7 @@ function dossierAvecPrix(prix: number | null) {
 }
 
 describe('ligneVehiculeDuDossier', () => {
-  it('reporte le prix du véhicule (24\'900.00 = 2490000 ct) sur une ligne de quantité 1', () => {
+  it("reporte le prix du véhicule (24'900.00 = 2490000 ct) sur une ligne de quantité 1", () => {
     const r = ligneVehiculeDuDossier(dossierAvecPrix(2490000), '2026-11-08');
     expect(r.blocage).toBeNull();
     expect(r.ligne).toEqual({
