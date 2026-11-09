@@ -12,9 +12,9 @@ docker compose ps
 
 ## L'API non si avvia
 
-**Messaggio: `Configuration invalide`.** Il log elenca ogni variabile non valida, con il motivo. Corregga ciascuna in `.env`, poi esegua di nuovo `docker compose up -d`. Con il file Compose standard incontra raramente questo errore, perché la connessione al database e le chiavi sono già impostate.
+**Messaggio: `Invalid configuration`.** Il log elenca ogni variabile non valida, con il motivo. Corregga ciascuna in `.env`, poi esegua di nuovo `docker compose up -d`. Con il file Compose standard incontra raramente questo errore, perché la connessione al database e le chiavi sono già impostate.
 
-**Il messaggio dice `COOKIE_SECURE doit être true en production`.** Rimuova la riga `COOKIE_SECURE=false` da `.env`. Il cookie di sessione deve essere inviato tramite HTTPS.
+**Il messaggio dice `COOKIE_SECURE must be true in production`.** Rimuova la riga `COOKIE_SECURE=false` da `.env`. Il cookie di sessione deve essere inviato tramite HTTPS.
 
 **Il messaggio dice che viene usata una password di sviluppo.** L'URL del database contiene `dfa_app_dev` o `dfa_migrator_dev`. Ha impostato lei stesso `DATABASE_URL` con le password di sviluppo. Rimuova `DATABASE_URL` e `DATABASE_URL_MIGRATION` da `.env`: lo stack le costruisce a partire dalle password generate.
 

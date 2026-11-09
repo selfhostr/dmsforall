@@ -9,7 +9,7 @@ At the end of this page, the stack runs on your server, and you have checked tha
 
 ## Requirements
 
-- Docker Engine and Docker Compose v2.
+- Docker Engine and Docker Compose 2.24 or later.
 - For HTTPS on a domain: a DNS name that points to the server, and ports 80 and 443 open to the Internet.
 - Disk space for the PostgreSQL data, the backups and the uploaded documents.
 

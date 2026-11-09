@@ -9,8 +9,8 @@ dmsforall usa le parole che un'autorimessa svizzera usa ogni giorno. Questa pagi
 | ---------------------------- | -------------------------------------------------------------------------------------------------------------------- | ---------------------------- | -------------------------- |
 | **OR** (ordre de réparation) | La scheda di lavoro di un veicolo, dalla consegna alla riconsegna. Detta anche ordine di riparazione.                | Reparaturauftrag (RA)        | ordine di riparazione (OR) |
 | **MFK** (expertise)          | La revisione ufficiale svizzera del veicolo (contrôle technique). Scade a intervalli regolari.                       | MFK (Motorfahrzeugkontrolle) | collaudo (MFK)             |
-| **VN** (véhicule neuf)       | Un'auto nuova, mai immatricolata prima della vendita.                                                                | Neuwagen (VN)                | auto nuova (VN)            |
-| **VO** (véhicule d'occasion) | Un'auto usata, già utilizzata, venduta dall'autorimessa o ritirata come permuta.                                     | Occasion (VO)                | auto d'occasione (VO)      |
+| **VN** (véhicule neuf)       | Un'auto nuova, mai immatricolata prima della vendita.                                                                | Neuwagen (VN)                | veicolo nuovo (VN)         |
+| **VO** (véhicule d'occasion) | Un'auto usata, già utilizzata, venduta dall'autorimessa o ritirata come permuta.                                     | Occasion (VO)                | veicolo usato (VO)         |
 | **QR-facture**               | La polizza di pagamento svizzera con codice QR, scansionata nell'e-banking per pagare una fattura.                   | QR-Rechnung                  | QR-fattura                 |
 | **Avoir**                    | Una nota di credito che annulla in tutto o in parte una fattura emessa. Una fattura emessa non viene mai modificata. | Gutschrift                   | nota di credito            |
 

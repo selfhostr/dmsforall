@@ -5,6 +5,8 @@ description: Den dmsforall-Stack mit Docker Compose starten und die Web-Oberflä
 
 Am Ende dieser Seite läuft der dmsforall-Stack auf Ihrem Rechner oder Server, und Sie können die Web-Oberfläche im Browser öffnen.
 
+Sie brauchen Docker Engine und Docker Compose 2.24 oder neuer. Die [Installationsseite](installation.md) nennt die übrigen Voraussetzungen.
+
 ## Schritte
 
 1. Laden Sie die Compose-Datei herunter. Sie ist die einzige Datei, die Sie brauchen.
