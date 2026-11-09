@@ -3,7 +3,7 @@
 # the server major version.
 #
 #   docker compose --profile backup up -d     (AGE_CLE_PUBLIQUE must be set, see .env.example)
-FROM postgres:16-alpine@sha256:0cefaabd882e42bcb2a2f3dc56d3ce4770560ba62fd7f197f1a2e008fd5731ab
+FROM postgres:18-alpine@sha256:123b17998ccaf47e53b502e8c6a1e79afd8f579c6f3eec83c563da026f957395
 
 # bash and coreutils: the scripts use bash features and GNU date. age encrypts the dumps and the
 # archive of uploaded files (busybox tar and gzip are already in the base image).
