@@ -2,7 +2,9 @@
 
 All notable changes to dmsforall are recorded here, for people who run it and for people who use it. Each entry says what changes for you. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/) until 1.0.
 
-## Unreleased
+## 0.3.1 (2026-11-09)
+
+A short release after 0.3.0: a Compose version requirement, clearer start-up messages and a fix to the vehicle form.
 
 ### Changed
 
@@ -12,6 +14,12 @@ All notable changes to dmsforall are recorded here, for people who run it and fo
 - **E-mail sending turns on by itself** once `DFA_SMTP_HOST` is set. `DFA_SMTP_ENABLED` and `DFA_SECRETS_KEY` no longer exist.
 - **Backups need no clone.** The nightly backup runs from a published image, `ghcr.io/selfhostr/dmsforall-backup`.
 - **Tidier repository.** Developer files moved out of the root: `docker/compose.dev.yml`, `docker/compose.build.yml`, `docker/dev.env.example`, `docs/development/architecture.md` and `docs/development/design.md`.
+- **Docker Compose 2.24 or later.** Install Docker Engine and Docker Compose 2.24 or a more recent version before you start the stack.
+- **English start-up messages.** When a setting is invalid, the API and the worker now explain the problem in English in their logs, the language of the other administration messages. The troubleshooting guide quotes them as written.
+
+### Fixed
+
+- **Vehicle form, brand field.** When the brand field is empty, it suggests the common brands instead of showing "no match".
 
 ## 0.3.0 (2026-11-08)
 
