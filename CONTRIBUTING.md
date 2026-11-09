@@ -7,9 +7,9 @@ Thank you for helping. This page explains how to run dmsforall for development, 
 You need Node.js 22 or later, pnpm 11 (pinned in `package.json`) and Docker with Compose v2. Docker runs PostgreSQL 16 and Valkey for development. The API and the web interface run on your host.
 
 ```sh
-cp .env.example .env
+cp docker/dev.env.example .env
 pnpm install
-pnpm docker:up        # PostgreSQL and Valkey (docker-compose.dev.yml, project dmsforall-dev)
+pnpm docker:up        # PostgreSQL and Valkey (docker/compose.dev.yml, project dmsforall-dev)
 pnpm db:migrate       # apply the migrations
 pnpm db:seed          # load a demo garage
 pnpm dev              # API on http://localhost:3000, web on http://localhost:5173
@@ -17,7 +17,7 @@ pnpm dev              # API on http://localhost:3000, web on http://localhost:51
 
 Open http://localhost:5173. The API documentation is available on http://localhost:3000/api/docs only when `OPENAPI_EXPOSER_DOCS=true` is set in `.env`.
 
-Only one `.env` file exists, at the repository root. Vite reads `VITE_*` variables from it. Do not create `apps/web/.env`.
+Only one `.env` file exists, at the repository root. `.env.example` at the root is for people who install the product, not for development. Vite reads `VITE_*` variables from it. Do not create `apps/web/.env`.
 
 ### Demo accounts
 

@@ -8,7 +8,7 @@ The full guide is [CONTRIBUTING.md](https://github.com/selfhostr/dmsforall/blob/
 ## Set up a development environment
 
 ```sh
-cp .env.example .env
+cp docker/dev.env.example .env
 pnpm install
 pnpm docker:up
 pnpm db:migrate
@@ -16,7 +16,7 @@ pnpm db:seed
 pnpm dev
 ```
 
-`pnpm docker:*` drives `docker-compose.dev.yml`, which uses the Compose project name `dmsforall-dev`. It starts PostgreSQL and Valkey only. Add `--profile containers` to run the whole development stack in containers.
+`pnpm docker:*` drives `docker/compose.dev.yml`, which uses the Compose project name `dmsforall-dev`. It starts PostgreSQL and Valkey only. Add `--profile containers` to run the whole development stack in containers.
 
 The API runs on port 3000 and the web interface on port 5173. The demo accounts are listed in the contributing guide.
 
@@ -47,6 +47,6 @@ Documentation pages are in English. Interface strings are in French first, and t
 
 ## Architecture and decisions
 
-- [Architecture](https://github.com/selfhostr/dmsforall/blob/main/ARCHITECTURE.md): components, domains and conventions.
-- [Design](https://github.com/selfhostr/dmsforall/blob/main/DESIGN.md): colours, typography, density and accessibility rules. In French.
+- [Architecture](https://github.com/selfhostr/dmsforall/blob/main/docs/development/architecture.md): components, domains and conventions.
+- [Design](https://github.com/selfhostr/dmsforall/blob/main/docs/development/design.md): colours, typography, density and accessibility rules. In French.
 - [Decision records](adr/): the decisions that shape the code.

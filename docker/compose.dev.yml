@@ -7,8 +7,8 @@
 #
 # Fully containerised, for a machine without Node and pnpm:
 #
-#   docker compose -f docker-compose.dev.yml --profile containers run --rm api pnpm install
-#   docker compose -f docker-compose.dev.yml --profile containers up
+#   docker compose -f docker/compose.dev.yml --profile containers run --rm api pnpm install
+#   docker compose -f docker/compose.dev.yml --profile containers up
 #
 # Integration tests do not use these containers: testcontainers starts its own throwaway
 # PostgreSQL and Valkey. The dfa_dev database is for manual work only.
@@ -16,9 +16,10 @@
 # The postgres service starts as superuser (dfa) only to initialise the container. On the first
 # start with an empty volume it runs docker/postgres/init/01-roles.sql, which creates the two
 # roles the application really uses (dfa_migrator for migrations, dfa_app for the API). After
-# editing that file, `docker compose -f docker-compose.dev.yml down -v` is needed to replay it.
+# editing that file, `docker compose -f docker/compose.dev.yml down -v` is needed to replay it.
 #
-# The production stack is docker-compose.yml.
+# The stack users install is docker-compose.yml at the repository root. Paths below are relative
+# to this directory (docker/).
 
 name: dmsforall-dev
 
@@ -36,7 +37,7 @@ services:
       - '5432:5432'
     volumes:
       - dfa_postgres_data:/var/lib/postgresql/data
-      - ./docker/postgres/init/01-roles.sql:/docker-entrypoint-initdb.d/01-roles.sql:ro
+      - ./postgres/init/01-roles.sql:/docker-entrypoint-initdb.d/01-roles.sql:ro
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U dfa -d dfa_dev']
       interval: 5s
@@ -62,7 +63,7 @@ services:
 
   ocr-permis:
     build:
-      context: ./apps/api/src/vehicules/ocr/moteur-rapidocr-conteneur
+      context: ../apps/api/src/vehicules/ocr/moteur-rapidocr-conteneur
     container_name: dfa-ocr-permis
     restart: unless-stopped
     ports:
@@ -92,7 +93,7 @@ services:
     # Everything from the root .env, then the three values that must differ inside the compose
     # network (the .env file holds localhost values for Node running on the host).
     env_file:
-      - .env
+      - ../.env
     environment:
       DATABASE_URL: postgresql://dfa_app:dfa_app_dev@postgres:5432/dfa_dev
       DATABASE_URL_MIGRATION: postgresql://dfa_migrator:dfa_migrator_dev@postgres:5432/dfa_dev
@@ -100,7 +101,7 @@ services:
       OCR_SERVICE_URL: http://ocr-permis:8092
       DFA_DEV_PROXY_API_CIBLE: http://api:3000
     volumes:
-      - .:/workspace
+      - ..:/workspace
       # Named volumes shadow the host node_modules directories (different OS and libc).
       - dfa_dev_node_modules_racine:/workspace/node_modules
       - dfa_dev_node_modules_api:/workspace/apps/api/node_modules

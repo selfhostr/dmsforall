@@ -1,15 +1,16 @@
 # dmsforall, complete stack from published images: PostgreSQL, Valkey, API, background worker,
 # web app and a Caddy reverse proxy.
 #
-#   git clone https://github.com/selfhostr/dmsforall.git && cd dmsforall
-#   cp .env.example .env        # optional for a first try on localhost
+#   curl -LO https://github.com/selfhostr/dmsforall/releases/latest/download/docker-compose.yml
 #   docker compose up -d
 #
-# Then open http://localhost:8080. Settings are documented in .env.example.
+# Then open http://localhost:8080. Nothing to configure for a first try. For a server with a
+# domain name, download .env.example from the same release page, save it as .env and set the
+# few lines it lists.
 #
 # What happens on the first start:
-#   - init-secrets generates the database passwords once and keeps them in the dfa_secrets
-#     volume (nothing secret lives in this file or in the repository);
+#   - init-secrets generates the database passwords and the encryption key once and keeps them
+#     in the dfa_secrets volume (nothing secret lives in this file or in the repository);
 #   - postgres creates the two restricted roles the application uses (dfa_migrator for schema
 #     changes, dfa_app for the API, which is subject to row level security);
 #   - migrate applies the database migrations, then api and worker start.
@@ -20,8 +21,8 @@
 #   --profile ocr      registration-document scanner (extra image)
 #   --profile backup   encrypted nightly backups of the database and uploaded files (needs an age public key)
 #
-# Local development uses docker-compose.dev.yml instead. docker-compose.build.yml builds the
-# images from source instead of pulling them.
+# Developers: docker/compose.dev.yml is the development stack, docker/compose.build.yml builds
+# the images from source instead of pulling them.
 
 name: dmsforall
 
@@ -36,8 +37,14 @@ x-hardening: &hardening
       max-size: '10m'
       max-file: '5'
 
-# Settings every API process shares. The database URLs are built by the image entrypoint from
-# the generated passwords (see docker/entrypoint-api.sh).
+# Settings every API process shares. The database URLs, the encryption key and the switch that
+# turns real email sending on are set by the image entrypoint (see docker/entrypoint-api.sh).
+# Any other API setting (see docs/reference/configuration.md) can be added to .env under its own
+# name: the API services read that file too, when it exists.
+x-api-env-file: &api-env-file
+  - path: .env
+    required: false
+
 x-api-env: &api-env
   NODE_ENV: production
   REDIS_URL: redis://redis:6379
@@ -54,12 +61,11 @@ x-api-env: &api-env
   SMTP_UTILISATEUR: ${DFA_SMTP_USER:-}
   SMTP_MOT_DE_PASSE: ${DFA_SMTP_PASSWORD:-}
   SMTP_EXPEDITEUR: ${DFA_SMTP_FROM:-}
-  COURRIEL_ENVOI_REEL: ${DFA_SMTP_ENABLED:-false}
-  CLE_CHIFFREMENT_SECRETS: ${DFA_SECRETS_KEY:-}
   COURRIEL_RESEAU_PRIVE_AUTORISE: ${DFA_SMTP_ALLOW_PRIVATE_NETWORK:-false}
 
 services:
-  # One-shot job: creates the database passwords the first time, does nothing afterwards.
+  # One-shot job: creates the database passwords and the encryption key the first time, does
+  # nothing afterwards.
   init-secrets:
     image: postgres:16-alpine@sha256:0cefaabd882e42bcb2a2f3dc56d3ce4770560ba62fd7f197f1a2e008fd5731ab
     restart: 'no'
@@ -68,9 +74,13 @@ services:
       - -c
       - |
         set -eu
-        for name in postgres_password app_password migrator_password; do
+        for name in postgres_password app_password migrator_password secrets_key; do
           if [ ! -s "/secrets/$$name" ]; then
-            tr -dc 'A-Za-z0-9' </dev/urandom | head -c 40 > "/secrets/$$name.tmp"
+            if [ "$$name" = secrets_key ]; then
+              head -c 32 /dev/urandom | base64 > "/secrets/$$name.tmp"
+            else
+              tr -dc 'A-Za-z0-9' </dev/urandom | head -c 40 > "/secrets/$$name.tmp"
+            fi
             mv "/secrets/$$name.tmp" "/secrets/$$name"
           fi
           chmod 0444 "/secrets/$$name"
@@ -141,6 +151,7 @@ services:
     image: ghcr.io/selfhostr/dmsforall:${DFA_VERSION:-latest}
     restart: 'no'
     command: ['node', 'dist/db/migrer.js']
+    env_file: *api-env-file
     environment:
       <<: *api-env
     volumes:
@@ -153,6 +164,7 @@ services:
   api:
     image: ghcr.io/selfhostr/dmsforall:${DFA_VERSION:-latest}
     restart: unless-stopped
+    env_file: *api-env-file
     environment:
       <<: *api-env
       PORT: '3000'
@@ -180,6 +192,7 @@ services:
     image: ghcr.io/selfhostr/dmsforall:${DFA_VERSION:-latest}
     restart: unless-stopped
     command: ['node', 'dist/main-worker.js']
+    env_file: *api-env-file
     environment:
       <<: *api-env
       PORT: '3001'
@@ -260,7 +273,6 @@ services:
 
   # --- profile backup: nightly encrypted dumps and uploads archive, written to the dfa_postgres_backups volume.
   # Needs AGE_CLE_PUBLIQUE (an age public key; keep the private key off this server).
-  # Built from docker/postgres/sauvegarde, so it needs a clone of the repository.
   init-backups:
     image: postgres:16-alpine@sha256:0cefaabd882e42bcb2a2f3dc56d3ce4770560ba62fd7f197f1a2e008fd5731ab
     profiles: ['backup']
@@ -275,9 +287,7 @@ services:
       - ALL
 
   backup:
-    build:
-      context: ./docker/postgres/sauvegarde
-    image: dmsforall-backup:local
+    image: ghcr.io/selfhostr/dmsforall-backup:${DFA_VERSION:-latest}
     profiles: ['backup']
     restart: unless-stopped
     entrypoint:

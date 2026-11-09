@@ -39,7 +39,9 @@ updates:
           - minor
           - patch
   - package-ecosystem: docker-compose
-    directory: /
+    directories:
+      - /
+      - /docker
     schedule:
       interval: monthly
     open-pull-requests-limit: 5
