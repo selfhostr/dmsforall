@@ -39,9 +39,12 @@ export function ChampsMarqueModele({
   const { t } = useTranslation(['vehicules']);
   const [marqueTemporisee] = useValeurDebouncee(marque);
   const [modeleTemporise] = useValeurDebouncee(modele);
-  const actif = marqueTemporisee.trim() !== '';
-  const marques = useMarquesVehicule(marqueTemporisee, { enabled: actif });
-  const modeles = useModelesVehicule(marqueTemporisee, modeleTemporise, { enabled: actif });
+  // Marques : toujours actif — saisie vide = marques les plus fréquentes (jamais « aucune
+  // correspondance »). Modèles : requis par une marque.
+  const marques = useMarquesVehicule(marqueTemporisee, { enabled: true });
+  const modeles = useModelesVehicule(marqueTemporisee, modeleTemporise, {
+    enabled: marqueTemporisee.trim() !== '',
+  });
   const derniereMarqueConfirmee = useRef('');
 
   const optionsMarques: readonly OptionAutocompletionVehicule[] = (marques.data?.marques ?? []).map(

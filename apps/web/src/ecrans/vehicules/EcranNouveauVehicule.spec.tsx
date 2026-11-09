@@ -284,6 +284,25 @@ describe('EcranNouveauVehicule', () => {
   });
 
   describe('autocomplétion marque/modèle (référentiel véhicules suisse)', () => {
+    it('propose les marques courantes au focus avec une saisie vide, jamais « aucune correspondance »', async () => {
+      server.use(
+        http.get('/api/v1/referentiels/vehicules/marques', ({ request }) => {
+          const recherche = new URL(request.url).searchParams.get('recherche');
+          if (recherche !== null) return HttpResponse.json({ marques: [] });
+          return HttpResponse.json({
+            marques: [{ nom: 'Volkswagen', nombreModeles: 42, aliasTrouve: null }],
+          } satisfies ReponseMarquesVehiculesCh);
+        }),
+      );
+      const utilisateur = userEvent.setup();
+      rendreEcran();
+
+      await utilisateur.click(screen.getByLabelText('Marque'));
+
+      expect(await screen.findByRole('option', { name: /Volkswagen/ })).toBeInTheDocument();
+      expect(screen.queryByText(/Aucune correspondance/)).not.toBeInTheDocument();
+    });
+
     it('propose des marques après une frappe partielle, puis conditionne les modèles suggérés à la marque choisie', async () => {
       server.use(
         http.get('/api/v1/referentiels/vehicules/marques', ({ request }) => {
