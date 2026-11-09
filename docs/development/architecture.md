@@ -1,6 +1,11 @@
+---
+title: Architecture
+description: How dmsforall is built: components, domains and conventions.
+---
+
 # Architecture
 
-This document describes how dmsforall is built. It is written for developers and operators. For the reasons behind some choices, read the decision records in [docs/development/adr/](docs/development/adr/). For the business rules, read the code in `apps/api/src/` and the contracts in `packages/shared/src/contrats/`.
+This document describes how dmsforall is built. It is written for developers and operators. For the reasons behind some choices, read the decision records in [docs/development/adr/](adr/). For the business rules, read the code in `apps/api/src/` and the contracts in `packages/shared/src/contrats/`.
 
 ## Components
 
@@ -78,7 +83,7 @@ Each domain is a folder under `apps/api/src/`, with its module, controllers, ser
 
 - Server state goes through TanStack Query. The API types are generated from the OpenAPI description with `pnpm web:types`, never written by hand.
 - Interface strings come from translation keys in `apps/web/src/i18n/`. French is the source language. German and Italian are checked for completeness by `pnpm --filter @dfa/web i18n:check`.
-- The design system is described in [DESIGN.md](DESIGN.md). That document is written in French.
+- The design system is described in [design.md](design.md). That document is written in French.
 
 ## Persistence and migrations
 
@@ -88,7 +93,7 @@ Each domain is a folder under `apps/api/src/`, with its module, controllers, ser
 
 ## Security
 
-This section is a summary. The full description is in [docs/security/](docs/security/).
+This section is a summary. The full description is in [docs/security/](../security/).
 
 - The session cookie is HTTP-only and is marked `Secure` by default. Passwords are hashed with Argon2id.
 - Login attempts are limited per IP address and per account, with counters in Redis.
@@ -105,4 +110,4 @@ Logs are JSON, written with pino. Errors go to a Sentry-compatible server when `
 - Integration tests run with Vitest and testcontainers against a throwaway PostgreSQL database: `pnpm test:integration`.
 - Tenant isolation and the rights matrix have tests that every change must keep passing.
 
-See [docs/development/](docs/development/) for the development guide.
+See [docs/development/](./) for the development guide.

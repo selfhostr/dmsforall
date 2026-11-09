@@ -16,7 +16,7 @@ At the end of this page, your installation runs the new version, and you know ho
 
 Versions after 0.3.0 run Valkey instead of Redis for the queues. Nothing to change: the `redis` service name, the `REDIS_URL` setting and the `dfa_redis_data` volume stay the same, and Valkey reads the existing append-only files. `docker compose pull` fetches the new image.
 
-1. Set `DFA_VERSION` in `.env` to the new tag. See [Verify the images](../security/verify-images.md).
+1. Set `DFA_VERSION` in `.env` to the new tag (add the line if the file has none). If the release notes mention a change in `docker-compose.yml`, download the new file from the release first. See [Verify the images](../security/verify-images.md).
 2. Pull the new images and restart the stack:
 
    ```sh

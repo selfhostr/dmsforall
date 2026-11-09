@@ -34,6 +34,8 @@ jobs:
             image: ghcr.io/selfhostr/dmsforall-web:edge
           - name: ocr
             image: ghcr.io/selfhostr/dmsforall-ocr:edge
+          - name: backup
+            image: ghcr.io/selfhostr/dmsforall-backup:edge
     steps:
       - name: Scan
         run: |
@@ -58,12 +60,12 @@ jobs:
         with:
           persist-credentials: false
       # A known vulnerability fails the job once the SARIF is written. Exceptions with a
-      # reason go in osv-scanner.toml.
+      # reason go in .github/osv-scanner.toml.
       - name: Scan
         run: |
           docker run --rm -v "$PWD:/src" -w /src \
             ghcr.io/google/osv-scanner:v2.7.0@sha256:4f3b7e2c64b9d38a5febc5a7e4a3dfef1d1362f726dea7a2ef4762b46469fcd0 \
-            --recursive --format sarif --output-file /src/osv.sarif /src
+            --config /src/.github/osv-scanner.toml --recursive --format sarif --output-file /src/osv.sarif /src
       - uses: github/codeql-action/upload-sarif@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
         if: always() && hashFiles('osv.sarif') != ''
         with:

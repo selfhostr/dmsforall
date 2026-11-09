@@ -33,7 +33,7 @@ The three files are encrypted with the same `age` key, rotated together (7 daily
    docker compose --profile backup up -d
    ```
 
-Keep the `age` private key off this server. Without it, the backups cannot be read. The backup is built from the repository, so keep a clone of it on the server.
+Keep the `age` private key off this server. Without it, the backups cannot be read. The backup runs from the published image `ghcr.io/selfhostr/dmsforall-backup`, so the server needs no clone of the repository. The restore script `restaurer.sh` does: take it from the repository, or from a clone on the machine where you restore.
 
 The backup hour is set with `HEURE_SAUVEGARDE` (default `03:15`) and the time zone with `DFA_TIMEZONE` (default `UTC`).
 
@@ -63,7 +63,12 @@ The archive is written as a stream (`tar` into `age`): no clear text file is wri
 ## What is not backed up
 
 - The Valkey data. Queues and short-lived state are recreated.
-- The generated database passwords (volume `dmsforall_dfa_secrets`) and the TLS certificates (volume `dmsforall_dfa_caddy_data`). Keep a copy of the passwords somewhere safe.
+- The generated database passwords and the encryption key (volume `dmsforall_dfa_secrets`), and the TLS certificates (volume `dmsforall_dfa_caddy_data`). The roles file of the backup carries the database passwords. The encryption key protects the sending passwords that garages saved in the app: without it, they must be typed again. Keep a copy of the key somewhere safe:
+
+  ```sh
+  docker compose run --rm --no-deps --entrypoint cat api /secrets/secrets_key
+  ```
+
 - Files in an uploads directory that is not a mounted volume. They live in the container and are lost when it is recreated.
 
 ## Restore
