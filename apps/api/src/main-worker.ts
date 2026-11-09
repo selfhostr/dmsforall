@@ -71,9 +71,7 @@ async function main(): Promise<void> {
         process.stderr.write(`  - ${probleme.variable} : ${probleme.message}\n`);
       }
     } else {
-      process.stderr.write(
-        `Unexpected error while loading the configuration: ${String(erreur)}\n`,
-      );
+      process.stderr.write(`Unexpected error while loading the configuration: ${String(erreur)}\n`);
     }
     process.exit(CODE_SORTIE_CONFIG_INVALIDE);
   }
@@ -104,9 +102,7 @@ async function main(): Promise<void> {
   try {
     await acces.verifierPostureRls();
   } catch (erreur) {
-    process.stderr.write(
-      `Invalid RLS posture, the worker refuses to start: ${String(erreur)}\n`,
-    );
+    process.stderr.write(`Invalid RLS posture, the worker refuses to start: ${String(erreur)}\n`);
     await app.close();
     process.exit(1);
   }
