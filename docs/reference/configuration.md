@@ -5,7 +5,11 @@ description: Every environment variable read by dmsforall, with its default valu
 
 dmsforall reads its configuration from environment variables. The API validates them at start-up with zod and refuses to start if one is invalid. The error message lists every faulty variable.
 
-In development, the variables are read from the `.env` file at the root of the repository. In the default stack, the API reads its variables from the Compose file, which takes its values from `.env`. Use `.env.example` as the list of settings.
+You rarely need this page. The default stack starts without any setting, and `.env.example` lists the few you may want (domain name, e-mail, version). Everything else is here, for advanced use.
+
+In the default stack, `docker-compose.yml` sets the variables of the API from the `DFA_*` values of the `.env` file next to it. The API services also read that `.env` file themselves, so you can add any variable of this page to it under its own name, for example `LIMITE_CONNEXION_IP=30`. The Compose file wins for the variables it sets itself: use the `DFA_*` names of the [Deployment](#deployment) section for those.
+
+In development, the variables are read from the `.env` file at the root of the repository, created from `docker/dev.env.example`.
 
 Booleans take the values `true` or `false`. Durations are in minutes, seconds or milliseconds, as written in each name.
 
@@ -22,6 +26,8 @@ Booleans take the values `true` or `false`. Durations are in minutes, seconds or
 | `OPENAPI_EXPOSER_DOCS` | `false`       | Publish the API documentation at `/api/docs`. Keep it `false` in production.                           |
 
 ## Database
+
+In the default stack, you set none of these. The entrypoint of the API image builds `DATABASE_URL` and `DATABASE_URL_MIGRATION` from the passwords that `init-secrets` generated, and PostgreSQL creates the two roles on first start. They matter if you use your own PostgreSQL: then set `DATABASE_URL` and `DATABASE_URL_MIGRATION` in `.env`, and create the roles with the grants of `docker/postgres/init/01-roles.sql`.
 
 | Variable                        | Default                     | Effect                                                                                                                                     |
 | ------------------------------- | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -61,7 +67,7 @@ Booleans take the values `true` or `false`. Durations are in minutes, seconds or
 
 ## Outgoing e-mail
 
-E-mail is sent for real only when `NODE_ENV=production` **and** `COURRIEL_ENVOI_REEL=true`. In every other case, messages are captured and not delivered.
+E-mail is sent for real only when `NODE_ENV=production` **and** `COURRIEL_ENVOI_REEL=true`. In every other case, messages are captured and not delivered. In the default stack, `NODE_ENV` is `production`, and the entrypoint sets `COURRIEL_ENVOI_REEL=true` as soon as `DFA_SMTP_HOST` is set.
 
 | Variable              | Default | Effect                                                           |
 | --------------------- | ------- | ---------------------------------------------------------------- |
@@ -75,10 +81,10 @@ E-mail is sent for real only when `NODE_ENV=production` **and** `COURRIEL_ENVOI_
 
 Each garage can set its own sending server in the app (**Settings > Sending e-mails**). Order of use: the garage's setting, then the `SMTP_*` variables above, then nothing: with neither, the e-mail is not sent and the screen shows "Not configured". Outside production, ordinary e-mails stay captured whatever the garage setting; only the test e-mail of that screen is really sent.
 
-| Variable                         | Default | Effect                                                                                                                                                                                                                |
-| -------------------------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `CLE_CHIFFREMENT_SECRETS`        | none    | 32-byte key (base64 or 64 hex characters) that encrypts the garages' SMTP passwords. Without it, saving a password is refused. Generate with `openssl rand -base64 32`. Changing it means typing the passwords again. |
-| `COURRIEL_RESEAU_PRIVE_AUTORISE` | `false` | Allow a garage's sending server on a private network (192.168.x, 10.x, localhost) in production. Off by default so the test button cannot probe the internal network. Always allowed outside production.              |
+| Variable                         | Default | Effect                                                                                                                                                                                                                                                                                                                               |
+| -------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `CLE_CHIFFREMENT_SECRETS`        | none    | 32-byte key (base64 or 64 hex characters) that encrypts the garages' SMTP passwords. Without it, saving a password is refused. In the default stack, it is generated on the first start and stored in the `dfa_secrets` volume. Elsewhere, generate it with `openssl rand -base64 32`. Changing it means typing the passwords again. |
+| `COURRIEL_RESEAU_PRIVE_AUTORISE` | `false` | Allow a garage's sending server on a private network (192.168.x, 10.x, localhost) in production. Off by default so the test button cannot probe the internal network. Always allowed outside production.                                                                                                                             |
 
 ## Supervision
 
@@ -138,7 +144,7 @@ The switch accepts three states. When the variable is empty, the job is active i
 
 ## Deployment
 
-These variables are read by the Compose file, not by the API. Set them in `.env`.
+These variables are read by the Compose file, not by the API. Set them in `.env`. None is required.
 
 | Variable                                                                                                   | Default                 | Effect                                                                         |
 | ---------------------------------------------------------------------------------------------------------- | ----------------------- | ------------------------------------------------------------------------------ |
@@ -151,14 +157,13 @@ These variables are read by the Compose file, not by the API. Set them in `.env`
 | `DFA_LOG_LEVEL`                                                                                            | `info`                  | Passed as `LOG_NIVEAU`.                                                        |
 | `DFA_EXPOSE_API_DOCS`                                                                                      | `false`                 | Passed as `OPENAPI_EXPOSER_DOCS`.                                              |
 | `DFA_SENTRY_DSN`                                                                                           | empty                   | Passed as `SENTRY_DSN`.                                                        |
-| `DFA_SMTP_ENABLED`                                                                                         | `false`                 | Passed as `COURRIEL_ENVOI_REEL`.                                               |
-| `DFA_SMTP_HOST`, `DFA_SMTP_PORT`, `DFA_SMTP_SECURE`, `DFA_SMTP_USER`, `DFA_SMTP_PASSWORD`, `DFA_SMTP_FROM` | see `.env.example`      | Passed as the `SMTP_*` variables.                                              |
-| `DFA_SECRETS_KEY`, `DFA_SMTP_ALLOW_PRIVATE_NETWORK`                                                        | empty, `false`          | Passed as `CLE_CHIFFREMENT_SECRETS` and `COURRIEL_RESEAU_PRIVE_AUTORISE`.      |
+| `DFA_SMTP_HOST`, `DFA_SMTP_PORT`, `DFA_SMTP_SECURE`, `DFA_SMTP_USER`, `DFA_SMTP_PASSWORD`, `DFA_SMTP_FROM` | empty, `587`, `false`   | Passed as the `SMTP_*` variables. Setting the host turns real sending on.      |
+| `DFA_SMTP_ALLOW_PRIVATE_NETWORK`                                                                           | `false`                 | Passed as `COURRIEL_RESEAU_PRIVE_AUTORISE`.                                    |
 | `DFA_TIMEZONE`                                                                                             | `UTC`                   | Time zone of the backup service.                                               |
 | `AGE_CLE_PUBLIQUE`                                                                                         | empty                   | `age` public key for the backup profile.                                       |
 | `HEURE_SAUVEGARDE`                                                                                         | `03:15`                 | Hour of the nightly backup.                                                    |
 | `SEUIL_TAILLE_MIN_POURCENT`                                                                                | `50`                    | Minimum size of a backup, in percent of the previous one.                      |
 
 :::caution
-Check the variables against `.env.example` for the release you run. Variables can change between releases. Read the [changelog](https://github.com/selfhostr/dmsforall/blob/main/CHANGELOG.md) before you upgrade.
+Check the variables against this page for the release you run. Variables can change between releases. Read the [changelog](https://github.com/selfhostr/dmsforall/blob/main/CHANGELOG.md) before you upgrade.
 :::

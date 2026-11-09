@@ -44,7 +44,7 @@ Do not run `pnpm api:openapi` while `pnpm dev` is running. Both write to the sam
 To build the images of the stack from source, use the override file:
 
 ```sh
-docker compose -f docker-compose.yml -f docker-compose.build.yml build
+docker compose -f docker-compose.yml -f docker/compose.build.yml build
 ```
 
 To build one image by hand, run from the repository root, because the Dockerfiles copy the workspace packages:

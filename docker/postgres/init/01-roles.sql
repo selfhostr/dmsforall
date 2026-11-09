@@ -1,4 +1,4 @@
--- Development roles, replayed by the postgres container of docker-compose.dev.yml on the first
+-- Development roles, replayed by the postgres container of docker/compose.dev.yml on the first
 -- start with an empty volume (and by the integration tests, on a throwaway cluster).
 --
 -- The container starts as superuser (dfa) only to run this script. The application uses two
@@ -11,7 +11,7 @@
 -- (docker-compose.yml) does not use this file: it creates the same roles with generated
 -- passwords, and the API refuses to start in production with the values below.
 --
--- After editing this file: `docker compose -f docker-compose.dev.yml down -v`, to replay it.
+-- After editing this file: `docker compose -f docker/compose.dev.yml down -v`, to replay it.
 
 CREATE ROLE dfa_migrator WITH
   LOGIN

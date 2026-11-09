@@ -1,6 +1,7 @@
 name: Release
 
-# Images (ghcr.io/selfhostr/dmsforall, dmsforall-web, dmsforall-ocr):
+# Images (ghcr.io/selfhostr/dmsforall, dmsforall-web, dmsforall-ocr,
+# dmsforall-backup):
 #   - every push to dev   -> :edge
 #   - every tag vX.Y.Z    -> :X.Y.Z, :X.Y and :latest (a pre-release tag such as v0.2.0-rc.1
 #                            only gets its own tag)
@@ -98,6 +99,11 @@ jobs:
             context: apps/api/src/vehicules/ocr/moteur-rapidocr-conteneur
             dockerfile: apps/api/src/vehicules/ocr/moteur-rapidocr-conteneur/Dockerfile
             title: dmsforall registration document scanner
+          - name: backup
+            image: ghcr.io/selfhostr/dmsforall-backup
+            context: docker/postgres/sauvegarde
+            dockerfile: docker/postgres/sauvegarde/Dockerfile
+            title: dmsforall encrypted backups
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

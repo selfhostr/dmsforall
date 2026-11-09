@@ -2,6 +2,17 @@
 
 All notable changes to dmsforall are recorded here, for people who run it and for people who use it. Each entry says what changes for you. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/) until 1.0.
 
+## Unreleased
+
+### Changed
+
+- **Simpler installation.** One file is enough to run dmsforall: download `docker-compose.yml` from the release page and run `docker compose up -d`. There is nothing to configure for a first try on `localhost`, and no clone of the repository is needed.
+- **No secret to type.** The database passwords and the key that protects stored sending passwords are generated on the first start and kept in a volume. The database roles and connection strings are derived from them.
+- **Shorter `.env.example`.** It now lists only what you may want to set: the version, a domain name for HTTPS, outgoing e-mail and the backup key. Every other setting is documented in the configuration reference, and any of them can still be added to `.env`.
+- **E-mail sending turns on by itself** once `DFA_SMTP_HOST` is set. `DFA_SMTP_ENABLED` and `DFA_SECRETS_KEY` no longer exist.
+- **Backups need no clone.** The nightly backup runs from a published image, `ghcr.io/selfhostr/dmsforall-backup`.
+- **Tidier repository.** Developer files moved out of the root: `docker/compose.dev.yml`, `docker/compose.build.yml`, `docker/dev.env.example`, `docs/development/architecture.md` and `docs/development/design.md`.
+
 ## 0.3.0 (2026-11-08)
 
 This release adds the VAT status of the garage, several sites, activatable modules and invoice correction, and reshapes the dashboard. Read the upgrade notes before you update.

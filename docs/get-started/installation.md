@@ -15,7 +15,7 @@ At the end of this page, the stack runs on your server, and you have checked tha
 
 ## Settings
 
-Copy `.env.example` to `.env` and edit the values you need. Every setting is documented in the file and in the [configuration reference](../reference/configuration.md). The most common ones are:
+Next to `docker-compose.yml`, create a file named `.env`. Start from `.env.example`, which is attached to each [release](https://github.com/selfhostr/dmsforall/releases/latest), and remove the `#` in front of the lines you need. Nothing is required: every setting has a default. The most common ones are:
 
 | Variable               | Default                 | Effect                                                                      |
 | ---------------------- | ----------------------- | --------------------------------------------------------------------------- |
@@ -26,7 +26,9 @@ Copy `.env.example` to `.env` and edit the values you need. Every setting is doc
 | `DFA_VERSION`          | `latest`                | Image version to run.                                                       |
 | `DFA_TRUST_PROXY_HOPS` | `1`                     | Number of reverse proxies in front of the API.                              |
 
-The database passwords are not in the file. The `init-secrets` service generates them on the first start and keeps them in the `dfa_secrets` volume.
+Outgoing e-mail is set with `DFA_SMTP_HOST`, `DFA_SMTP_PORT`, `DFA_SMTP_USER`, `DFA_SMTP_PASSWORD` and `DFA_SMTP_FROM`. Sending turns on by itself once the host is set. The other settings are in the [configuration reference](../reference/configuration.md).
+
+You never type a secret. The `init-secrets` service generates the database passwords and the key that encrypts stored passwords on the first start, and keeps them in the `dfa_secrets` volume. The roles and connection strings of the database are derived from them. Keep a copy of that volume's content: see [Back up and restore](backup-and-restore.md).
 
 ## HTTPS
 
@@ -47,14 +49,14 @@ HTTPS with a real domain has not been tested end to end yet. Check the certifica
 | `migrate`      | Applies the database migrations before the API starts.         |
 | `postgres`     | PostgreSQL 16. Not published.                                  |
 | `redis`        | Valkey. Not published.                                         |
-| `init-secrets` | Generates the database passwords once.                         |
+| `init-secrets` | Generates the database passwords and the encryption key once.  |
 
 PostgreSQL and Valkey are never published on a host port.
 
 ## Optional profiles
 
 - `--profile ocr`: starts the image `ghcr.io/selfhostr/dmsforall-ocr`, which reads vehicle registration documents. This profile has not been started yet.
-- `--profile backup`: starts the nightly encrypted backups. It needs `AGE_CLE_PUBLIQUE` in `.env`. See [Back up and restore](backup-and-restore.md).
+- `--profile backup`: starts the nightly encrypted backups, from the image `ghcr.io/selfhostr/dmsforall-backup`. It needs `AGE_CLE_PUBLIQUE` in `.env`. See [Back up and restore](backup-and-restore.md).
 
 ```sh
 docker compose --profile backup up -d
@@ -62,10 +64,10 @@ docker compose --profile backup up -d
 
 ## Build from source
 
-To build the images from the repository instead of pulling them:
+To build the images from a clone of the repository instead of pulling them:
 
 ```sh
-docker compose -f docker-compose.yml -f docker-compose.build.yml up -d --build
+docker compose -f docker-compose.yml -f docker/compose.build.yml up -d --build
 ```
 
 ## Create the first garage

@@ -1,3 +1,8 @@
+---
+title: Design reference
+description: Visual reference for the web interface: colours, typography, density, borders, dark mode and accessibility. In French.
+---
+
 # DESIGN.md
 
 Référence visuelle de dmsforall : palette, typographie, densité, règles de bordure, mode sombre et contraintes d'accessibilité. Lire ce document avant de créer ou de modifier un écran dans `apps/web/src/ecrans/`.

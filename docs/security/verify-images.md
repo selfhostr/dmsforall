@@ -45,7 +45,7 @@ Check out a tag, then build the images from the repository:
 
 ```sh
 git clone --branch <tag> https://github.com/selfhostr/dmsforall.git && cd dmsforall
-docker compose -f docker-compose.yml -f docker-compose.build.yml build
+docker compose -f docker-compose.yml -f docker/compose.build.yml build
 ```
 
 Building gives you the code of the tag, but not a signature. Compare the result with the source you checked out.

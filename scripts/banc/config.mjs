@@ -3,7 +3,7 @@
  * par endpoint COMPTÉ STATIQUEMENT DANS LE CODE (voir méthode ci-dessous), pas mesuré en
  * exécution : aucune extension d'instrumentation (`pg_stat_statements`) n'est chargée sur le
  * Postgres de dev (`shared_preload_libraries` ne la précharge pas dans `docker/postgres/`), et en
- * ajouter une exigerait soit de modifier `docker-compose*.yml`/la config Postgres (hors
+ * ajouter une exigerait soit de modifier `docker-compose.yml/docker/compose.*.yml`/la config Postgres (hors
  * périmètre, redémarrage du conteneur qui gênerait les autres lots), soit d'instrumenter
  * `apps/api/src/db/acces-base.service.ts` (hors périmètre — deux lots y travaillent).
  *

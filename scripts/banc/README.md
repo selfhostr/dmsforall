@@ -65,7 +65,7 @@ la marche pour y parvenir.
 **Requêtes SQL par endpoint** (`config.mjs`, `REQUETES_SQL`) : comptées **statiquement dans le
 code**, pas instrumentées en exécution. Aucune extension d'instrumentation (`pg_stat_statements`)
 n'est chargée sur le Postgres de dev (`shared_preload_libraries` ne la précharge pas), et en
-ajouter une aurait exigé de toucher `docker-compose*.yml`/la config Postgres ou
+ajouter une aurait exigé de toucher `docker-compose.yml/docker/compose.*.yml`/la config Postgres ou
 `apps/api/src/db/acces-base.service.ts` — les deux hors du périmètre d'écriture de cette tâche.
 Chaque service interrogé n'exécute de SQL que via `tx.execute(sql\`…\`)`/le query builder Drizzle,
 jamais dans une boucle sur les résultats d'une requête précédente (vérifié à la lecture pour
