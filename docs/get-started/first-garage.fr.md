@@ -37,7 +37,7 @@ Ouvrez les réglages des sites et créez une entrée par atelier, comptoir ou sa
 
 ## 3. Inviter le personnel
 
-Ouvrez les réglages des utilisateurs et créez un compte par personne. Choisissez le rôle qui correspond au travail de la personne. Voir [rôles et droits](../reference/roles-and-rights.fr.md).
+Ouvrez les réglages des utilisateurs et créez un compte par personne. Choisissez le rôle qui correspond au travail de la personne. Voir [rôles et droits](../reference/roles-and-rights.md).
 
 Pour un terminal partagé à l'atelier, créez un compte avec le rôle `poste_atelier` et rattachez-le à un seul site.
 

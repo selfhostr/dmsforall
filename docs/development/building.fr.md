@@ -64,4 +64,4 @@ pnpm lint
 pnpm format:check
 ```
 
-Pour la liste complète des contrôles exécutés par la CI, lisez [Tester](testing.fr.md) et [Contribuer](contributing.fr.md).
+Pour la liste complète des contrôles exécutés par la CI, lisez [Tester](testing.md) et [Contribuer](contributing.md).

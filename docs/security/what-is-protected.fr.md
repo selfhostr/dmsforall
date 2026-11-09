@@ -13,7 +13,7 @@ Cette page énumère les protections que dmsforall fournit dans le code, les lac
 
 **Sessions.** Le cookie de session est inaccessible au JavaScript (HTTP-only). Il est marqué `Secure` par défaut, et la configuration de production refuse de démarrer si cette option est désactivée. L'API vérifie l'en-tête `Origin` des requêtes qui modifient des données.
 
-**Droits.** Chaque route vérifie les droits du rôle dans une seule matrice de droits. Voir [rôles et droits](../reference/roles-and-rights.fr.md).
+**Droits.** Chaque route vérifie les droits du rôle dans une seule matrice de droits. Voir [rôles et droits](../reference/roles-and-rights.md).
 
 **Argent.** Les montants sont des entiers en centimes. Une facture émise est verrouillée, et une correction passe par un avoir. La trace d'audit enregistre qui a modifié une entité sensible, quand, et les valeurs avant et après.
 

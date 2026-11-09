@@ -9,7 +9,7 @@ dmsforall gère quatre types de documents de vente : les devis (_devis_), les b
 
 ## Avant la première facture
 
-Complétez le bloc créancier dans les réglages de facturation. Il contient les coordonnées bancaires qui figurent sur la QR-facture. Une facture qui nécessite une QR-facture ne peut pas être émise sans bloc créancier complet. Voir [Configurer votre premier garage](../get-started/first-garage.fr.md).
+Complétez le bloc créancier dans les réglages de facturation. Il contient les coordonnées bancaires qui figurent sur la QR-facture. Une facture qui nécessite une QR-facture ne peut pas être émise sans bloc créancier complet. Voir [Configurer votre premier garage](../get-started/first-garage.md).
 
 ## Créer un document
 
@@ -49,7 +49,7 @@ Un avoir corrige une facture émise. Vous ne modifiez jamais une facture émise.
 - partielle : il annule une partie de la facture.
 
 :::caution
-Les avoirs peuvent être limités par rôle. Un réceptionnaire ne peut émettre un avoir que jusqu'à un plafond fixé par la direction. Au-delà du plafond, le système refuse l'avoir et le conserve en brouillon, sans numéro. La direction et la comptabilité n'ont pas de plafond. Voir [rôles et droits](../reference/roles-and-rights.fr.md).
+Les avoirs peuvent être limités par rôle. Un réceptionnaire ne peut émettre un avoir que jusqu'à un plafond fixé par la direction. Au-delà du plafond, le système refuse l'avoir et le conserve en brouillon, sans numéro. La direction et la comptabilité n'ont pas de plafond. Voir [rôles et droits](../reference/roles-and-rights.md).
 :::
 
 :::caution
