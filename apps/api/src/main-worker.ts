@@ -66,13 +66,13 @@ async function main(): Promise<void> {
     config = chargerConfig(process.env);
   } catch (erreur) {
     if (erreur instanceof ErreurConfigInvalide) {
-      process.stderr.write('Configuration invalide, le worker refuse de démarrer :\n');
+      process.stderr.write('Invalid configuration, the worker refuses to start:\n');
       for (const probleme of erreur.problemes) {
         process.stderr.write(`  - ${probleme.variable} : ${probleme.message}\n`);
       }
     } else {
       process.stderr.write(
-        `Erreur inattendue au chargement de la configuration : ${String(erreur)}\n`,
+        `Unexpected error while loading the configuration: ${String(erreur)}\n`,
       );
     }
     process.exit(CODE_SORTIE_CONFIG_INVALIDE);
@@ -81,10 +81,10 @@ async function main(): Promise<void> {
   // 1bis. Refus explicite si ce binaire est démarré avec le mauvais rôle — voir l'en-tête.
   if (config.MODE_PROCESSUS === 'api') {
     process.stderr.write(
-      'MODE_PROCESSUS=api : main-worker ne traiterait alors aucune file BullMQ (voir ' +
-        'ordonnancement/mode-processus.ts) tout en répondant 200 sur sa sonde de vie — refus de ' +
-        "démarrer plutôt qu'un worker silencieusement inutile. Utilise 'worker' ou 'combine' " +
-        'pour ce binaire, ou démarre apps/api/dist/main.js pour le rôle API.\n',
+      'MODE_PROCESSUS=api: main-worker would then process no BullMQ queue (see ' +
+        'ordonnancement/mode-processus.ts) while answering 200 on its liveness probe, so it refuses ' +
+        "to start rather than run a silently useless worker. Use 'worker' or 'combine' " +
+        'for this binary, or start apps/api/dist/main.js for the API role.\n',
     );
     process.exit(CODE_SORTIE_CONFIG_INVALIDE);
   }
@@ -105,7 +105,7 @@ async function main(): Promise<void> {
     await acces.verifierPostureRls();
   } catch (erreur) {
     process.stderr.write(
-      `Posture RLS invalide, le worker refuse de démarrer : ${String(erreur)}\n`,
+      `Invalid RLS posture, the worker refuses to start: ${String(erreur)}\n`,
     );
     await app.close();
     process.exit(1);
@@ -169,6 +169,6 @@ async function main(): Promise<void> {
 }
 
 main().catch((erreur: unknown) => {
-  process.stderr.write(`Échec du démarrage du worker : ${String(erreur)}\n`);
+  process.stderr.write(`Worker startup failed: ${String(erreur)}\n`);
   process.exit(1);
 });
