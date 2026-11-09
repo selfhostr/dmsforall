@@ -5,6 +5,8 @@ description: Démarrer la pile dmsforall avec Docker Compose et ouvrir l'interfa
 
 À la fin de cette page, la pile dmsforall tourne sur votre machine ou sur votre serveur, et vous pouvez ouvrir l'interface web dans un navigateur.
 
+Il faut Docker Engine et Docker Compose 2.24 ou plus récent. La [page d'installation](installation.md) liste les autres prérequis.
+
 ## Étapes
 
 1. Téléchargez le fichier Compose. C'est le seul fichier dont vous avez besoin.

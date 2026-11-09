@@ -5,6 +5,8 @@ description: Avviare lo stack di dmsforall con Docker Compose e aprire l'interfa
 
 Al termine di questa pagina, lo stack di dmsforall è in funzione sul Suo computer o server, e Lei può aprire l'interfaccia web in un browser.
 
+Servono Docker Engine e Docker Compose 2.24 o successivo. La [pagina di installazione](installation.md) elenca gli altri requisiti.
+
 ## Passaggi
 
 1. Scarichi il file Compose. È l'unico file necessario.

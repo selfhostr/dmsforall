@@ -98,9 +98,7 @@ export function EcranNouveauVehicule() {
   const [marqueTemporisee] = useValeurDebouncee(marqueSaisie);
   const [rechercheModeleTemporisee] = useValeurDebouncee(modeleSaisie);
 
-  const marquesQuery = useMarquesVehicule(marqueTemporisee, {
-    enabled: marqueTemporisee.trim() !== '',
-  });
+  const marquesQuery = useMarquesVehicule(marqueTemporisee, { enabled: true });
   const modelesQuery = useModelesVehicule(marqueTemporisee, rechercheModeleTemporisee, {
     enabled: marqueTemporisee.trim() !== '',
   });

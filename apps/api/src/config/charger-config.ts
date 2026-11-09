@@ -291,7 +291,7 @@ export const schemaConfig = z
         code: 'custom',
         path: ['COOKIE_SECURE'],
         message:
-          'COOKIE_SECURE doit être true en production (sinon le cookie de session ne part jamais en HTTPS).',
+          'COOKIE_SECURE must be true in production (otherwise the session cookie is never sent over HTTPS).',
       });
     }
     if (c.DATABASE_URL === c.DATABASE_URL_MIGRATION) {
@@ -299,7 +299,7 @@ export const schemaConfig = z
         code: 'custom',
         path: ['DATABASE_URL_MIGRATION'],
         message:
-          'DATABASE_URL et DATABASE_URL_MIGRATION doivent être différentes (rôles dfa_app et dfa_migrator distincts, voir RLS).',
+          'DATABASE_URL and DATABASE_URL_MIGRATION must differ (separate dfa_app and dfa_migrator roles, see RLS).',
       });
     }
     // Finding M4 (audit sécurité) : `docker/postgres/init/01-roles.sql` fixe en dur les mots de
@@ -321,9 +321,9 @@ export const schemaConfig = z
             code: 'custom',
             path: [variable],
             message:
-              `${variable} porte un mot de passe de développement (dfa_app_dev/dfa_migrator_dev) en production — ` +
-              'ces valeurs sont publiées dans le dépôt Git. Rejouer la procédure de rotation des ' +
-              'mots de passe PostgreSQL avant de redémarrer : docs/reference/configuration.md.',
+              `${variable} uses a development password (dfa_app_dev/dfa_migrator_dev) in production — ` +
+              'these values are published in the Git repository. Rotate the PostgreSQL passwords ' +
+              'before restarting: see docs/reference/configuration.md.',
           });
         }
       }
@@ -339,7 +339,7 @@ export const schemaConfig = z
         code: 'custom',
         path: ['LIMITE_CONNEXION_COMPTE'],
         message:
-          'LIMITE_CONNEXION_COMPTE doit être strictement supérieure à SEUIL_VERROUILLAGE_COMPTE, sinon le 423 AUTH_COMPTE_VERROUILLE devient inatteignable (voir bloquant B1, rapport QA étape 0).',
+          'LIMITE_CONNEXION_COMPTE must be strictly greater than SEUIL_VERROUILLAGE_COMPTE, otherwise the 423 AUTH_COMPTE_VERROUILLE response becomes unreachable (see blocker B1, stage 0 QA report).',
       });
     }
     // Un `min` supérieur à `max` n'a aucun sens pour le pool `pg` (`Pool.options.min`/`.max`) et
@@ -352,7 +352,7 @@ export const schemaConfig = z
       ctx.addIssue({
         code: 'custom',
         path: ['DATABASE_POOL_MIN'],
-        message: 'DATABASE_POOL_MIN ne peut pas dépasser DATABASE_POOL_MAX.',
+        message: 'DATABASE_POOL_MIN cannot exceed DATABASE_POOL_MAX.',
       });
     }
   })
@@ -390,7 +390,7 @@ export class ErreurConfigInvalide extends Error {
   readonly problemes: ReadonlyArray<ProblemeConfig>;
 
   constructor(problemes: ReadonlyArray<ProblemeConfig>) {
-    super(`Configuration invalide : ${problemes.length} variable(s) fautive(s).`);
+    super(`Invalid configuration: ${problemes.length} invalid variable(s).`);
     this.name = 'ErreurConfigInvalide';
     this.problemes = problemes;
   }

@@ -5,7 +5,7 @@ description: Barzahlung, Kartenzahlung, Banküberweisung, QR-Rechnung, TWINT, Ve
 
 Eine Zahlung wird zu einer Rechnung erfasst. Die Rechnung zeigt, was bezahlt wurde und was noch offen ist.
 
-Am Ende dieser Seite können Sie eine Zahlung erfassen und den Saldo einer Rechnung prüfen.
+Am Ende dieser Seite können Sie eine Zahlung inkassieren und den Saldo einer Rechnung prüfen.
 
 ## Zahlungsarten
 
@@ -19,7 +19,7 @@ Am Ende dieser Seite können Sie eine Zahlung erfassen und den Saldo einer Rechn
 | `compensation` | Ein Betrag, der mit einem anderen Betrag verrechnet wird. |
 | `leasing`      | Zahlung durch eine Leasinggesellschaft.                   |
 
-## Eine Zahlung erfassen
+## Eine Zahlung inkassieren
 
 1. Öffnen Sie die Rechnung.
 2. Wählen Sie **Inkassieren**.

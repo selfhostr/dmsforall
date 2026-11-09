@@ -73,14 +73,12 @@ async function main(): Promise<void> {
     config = chargerConfig(process.env);
   } catch (erreur) {
     if (erreur instanceof ErreurConfigInvalide) {
-      process.stderr.write("Configuration invalide, l'API refuse de démarrer :\n");
+      process.stderr.write('Invalid configuration, the API refuses to start:\n');
       for (const probleme of erreur.problemes) {
         process.stderr.write(`  - ${probleme.variable} : ${probleme.message}\n`);
       }
     } else {
-      process.stderr.write(
-        `Erreur inattendue au chargement de la configuration : ${String(erreur)}\n`,
-      );
+      process.stderr.write(`Unexpected error while loading the configuration: ${String(erreur)}\n`);
     }
     process.exit(CODE_SORTIE_CONFIG_INVALIDE);
   }
@@ -106,7 +104,7 @@ async function main(): Promise<void> {
   try {
     await acces.verifierPostureRls();
   } catch (erreur) {
-    process.stderr.write(`Posture RLS invalide, l'API refuse de démarrer : ${String(erreur)}\n`);
+    process.stderr.write(`Invalid RLS posture, the API refuses to start: ${String(erreur)}\n`);
     await app.close();
     process.exit(1);
   }

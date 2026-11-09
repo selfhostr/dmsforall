@@ -72,7 +72,7 @@ describe('providerTransportCourriel — verrou à deux clés (NODE_ENV=productio
 
   it('production ET drapeau activé, identifiants incomplets → lève plutôt que de démarrer avec un transport à moitié configuré', () => {
     expect(() => fabriquer({ NODE_ENV: 'production', COURRIEL_ENVOI_REEL: true })).toThrow(
-      /Configuration SMTP invalide/,
+      /Invalid SMTP configuration/,
     );
   });
 });
