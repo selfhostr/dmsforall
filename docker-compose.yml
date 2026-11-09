@@ -234,7 +234,7 @@ services:
   # as DFA_SITE_ADDRESS, Caddy gets and renews a Let's Encrypt certificate by itself (ports 80
   # and 443 must be reachable from the internet).
   proxy:
-    image: caddy:2-alpine@sha256:f6228111e5fafa1a5238258d0858e103f10599b8d1659a146e7726681a002bb9
+    image: caddy:2-alpine@sha256:78bd35025c7ba85961dd149ae670315129954e77abe2383ac47c89106b35ade9
     restart: unless-stopped
     ports:
       - '${DFA_HTTP_PORT:-8080}:80'
