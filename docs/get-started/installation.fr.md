@@ -9,7 +9,7 @@ Cette page décrit une installation sur un serveur. Le [Démarrage rapide](quick
 
 ## Prérequis
 
-- Docker Engine et Docker Compose v2.
+- Docker Engine et Docker Compose 2.24 ou plus récent.
 - Pour HTTPS sur un domaine : un nom DNS qui pointe vers le serveur, et les ports 80 et 443 ouverts vers Internet.
 - De l'espace disque pour les données PostgreSQL, les sauvegardes et les documents téléversés.
 

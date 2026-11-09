@@ -3,7 +3,7 @@ title: Vendere auto nuove e d'occasione
 description: Gestire il magazzino di auto nuove e d'occasione, le pratiche di vendita, le permute e le conferme di finanziamento o leasing.
 ---
 
-Il modulo vendite copre le auto nuove (VN, _veicoli nuovi_) e le auto d'occasione (VO, _veicoli d'occasione_). Segue il veicolo dall'ordine alla consegna, la pratica di vendita che lo accompagna, la permuta dell'auto del cliente e il finanziamento.
+Il modulo vendite copre i veicoli nuovi (VN) e i veicoli usati (VO). Segue il veicolo dall'ordine alla consegna, la pratica di vendita che lo accompagna, la permuta dell'auto del cliente e il finanziamento.
 
 Alla fine di questa pagina potrà mettere un'auto in stock, aprire una pratica di vendita e seguirla fino alla consegna.
 

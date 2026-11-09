@@ -87,7 +87,7 @@ export const schemaConfigCourriel = z.object({
       .string()
       .refine((v) => decoderCleChiffrement(v) !== null, {
         message:
-          'CLE_CHIFFREMENT_SECRETS doit représenter 32 octets (base64 ou 64 caractères hexadécimaux).',
+          'CLE_CHIFFREMENT_SECRETS must represent 32 bytes (base64, or 64 hexadecimal characters).',
       })
       .optional(),
   ),
@@ -158,7 +158,7 @@ export interface ConfigSmtpResolue {
 export class ErreurConfigCourrielInvalide extends Error {
   constructor(readonly problemes: readonly string[]) {
     super(
-      `Configuration SMTP invalide pour l'envoi réel, l'API refuse de démarrer :\n` +
+      `Invalid SMTP configuration for real sending, the API refuses to start:\n` +
         problemes.map((p) => `  - ${p}`).join('\n'),
     );
     this.name = 'ErreurConfigCourrielInvalide';
@@ -174,21 +174,21 @@ export class ErreurConfigCourrielInvalide extends Error {
 export function resoudreConfigSmtp(config: ConfigAvecCourriel): ConfigSmtpResolue {
   const problemes: string[] = [];
   if (!config.SMTP_HOTE) {
-    problemes.push('SMTP_HOTE est requis pour activer l’envoi réel (COURRIEL_ENVOI_REEL=true).');
+    problemes.push('SMTP_HOTE is required to enable real sending (COURRIEL_ENVOI_REEL=true).');
   }
   if (!config.SMTP_UTILISATEUR) {
     problemes.push(
-      'SMTP_UTILISATEUR est requis pour activer l’envoi réel (COURRIEL_ENVOI_REEL=true).',
+      'SMTP_UTILISATEUR is required to enable real sending (COURRIEL_ENVOI_REEL=true).',
     );
   }
   if (!config.SMTP_MOT_DE_PASSE) {
     problemes.push(
-      'SMTP_MOT_DE_PASSE est requis pour activer l’envoi réel (COURRIEL_ENVOI_REEL=true).',
+      'SMTP_MOT_DE_PASSE is required to enable real sending (COURRIEL_ENVOI_REEL=true).',
     );
   }
   if (!config.SMTP_EXPEDITEUR) {
     problemes.push(
-      'SMTP_EXPEDITEUR est requis pour activer l’envoi réel (COURRIEL_ENVOI_REEL=true).',
+      'SMTP_EXPEDITEUR is required to enable real sending (COURRIEL_ENVOI_REEL=true).',
     );
   }
   if (problemes.length > 0) {

@@ -9,7 +9,7 @@ Am Ende dieser Seite läuft der Stack auf Ihrem Server, und Sie haben geprüft, 
 
 ## Voraussetzungen
 
-- Docker Engine und Docker Compose v2.
+- Docker Engine und Docker Compose 2.24 oder neuer.
 - Für HTTPS auf einer Domain: ein DNS-Name, der auf den Server zeigt, und die Ports 80 und 443, die aus dem Internet erreichbar sind.
 - Speicherplatz für die PostgreSQL-Daten, die Sicherungen und die hochgeladenen Dokumente.
 
