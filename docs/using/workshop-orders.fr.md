@@ -53,11 +53,11 @@ Lorsque l'atelier découvre des travaux supplémentaires, il crée un devis comp
 ## Clôturer un ordre
 
 1. Vérifiez que chaque ligne est réalisée, refusée ou annulée.
-2. Émettez la facture depuis l'ordre. Voir [Devis et factures](quotes-and-invoices.fr.md).
+2. Émettez la facture depuis l'ordre. Voir [Devis et factures](quotes-and-invoices.md).
 3. Lorsque le véhicule est rendu, passez le statut à `restitue`. Passez-le à `cloture` une fois le dossier complet.
 
 Le système n'accepte que les changements de statut que le workflow autorise pour le statut actuel.
 
 :::caution
-Chaque action sur un ordre dépend du rôle de la personne qui l'effectue. Un technicien peut pointer son temps et consulter l'ordre, mais ne peut pas émettre de facture. Voir [rôles et droits](../reference/roles-and-rights.fr.md).
+Chaque action sur un ordre dépend du rôle de la personne qui l'effectue. Un technicien peut pointer son temps et consulter l'ordre, mais ne peut pas émettre de facture. Voir [rôles et droits](../reference/roles-and-rights.md).
 :::

@@ -37,7 +37,7 @@ Pas de façon fiable. La valorisation du stock selon la méthode FIFO est décid
 
 ## Puis-je importer les données de mon logiciel actuel ?
 
-Oui, à partir d'archives Microsoft Access et dBase/FoxPro. L'import a été testé avec des archives exportées depuis Auto-i. Projet non affilié à Auto-i. Voir [Importer des données](../using/data-import.fr.md).
+Oui, à partir d'archives Microsoft Access et dBase/FoxPro. L'import a été testé avec des archives exportées depuis Auto-i. Projet non affilié à Auto-i. Voir [Importer des données](../using/data-import.md).
 
 ## Est-il conforme au droit suisse ?
 
@@ -49,7 +49,7 @@ Sur le serveur que vous exploitez. dmsforall n'envoie aucune donnée au projet n
 
 ## Existe-t-il une démo ?
 
-Pour un développeur, `pnpm db:seed` charge un garage de démonstration sur une base de développement. Voir [Contribuer](../development/contributing.fr.md). Les comptes de démonstration ne sont pas créés en production.
+Pour un développeur, `pnpm db:seed` charge un garage de démonstration sur une base de développement. Voir [Contribuer](../development/contributing.md). Les comptes de démonstration ne sont pas créés en production.
 
 ## Cela fonctionne-t-il sur une tablette ou un téléphone ?
 

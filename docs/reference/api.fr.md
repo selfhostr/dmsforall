@@ -62,5 +62,5 @@ Les erreurs utilisent le format `application/problem+json`. Lisez d'abord les ch
 - Les dates et heures suivent la norme ISO 8601.
 
 :::caution
-L'API ne remplace pas les droits de l'interface web. Une requête que le rôle n'autorise pas renvoie `403`, quel que soit le client. Voir [rôles et droits](roles-and-rights.fr.md).
+L'API ne remplace pas les droits de l'interface web. Une requête que le rôle n'autorise pas renvoie `403`, quel que soit le client. Voir [rôles et droits](roles-and-rights.md).
 :::

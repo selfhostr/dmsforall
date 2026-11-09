@@ -32,5 +32,5 @@ FIFO est la plus exigeante des trois méthodes étudiées. Chaque lot et son pri
 L'implémentation est prévue tard dans le plan de mise en service. La décision est prise maintenant pour ne pas être prise trop tard. À partir de la date de cet enregistrement, chaque mouvement de stock doit conserver ce qui est nécessaire pour appliquer FIFO rétroactivement, même si le calcul n'existe pas encore.
 
 :::note
-Dans la version actuelle, le calcul n'est pas implémenté. Voir [Gérer les pièces et le stock](../../using/parts-and-stock.fr.md).
+Dans la version actuelle, le calcul n'est pas implémenté. Voir [Gérer les pièces et le stock](../../using/parts-and-stock.md).
 :::

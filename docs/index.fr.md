@@ -8,9 +8,9 @@ dmsforall est un logiciel de gestion pour garages et concessions suisses. Il cou
 Commencez par l'une de ces pages :
 
 - **Installer :** [Démarrage rapide](get-started/quick-start.md), puis [Installation](get-started/installation.md).
-- **Le paramétrer pour un garage :** [Votre premier garage](get-started/first-garage.fr.md).
-- **L'utiliser au quotidien :** [Gérer les ordres de réparation](using/workshop-orders.fr.md), [Devis et factures](using/quotes-and-invoices.fr.md), [Paiements](using/payments.fr.md).
-- **Rechercher une information :** [Configuration](reference/configuration.md), [Rôles et droits](reference/roles-and-rights.fr.md), [API](reference/api.fr.md).
+- **Le paramétrer pour un garage :** [Votre premier garage](get-started/first-garage.md).
+- **L'utiliser au quotidien :** [Gérer les ordres de réparation](using/workshop-orders.md), [Devis et factures](using/quotes-and-invoices.md), [Paiements](using/payments.md).
+- **Rechercher une information :** [Configuration](reference/configuration.md), [Rôles et droits](reference/roles-and-rights.md), [API](reference/api.md).
 
 L'interface est disponible en français, en allemand et en italien. Ces pages sont rédigées en français : les libellés d'écran y sont donnés en français, et votre interface les affiche dans la langue que vous avez choisie.
 

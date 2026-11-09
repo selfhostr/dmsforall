@@ -36,5 +36,5 @@ La réconciliation des relevés bancaires (camt.054) n'est pas disponible dans c
 :::
 
 :::caution
-Seuls les rôles `direction`, `comptable`, `receptionnaire`, `vendeur` et `magasinier` peuvent enregistrer des paiements. Voir [rôles et droits](../reference/roles-and-rights.fr.md).
+Seuls les rôles `direction`, `comptable`, `receptionnaire`, `vendeur` et `magasinier` peuvent enregistrer des paiements. Voir [rôles et droits](../reference/roles-and-rights.md).
 :::
