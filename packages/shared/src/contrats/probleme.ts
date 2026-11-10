@@ -312,7 +312,7 @@ export const CODES_ERREUR = [
   'RESILIATION_TENANT_PURGE_PREMATUREE',
   // La re-saisie de confirmation (raison sociale du tenant) ne correspond pas — geste PAS assez
   // sans ambiguïté pour déclencher un export intégral de toute la base du garage (arbitrage
-  // 20.08.2026, sur le modèle de `docker/postgres/sauvegarde/restaurer.sh`).
+  // 20.08.2026, sur le modèle de `docker/backup/restaurer.sh`).
   'RESILIATION_TENANT_CONFIRMATION_INVALIDE',
   // --- Reprise de données par dépôt d'archive (contrats/reprise.ts, migration 0067) ---
   // Même patron qu'OR_TRANSITION_INTERDITE : transition hors de la machine à états gelée

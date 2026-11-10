@@ -29,7 +29,7 @@ updates:
       - /apps/api
       - /apps/web
       - /apps/api/src/vehicules/ocr/moteur-rapidocr-conteneur
-      - /docker/postgres/sauvegarde
+      - /docker/backup
     schedule:
       interval: monthly
     open-pull-requests-limit: 5

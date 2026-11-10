@@ -122,6 +122,11 @@ export class GardeSession implements CanActivate {
       const origineAttendue = new URL(this.config.WEB_URL_PUBLIQUE).origin;
       const origineRecue = new URL(origine).origin;
       if (origineRecue === origineAttendue) return;
+      // Installation sans URL publique : l'origine légitime est celle que le navigateur a
+      // utilisée pour atteindre ce serveur, donc égale à l'en-tête `Host` (voir la config).
+      if (this.config.ORIGINE_ACCEPTER_HOTE && new URL(origineRecue).host === req.headers.host) {
+        return;
+      }
       if (
         this.config.NODE_ENV !== 'production' &&
         this.originesReseauLocalEquivalentes(origineRecue, origineAttendue)

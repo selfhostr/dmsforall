@@ -5,7 +5,7 @@ description: Creare il primo account dell'autorimessa, poi le sedi, gli utenti e
 
 Alla fine di questa pagina, l'autorimessa avrà il primo account, le sue sedi, gli account del personale e le impostazioni di fatturazione necessarie per emettere una prima fattura.
 
-Con un solo comando si creano l'autorimessa, la sua sede (con lo stesso nome), il primo account `direction` e una riga di audit. L'autorimessa riceve anche le impostazioni dell'officina, una tariffa oraria `ATELIER` (CHF 140.00) e otto motivi di appuntamento (tagliando, pneumatici, collaudo MFK, freni, diagnosi, carrozzeria, climatizzazione, altro), così può prendere appuntamenti già dal primo giorno. Tutto può essere modificato nelle impostazioni:
+Una nuova installazione non ha ancora nessun account, e l'interfaccia web non ha ancora una schermata per creare la prima autorimessa: la si crea con un comando. Con un solo comando si creano l'autorimessa, la sua sede (con lo stesso nome), il primo account `direction` e una riga di audit. L'autorimessa riceve anche le impostazioni dell'officina, una tariffa oraria `ATELIER` (CHF 140.00) e otto motivi di appuntamento (tagliando, pneumatici, collaudo MFK, freni, diagnosi, carrozzeria, climatizzazione, altro), così può prendere appuntamenti già dal primo giorno. Tutto può essere modificato nelle impostazioni:
 
 ```sh
 docker compose exec api node dist/cli/creer-garage.js --garage "Garage Exemple" --email direction@example.ch
@@ -27,17 +27,17 @@ Il comando termina con stato 1 e uno di questi codici:
 - `GARAGE_EXISTANT`: esiste già un'autorimessa con questo nome;
 - `COURRIEL_EXISTANT`: l'indirizzo e-mail è già usato.
 
-Risultato: l'account può accedere all'interfaccia web su `DFA_PUBLIC_URL` (predefinito `http://localhost:8080`). Un accesso da un altro indirizzo restituisce `AUTH_ORIGINE_REFUSEE`.
+Risultato: l'account può accedere all'interfaccia web all'indirizzo della Sua installazione (`https://<indirizzo del server>:8443`, oppure `DFA_PUBLIC_URL` dietro un reverse proxy). Un accesso da un indirizzo diverso da `DFA_PUBLIC_URL` restituisce `AUTH_ORIGINE_REFUSEE`. Dopo il primo accesso, l'assistente di configurazione La guida attraverso indirizzo, coordinate bancarie, IVA, tariffa oraria e personale dell'autorimessa, con valori predefiniti.
 
 Il seed demo (`pnpm db:seed`) non viene eseguito con `NODE_ENV=production`. Non lo usi su un server che contiene dati reali.
 
 ## 2. Creare le sedi
 
-Apra **Impostazioni › Sedi** e crei una voce per ogni officina, postazione di cassa o showroom. Ogni dato (clienti, veicoli, ordini, magazzino) appartiene a una sede.
+Apra le impostazioni delle sedi e crei una voce per ogni officina, postazione di cassa o showroom. Ogni dato (clienti, veicoli, ordini, magazzino) appartiene a una sede.
 
 ## 3. Invitare il personale
 
-Apra **Impostazioni › Utenti** e crei un account per ogni persona. Scelga il ruolo che corrisponde al lavoro della persona. Vedere [ruoli e diritti](../reference/roles-and-rights.md).
+Apra le impostazioni degli utenti e crei un account per ogni persona. Scelga il ruolo che corrisponde al lavoro della persona. Vedere [ruoli e diritti](../reference/roles-and-rights.md).
 
 Per un terminale condiviso in officina, crei un account con il ruolo `poste_atelier` e lo colleghi a una sola sede.
 

@@ -5,7 +5,7 @@ description: Das erste Garagenkonto anlegen, danach die Standorte, Mitarbeitende
 
 Am Ende dieser Seite hat die Garage ihr erstes Konto, ihre Standorte, ihre Mitarbeitenden-Konten und die Einstellungen zur Fakturierung, die für eine erste Rechnung nötig sind.
 
-Mit einem einzigen Befehl legen Sie die Garage, ihren Standort (er trägt den Namen der Garage), das erste Konto mit der Rolle `direction` und eine Zeile im Prüfprotokoll an. Die Garage erhält ausserdem ihre Werkstatt-Einstellungen, einen Stundenansatz `ATELIER` (CHF 140.00) und acht Terminmotive (Service, Reifen, MFK-Kontrolle, Bremsen, Diagnose, Karosserie, Klimaanlage, Sonstiges). So kann sie vom ersten Tag an Termine vereinbaren. Alles lässt sich in den Einstellungen ändern:
+Eine neue Installation hat noch kein Konto, und die Web-Oberfläche hat noch keinen Bildschirm, um die erste Garage anzulegen: Sie wird mit einem Befehl angelegt. Mit einem einzigen Befehl legen Sie die Garage, ihren Standort (er trägt den Namen der Garage), das erste Konto mit der Rolle `direction` und eine Zeile im Prüfprotokoll an. Die Garage erhält ausserdem ihre Werkstatt-Einstellungen, einen Stundenansatz `ATELIER` (CHF 140.00) und acht Terminmotive (Service, Reifen, MFK-Kontrolle, Bremsen, Diagnose, Karosserie, Klimaanlage, Sonstiges). So kann sie vom ersten Tag an Termine vereinbaren. Alles lässt sich in den Einstellungen ändern:
 
 ```sh
 docker compose exec api node dist/cli/creer-garage.js --garage "Garage Exemple" --email direction@example.ch
@@ -27,7 +27,7 @@ Der Befehl endet mit dem Status 1 und einem dieser Codes:
 - `GARAGE_EXISTANT`: Eine Garage mit diesem Namen existiert bereits;
 - `COURRIEL_EXISTANT`: Die E-Mail-Adresse wird bereits verwendet.
 
-Ergebnis: Das Konto kann sich auf der Web-Oberfläche unter `DFA_PUBLIC_URL` anmelden (Standard `http://localhost:8080`). Eine Anmeldung von einer anderen Adresse wird mit `AUTH_ORIGINE_REFUSEE` abgelehnt.
+Ergebnis: Das Konto kann sich auf der Web-Oberfläche unter der Adresse Ihrer Installation anmelden (`https://<Serveradresse>:8443`, oder `DFA_PUBLIC_URL` hinter einem Reverse Proxy). Eine Anmeldung von einer anderen Adresse als `DFA_PUBLIC_URL` wird mit `AUTH_ORIGINE_REFUSEE` abgelehnt. Nach der ersten Anmeldung führt der Einrichtungsassistent mit Standardwerten durch Adresse, Bankverbindung, MWST, Stundenansatz und Mitarbeitende der Garage.
 
 Der Demo-Seed (`pnpm db:seed`) läuft nicht mit `NODE_ENV=production`. Verwenden Sie ihn nicht auf einem Server mit echten Daten.
 

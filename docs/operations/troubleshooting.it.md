@@ -14,6 +14,8 @@ docker compose ps
 
 **Messaggio: `Invalid configuration`.** Il log elenca ogni variabile non valida, con il motivo. Corregga ciascuna in `.env`, poi esegua di nuovo `docker compose up -d`. Con il file Compose standard incontra raramente questo errore, perché la connessione al database e le chiavi sono già impostate.
 
+**Il messaggio dice `PostgreSQL refuses the password stored in ./data/secrets`.** `./data/postgres` contiene un database creato con altre password: un'altra installazione, oppure `./data/secrets` è stato eliminato o sostituito. Ripristini la cartella `./data/secrets` corrispondente. Se quel database non serve, esegua `docker compose down`, elimini `./data/postgres` e `./data/secrets`, e riavvii. Il servizio `postgres` dà un messaggio simile quando manca `./data/secrets/postgres_password`.
+
 **Il messaggio dice `COOKIE_SECURE must be true in production`.** Rimuova la riga `COOKIE_SECURE=false` da `.env`. Il cookie di sessione deve essere inviato tramite HTTPS.
 
 **Il messaggio dice che viene usata una password di sviluppo.** L'URL del database contiene `dfa_app_dev` o `dfa_migrator_dev`. Ha impostato lei stesso `DATABASE_URL` con le password di sviluppo. Rimuova `DATABASE_URL` e `DATABASE_URL_MIGRATION` da `.env`: lo stack le costruisce a partire dalle password generate.
@@ -22,11 +24,11 @@ docker compose ps
 
 ## L'accesso non riesce
 
-**L'accesso web viene rifiutato con `AUTH_ORIGINE_REFUSEE`.** L'indirizzo nel browser non corrisponde a `DFA_PUBLIC_URL` (predefinito `http://localhost:8080`). Apra il sito a quell'indirizzo, oppure modifichi `DFA_PUBLIC_URL` e riavvii lo stack.
+**L'accesso web viene rifiutato con `AUTH_ORIGINE_REFUSEE`.** Ha impostato `DFA_PUBLIC_URL`, e l'indirizzo nel browser non corrisponde. Apra il sito a quell'indirizzo, oppure modifichi `DFA_PUBLIC_URL` e riavvii lo stack. Il Suo reverse proxy deve inoltrare l'intestazione `Host`.
 
 **La password viene rifiutata e l'account è bloccato.** Attenda la scadenza del blocco. I tentativi ripetuti falliti bloccano l'account per un certo tempo. Il limite è definito da `SEUIL_VERROUILLAGE_COMPTE`.
 
-**L'accesso restituisce `429`.** Troppi tentativi da un indirizzo, oppure troppi tentativi su un account. Attenda la fine della finestra. Se tutti gli utenti risultano bloccati contemporaneamente, probabilmente `TRUST_PROXY_HOPS` è errato e tutti gli utenti condividono un unico indirizzo.
+**L'accesso restituisce `429`.** Troppi tentativi da un indirizzo, oppure troppi tentativi su un account. Attenda la fine della finestra. Se tutti gli utenti risultano bloccati contemporaneamente, probabilmente `TRUST_PROXY_HOPS` è errato e tutti gli utenti condividono un unico indirizzo. Il Suo reverse proxy deve inviare `X-Forwarded-For`.
 
 **La pagina si carica, ma Lei resta disconnesso.** Verifichi che `WEB_URL_PUBLIQUE` e `API_URL_PUBLIQUE` usino HTTPS e corrispondano agli indirizzi nel browser. Verifichi `COOKIE_DOMAINE`, se l'ha impostato.
 
@@ -54,7 +56,7 @@ Verifichi che il container web sia in esecuzione e che la sua versione corrispon
 
 ## La migrazione è fallita
 
-L'API non si avvia con la nuova versione, e la versione precedente resta in esecuzione. Legga i log del servizio `migrate`, risolva la causa in una nuova release e ripeta l'aggiornamento. Non modifichi un file di migrazione già applicato.
+L'API non si avvia con la nuova versione, e la versione precedente resta in esecuzione. Legga i log del servizio `api`, risolva la causa in una nuova release e ripeta l'aggiornamento. Non modifichi un file di migrazione già applicato.
 
 ## Dove ottenere altro aiuto
 

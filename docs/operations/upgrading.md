@@ -14,8 +14,6 @@ At the end of this page, your installation runs the new version, and you know ho
 
 ## Upgrade
 
-Versions after 0.3.0 run Valkey instead of Redis for the queues. Nothing to change: the `redis` service name, the `REDIS_URL` setting and the `dfa_redis_data` volume stay the same, and Valkey reads the existing append-only files. `docker compose pull` fetches the new image.
-
 1. Set `DFA_VERSION` in `.env` to the new tag (add the line if the file has none). If the release notes mention a change in `docker-compose.yml`, download the new file from the release first. See [Verify the images](../security/verify-images.md).
 2. Pull the new images and restart the stack:
 
@@ -24,23 +22,24 @@ Versions after 0.3.0 run Valkey instead of Redis for the queues. Nothing to chan
    docker compose up -d
    ```
 
-3. The `migrate` service applies the database migrations before the API starts. Check that it finished without an error:
+3. The `api` service applies the database migrations when it starts, and the `worker` waits for it. Check that the API is healthy:
 
    ```sh
-   docker compose ps -a migrate
+   docker compose ps api
+   docker compose logs api
    ```
 
 4. Check the health endpoint:
 
    ```sh
-   curl -s https://garage.example.org/api/v1/sante
+   curl -s https://dmsforall.example.ch/api/v1/sante
    ```
 
 5. Sign in and check one document of each area you use.
 
 ## If something fails
 
-- **The migration failed.** The API does not start on the new version, and the previous version keeps running. Read the logs of the `migrate` service, fix the cause, and run the stack again.
+- **The migration failed.** The API does not start on the new version, and the previous version keeps running. Read the logs of the `api` service, fix the cause, and run the stack again.
 - **The API does not start.** Read the logs. A configuration error lists each faulty variable. Fix the variable and start again.
 - **The new version misbehaves.** Restore the backup taken before the upgrade. This is the supported way to return to the previous state.
 
