@@ -5,7 +5,34 @@ description: Créer le premier compte du garage, puis les sites, les utilisateur
 
 À la fin de cette page, le garage dispose de son premier compte, de ses sites, de ses comptes du personnel et des réglages de facturation nécessaires pour émettre une première facture.
 
-Une nouvelle installation n'a pas de compte, et l'interface web n'a pas encore d'écran pour créer le premier garage : il se crée avec une commande. Créez le garage, son site (portant le nom du garage), son premier compte `direction` et une ligne d'audit avec une seule commande. Le garage reçoit aussi ses réglages d'atelier, un taux horaire `ATELIER` (CHF 140.00) et huit motifs de rendez-vous (entretien, pneus, MFK, freins, diagnostic, carrosserie, climatisation, autre), afin de pouvoir prendre des rendez-vous dès le premier jour. Tout peut être modifié dans les réglages :
+## 1. Créer le garage
+
+Une nouvelle installation n'a pas de compte. Au premier démarrage, l'API tire un code d'installation à usage unique et l'affiche dans ses journaux. L'interface web le demande dès son premier écran.
+
+1. Lisez le code d'installation dans les journaux de l'API :
+
+   ```sh
+   docker compose logs api
+   ```
+
+   Cherchez le bloc qui indique `Code d'installation`, suivi d'un code comme `K7QM-3XRB-9TNA`.
+
+2. Ouvrez `https://<adresse du serveur>:8443` (l'adresse de votre installation, ou `DFA_PUBLIC_URL` derrière un reverse proxy). Sur une nouvelle installation, le navigateur affiche **Créer votre garage** à la place de la page de connexion. Saisissez le nom du garage, votre prénom et votre nom, votre adresse e-mail, un mot de passe saisi deux fois (12 caractères au moins) et le code d'installation.
+
+3. Choisissez **Créer mon garage**. Vous êtes connecté avec le compte `direction`, et l'assistant de mise en route s'ouvre.
+
+Résultat : le garage existe, avec son site (portant le nom du garage), son compte `direction` et une ligne d'audit. Il reçoit aussi ses réglages d'atelier, un taux horaire `ATELIER` (CHF 140.00) et huit motifs de rendez-vous (entretien, pneus, MFK, freins, diagnostic, carrosserie, climatisation, autre), afin de pouvoir prendre des rendez-vous dès le premier jour. Tout peut être modifié dans les réglages. L'assistant de mise en route vous guide dans l'adresse, les coordonnées bancaires, la TVA, le taux horaire et le personnel du garage, avec des valeurs par défaut.
+
+Le code d'installation protège une nouvelle installation joignable depuis internet avant l'arrivée de son propriétaire : seule une personne qui peut lire les journaux du serveur peut créer le premier garage. Le code ne sert qu'une fois. Un nouveau code est tiré à chaque démarrage de l'API tant qu'aucun garage n'existe, et il cesse de fonctionner dès qu'un garage existe. La base n'en garde qu'une empreinte salée. Si vous l'avez perdu, lancez `docker compose restart api` et relisez les journaux. L'écran refuse avec ces codes :
+
+- `INSTALLATION_CODE_INVALIDE` (403) : le code est faux ou périmé ;
+- `INSTALLATION_DEJA_FAITE` (409) : un garage existe déjà sur cette installation. Connectez-vous à la place ;
+- `AUTH_TROP_DE_TENTATIVES` (429) : trop de tentatives. Patientez, puis réessayez ;
+- `MOT_DE_PASSE_FAIBLE` (dans un 400 `VALIDATION_ECHOUEE`) : le mot de passe est trop faible, trop courant, trop prévisible, ou il contient l'adresse e-mail.
+
+### Autre possibilité : la ligne de commande
+
+Pour créer le garage sans le navigateur, lancez une commande. Elle fait exactement la même chose que l'écran (même site, même taux horaire, mêmes motifs de rendez-vous) et n'a pas besoin du code d'installation, car elle s'exécute sur le serveur :
 
 ```sh
 docker compose exec api node dist/cli/creer-garage.js --garage "Garage Exemple" --email direction@example.ch

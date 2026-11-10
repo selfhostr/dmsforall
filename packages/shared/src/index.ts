@@ -6,6 +6,7 @@ export * from './contrats/probleme';
 export * from './contrats/pagination';
 export * from './contrats/socle';
 export * from './contrats/systeme';
+export * from './contrats/installation';
 export * from './contrats/tenant';
 export * from './contrats/modules';
 export * from './contrats/envoi-courriel';

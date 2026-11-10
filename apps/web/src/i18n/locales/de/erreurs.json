@@ -185,7 +185,9 @@
     "COURRIEL_AUTHENTIFICATION_ECHEC": "Der Postausgangsserver hat Benutzername oder Passwort abgelehnt. Bitte prüfen Sie beides (bei Gmail oder Microsoft 365 ist oft ein App-Passwort nötig).",
     "COURRIEL_CONNEXION_ECHEC": "Der Postausgangsserver ist nicht erreichbar. Prüfen Sie Servername und Port.",
     "COURRIEL_TLS_ECHEC": "Die sichere Verbindung zum Server ist fehlgeschlagen. Versuchen Sie eine andere Verschlüsselung (STARTTLS mit Port 587 oder TLS mit Port 465).",
-    "COURRIEL_ENVOI_ECHEC": "Der Server hat die Testnachricht abgelehnt. Prüfen Sie Absenderadresse und Empfängeradresse."
+    "COURRIEL_ENVOI_ECHEC": "Der Server hat die Testnachricht abgelehnt. Prüfen Sie Absenderadresse und Empfängeradresse.",
+    "INSTALLATION_CODE_INVALIDE": "Der Installationscode ist falsch oder abgelaufen. Lesen Sie ihn in den Protokollen des Servers nach (docker compose logs api).",
+    "INSTALLATION_DEJA_FAITE": "Diese Instanz hat bereits eine Garage."
   },
   "actions": {
     "CREER_DEVIS_COMPLEMENTAIRE": "Nachtragsofferte erstellen",

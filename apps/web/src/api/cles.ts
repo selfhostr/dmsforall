@@ -22,6 +22,7 @@ type FiltresListe = Record<string, string | number | boolean | undefined>;
 export const clesQuery = {
   session: () => ['auth', 'me'] as const,
   versionSysteme: () => ['systeme', 'version'] as const,
+  etatInstallation: () => ['installation', 'etat'] as const,
 
   recherche: {
     globale: (terme: string) => ['recherche', 'globale', terme] as const,

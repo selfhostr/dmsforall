@@ -22,12 +22,20 @@ Il faut Docker Engine et Docker Compose 2.24 ou plus récent. La [page d'install
    docker compose up -d
    ```
 
-3. Créez le premier compte du garage (voir [Configurer votre premier garage](first-garage.md)), puis ouvrez `https://<adresse du serveur>:8443` dans un navigateur. Le certificat est auto-signé : acceptez-le une fois.
+3. Lisez le code d'installation à usage unique que l'API affiche à son premier démarrage :
 
-Résultat : la page de connexion s'affiche. Le premier démarrage génère les mots de passe et la clé de chiffrement, crée la base de données et applique les migrations. Vos données sont dans le dossier `./data` et vos sauvegardes dans `./backups`, à côté du fichier Compose.
+   ```sh
+   docker compose logs api
+   ```
+
+   Il ressemble à `K7QM-3XRB-9TNA`.
+
+4. Ouvrez `https://<adresse du serveur>:8443` dans un navigateur. Le certificat est auto-signé : acceptez-le une fois. La page **Créer votre garage** s'ouvre : saisissez le nom du garage, votre nom, votre adresse e-mail, un mot de passe et le code d'installation. Vous êtes connecté et l'assistant de mise en route s'ouvre. Voir [Configurer votre premier garage](first-garage.md).
+
+Résultat : la page qui crée votre garage s'affiche. Le premier démarrage génère les mots de passe et la clé de chiffrement, crée la base de données et applique les migrations. Vos données sont dans le dossier `./data` et vos sauvegardes dans `./backups`, à côté du fichier Compose.
 
 ## Suite
 
 - Pour un nom de domaine avec un vrai certificat, placez votre propre reverse proxy devant : voir [Installer dmsforall sur un serveur](installation.md).
-- Créez le premier compte du garage avec `creer-garage.js` : voir [Configurer votre premier garage](first-garage.md).
+- Créez le premier garage en ligne de commande plutôt que dans le navigateur : voir [Configurer votre premier garage](first-garage.md).
 - La sauvegarde quotidienne est déjà active. Copiez `./backups` sur une autre machine, et testez une restauration : voir [Sauvegarder et restaurer](backup-and-restore.md).

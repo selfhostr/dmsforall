@@ -6,6 +6,10 @@ All notable changes to dmsforall are recorded here, for people who run it and fo
 
 A much simpler installation: one file, a handful of services, plain folders, a daily backup that runs by itself.
 
+### Added
+
+- **Create your first garage in the browser.** On a new installation, opening the address shows **Create your garage** instead of the sign-in page: garage name, your name, e-mail address, password and an installation code. You are then signed in and the setup assistant opens. The code is drawn at each start of the API while no garage exists, printed in its logs (`docker compose logs api`), stored only as a salted hash, usable once and invalid as soon as a garage exists. It stops anyone who finds your server on the internet before you from taking it over. The `creer-garage.js` command still works and does exactly the same. New public routes `GET /installation/etat` and `POST /installation/premier-garage`, new error codes `INSTALLATION_CODE_INVALIDE` and `INSTALLATION_DEJA_FAITE`, and a migration (`0099`) that adds the table of the code hash.
+
 ### Changed
 
 - **One file, nothing else.** `docker-compose.yml` alone is enough: no other file, no folder to create, no `chown`. In an empty folder, `docker compose up -d` starts everything.

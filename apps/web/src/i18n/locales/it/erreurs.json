@@ -185,7 +185,9 @@
     "COURRIEL_AUTHENTIFICATION_ECHEC": "Il server di posta in uscita ha rifiutato nome utente o password. Li verifichi (con Gmail o Microsoft 365 spesso serve una password per le app).",
     "COURRIEL_CONNEXION_ECHEC": "Impossibile raggiungere il server di posta in uscita. Verifichi il nome del server e la porta.",
     "COURRIEL_TLS_ECHEC": "La connessione sicura con il server non è riuscita. Provi un altro tipo di sicurezza (STARTTLS con porta 587, oppure TLS con porta 465).",
-    "COURRIEL_ENVOI_ECHEC": "Il server ha rifiutato il messaggio di prova. Verifichi l'indirizzo del mittente e quello del destinatario."
+    "COURRIEL_ENVOI_ECHEC": "Il server ha rifiutato il messaggio di prova. Verifichi l'indirizzo del mittente e quello del destinatario.",
+    "INSTALLATION_CODE_INVALIDE": "Il codice di installazione è errato o scaduto. Lo rilegga nei log del server (docker compose logs api).",
+    "INSTALLATION_DEJA_FAITE": "Questa istanza ha già la sua autorimessa."
   },
   "actions": {
     "CREER_DEVIS_COMPLEMENTAIRE": "Crea preventivo supplementare",

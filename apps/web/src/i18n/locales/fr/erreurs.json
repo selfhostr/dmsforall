@@ -185,7 +185,9 @@
     "COURRIEL_AUTHENTIFICATION_ECHEC": "Le serveur d'envoi a refusé l'identifiant ou le mot de passe. Vérifiez-les (avec Gmail ou Microsoft 365, un mot de passe d'application est souvent requis).",
     "COURRIEL_CONNEXION_ECHEC": "Impossible de joindre le serveur d'envoi. Vérifiez le nom du serveur et le port.",
     "COURRIEL_TLS_ECHEC": "La connexion sécurisée avec le serveur a échoué. Essayez un autre type de sécurité (STARTTLS avec le port 587, ou TLS avec le port 465).",
-    "COURRIEL_ENVOI_ECHEC": "Le serveur a refusé le message d'essai. Vérifiez l'adresse d'expédition et l'adresse du destinataire."
+    "COURRIEL_ENVOI_ECHEC": "Le serveur a refusé le message d'essai. Vérifiez l'adresse d'expédition et l'adresse du destinataire.",
+    "INSTALLATION_CODE_INVALIDE": "Le code d'installation est incorrect ou périmé. Relisez-le dans les journaux du serveur (docker compose logs api).",
+    "INSTALLATION_DEJA_FAITE": "Cette instance a déjà son garage."
   },
   "actions": {
     "CREER_DEVIS_COMPLEMENTAIRE": "Créer un devis complémentaire",

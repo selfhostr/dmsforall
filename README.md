@@ -17,10 +17,10 @@
 ```bash
 curl -LO https://github.com/selfhostr/dmsforall/releases/latest/download/docker-compose.yml
 docker compose up -d
-docker compose exec api node dist/cli/creer-garage.js --garage "Garage Exemple" --email direction@example.ch
+docker compose logs api   # prints the one-time installation code
 ```
 
-Open `https://<server address>:8443` and sign in (the certificate is self-signed: accept it once). You need Docker with Compose v2. That one file is all you need: no clone, no other file, no folder to create. The passwords and keys are generated on the first start, your data lives in `./data` and a daily backup is written to `./backups`. Copy the backups off the server and test a restore before you enter real data: [Back up and restore](https://dmsforall.selfhostr.io/docs/get-started/backup-and-restore/).
+Open `https://<server address>:8443` (the certificate is self-signed: accept it once). A new installation shows **Create your garage**: enter the garage name, your name, your e-mail address, a password and the installation code from the logs. You are signed in and the setup assistant opens. Without the browser, `docker compose exec api node dist/cli/creer-garage.js --garage "Garage Exemple" --email direction@example.ch` creates the garage from the command line. You need Docker with Compose v2. That one file is all you need: no clone, no other file, no folder to create. The passwords and keys are generated on the first start, your data lives in `./data` and a daily backup is written to `./backups`. Copy the backups off the server and test a restore before you enter real data: [Back up and restore](https://dmsforall.selfhostr.io/docs/get-started/backup-and-restore/).
 
 For a domain name with a real certificate, put your own reverse proxy in front, for example with Caddy, and set `DFA_PUBLIC_URL=https://dmsforall.example.ch` in a `.env` file:
 
@@ -54,7 +54,6 @@ A React single-page application built with Vite calls a NestJS API that publishe
 - No tax or legal guarantee: have invoices and accounting exports checked by a fiduciary.
 - Connectors to third-party services need their own licences or accounts.
 - The operator is responsible for the HTTPS reverse proxy and certificate on a domain, copying the backups off the server, and updates.
-- The first garage is created with a command (`creer-garage.js`); the browser has no screen for it yet.
 
 ## Contributing
 
