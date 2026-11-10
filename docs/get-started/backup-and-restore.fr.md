@@ -1,98 +1,75 @@
 ---
 title: Sauvegarder et restaurer
-description: Activer la sauvegarde nocturne chiffrée de la base et des fichiers téléversés, faire un dump manuel, et ce qui a et n'a pas été prouvé concernant la restauration.
+description: La sauvegarde quotidienne qui tourne toute seule, comment en faire une à la main, comment la restaurer, et ce qui n'est pas couvert.
 ---
 
-À la fin de cette page, vous savez activer la sauvegarde nocturne, faire un dump à la main, et connaître l'état de la restauration.
+À la fin de cette page, vous savez où se trouvent les sauvegardes quotidiennes, comment en faire une à la main, comment en restaurer une, et ce que vous devez encore copier vous-même.
 
-:::caution
-La copie hors site n'a pas été testée. Conservez une seconde copie hors du serveur, et vérifiez-la vous-même.
-:::
+## La sauvegarde quotidienne
 
-## Activer la sauvegarde nocturne
+Le service `backup` tourne avec la pile. Chaque jour à 02:30 (heure du serveur, Europe/Zurich), il écrit deux fichiers dans le dossier `./backups`, à côté du fichier Compose :
 
-La sauvegarde tourne dans le profil `backup`. Chaque nuit, elle écrit des fichiers chiffrés dans le volume `dmsforall_dfa_postgres_backups`. Chaque nuit produit trois fichiers portant le même horodatage :
+| Fichier                         | Contenu                                                                                         |
+| ------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `dfa-<date>_<time>.sql.gz`      | Toute la base de données : schéma et données.                                                   |
+| `fichiers-<date>_<time>.tar.gz` | Les fichiers téléversés et générés : PDF de factures, photos des ordres de réparation, exports. |
 
-| Fichier                              | Contenu                                                                                         |
-| ------------------------------------ | ----------------------------------------------------------------------------------------------- |
-| `dfa_<timestamp>.dump.age`           | La base : schéma et données.                                                                    |
-| `dfa_<timestamp>.roles.sql.age`      | Les rôles de la base, avec leurs mots de passe actuels.                                         |
-| `dfa_<timestamp>.uploads.tar.gz.age` | Les fichiers téléversés et générés : PDF de factures, photos des ordres de réparation, exports. |
+Les sauvegardes de plus de 14 jours sont supprimées. Modifiez l'heure et le nombre de jours avec `DFA_BACKUP_TIME` et `DFA_BACKUP_KEEP_DAYS` dans `.env`. L'archive des fichiers est complète chaque nuit, et non incrémentale : dimensionnez donc le disque pour 14 copies de vos documents.
 
-Les trois fichiers sont chiffrés avec la même clé `age`, tournent ensemble (7 quotidiennes, 4 hebdomadaires, 12 mensuelles) et sont copiés hors site ensemble lorsque `RCLONE_REMOTE` est renseigné. L'archive des fichiers est complète chaque nuit, et non incrémentale : elle a à peu près la taille des fichiers une fois compressés (les photos se compressent à peine), et le volume conserve jusqu'à 23 copies. Dimensionnez le volume en conséquence.
-
-1. Ajoutez une clé publique `age` dans `.env` :
-
-   ```sh
-   AGE_CLE_PUBLIQUE=age1...
-   ```
-
-2. Démarrez le profil :
-
-   ```sh
-   docker compose --profile backup up -d
-   ```
-
-Gardez la clé privée `age` hors de ce serveur. Sans elle, les sauvegardes ne peuvent pas être lues. La sauvegarde tourne à partir de l'image publiée `ghcr.io/selfhostr/dmsforall-backup` : le serveur n'a donc pas besoin d'un clone du dépôt. Le script de restauration `restaurer.sh` fait exception : récupérez-le dans le dépôt, ou depuis un clone sur la machine où vous restaurez.
-
-L'heure de sauvegarde se règle avec `HEURE_SAUVEGARDE` (par défaut `03:15`), et le fuseau horaire avec `DFA_TIMEZONE` (par défaut `UTC`).
-
-## Faire un dump à la main
-
-Pour une copie ponctuelle de la base, utilisez `pg_dump` dans le conteneur PostgreSQL :
+Pour faire une sauvegarde maintenant :
 
 ```sh
-docker compose exec postgres pg_dump -U dfa -Fc dfa > dfa-$(date +%Y%m%d).dump
+docker compose exec -u dfa backup /scripts/sauvegarder.sh
 ```
 
-Stockez le fichier chiffré et hors du serveur.
+:::caution
+`./backups` se trouve sur la même machine que les données. Une panne de disque ou un serveur volé perd les deux. Copiez ce dossier sur une autre machine chaque jour (`rsync`, `rclone`, un NAS), et gardez avec lui une copie de `./data/secrets`.
+:::
 
-## Ce qui est sauvegardé
+Pour chiffrer les sauvegardes, renseignez `DFA_BACKUP_AGE_PUBLIC_KEY` dans `.env` avec une clé publique [age](https://age-encryption.org). Les fichiers se terminent alors par `.age`. Gardez la clé privée hors du serveur : sans elle, les sauvegardes ne peuvent pas être lues.
 
-Le conteneur de sauvegarde monte les volumes de téléversement en lecture seule sous `/uploads` et archive tout ce qu'il y trouve :
+## Ce que contient une sauvegarde, et ce qu'elle ne contient pas
 
-- `dmsforall_dfa_api_uploads` : factures et autres documents PDF.
-- `dmsforall_dfa_photos_or` : photos des ordres de réparation et leurs miniatures.
-- `dmsforall_dfa_exports_resiliation` : les exports remis à un garage qui quitte le service. Ils peuvent contenir toutes les données d'un garage et ne peuvent pas toujours être régénérés une fois le garage parti.
-- `dmsforall_dfa_reprise` : les archives téléversées pour reprendre les données du logiciel précédent. Elles sont la source de la reprise et ne peuvent pas être régénérées.
+Le dump de la base et l'archive des fichiers couvrent tout ce que l'application stocke : documents, photos, exports remis à un garage qui quitte le service, et archives téléversées pour reprendre les données du logiciel précédent.
 
-Un nouveau volume de téléversement ajouté au service `api` dans `docker-compose.yml` n'est pas sauvegardé tant que vous ne le montez pas aussi, en lecture seule, sous `/uploads/` dans le service `backup`.
+Non couverts :
 
-L'archive est écrite en flux (`tar` vers `age`) : aucun fichier en clair n'est écrit sur le disque. La sauvegarde échoue, et `dernier-statut.txt` indique `ECHEC`, si l'archive ne peut pas être écrite ou si `/uploads` manque.
-
-## Ce qui n'est pas sauvegardé
-
-- Les données de Valkey. Les files d'attente et l'état de courte durée sont recréés.
-- Les mots de passe de base générés et la clé de chiffrement (volume `dmsforall_dfa_secrets`), ainsi que les certificats TLS (volume `dmsforall_dfa_caddy_data`). Le fichier de rôles de la sauvegarde contient les mots de passe de la base. La clé de chiffrement protège les mots de passe d'envoi que les garages ont enregistrés dans l'application : sans elle, ils doivent être saisis de nouveau. Gardez une copie de la clé en lieu sûr :
-
-  ```sh
-  docker compose run --rm --no-deps --entrypoint cat api /secrets/secrets_key
-  ```
-
-- Les fichiers d'un répertoire de téléversement qui n'est pas un volume monté. Ils vivent dans le conteneur et sont perdus lorsqu'il est recréé.
+- `./data/secrets`, les mots de passe générés et la clé de chiffrement. La clé protège les mots de passe d'envoi que les garages ont enregistrés dans l'application : sans elle, ils doivent être saisis de nouveau. Copiez une fois ce petit dossier en lieu sûr.
+- `./data/valkey`. Les files d'attente et l'état de courte durée sont recréés.
+- `./data/certs`, le certificat HTTPS. Il est régénéré s'il manque.
 
 ## Restaurer
 
-Une restauration ramène la base à l'heure de la sauvegarde. Tout ce qui a été écrit depuis cette sauvegarde est perdu.
+Une restauration ramène la base à l'heure de la sauvegarde. Tout ce qui a été écrit après est perdu. Exécutez ces commandes dans le dossier du fichier Compose.
 
-1. Arrêtez les services `api` et `worker`, pour que rien n'écrive plus dans la base.
-2. Restaurez le dump dans une base vide, sur une machine séparée, et vérifiez le résultat.
-3. Ensuite seulement, restaurez sur le serveur de production. Une restauration complète sur une installation neuve a été prouvée.
+1. Arrêtez les services qui écrivent dans la base :
 
-`restaurer.sh` restaure ensemble la base et les fichiers, à condition que le fichier `.uploads.tar.gz.age` soit à côté du fichier `.dump.age` :
+   ```sh
+   docker compose stop api worker
+   ```
 
-```sh
-AGE_CLE_PRIVEE_FICHIER=/path/to/age.key \
-  docker/postgres/sauvegarde/restaurer.sh /path/to/dfa_20260101-031500.dump.age dfa --confirmer
-```
+2. Restaurez la base à partir d'un fichier de sauvegarde (le nom d'un fichier de `./backups`) :
 
-- `--base-seule` restaure la base seule.
-- `--fichiers-seuls` restaure les fichiers seuls. Passez `-` comme nom de base.
+   ```sh
+   docker compose exec -u dfa backup /scripts/restaurer.sh dfa-2026-11-10_023000.sql.gz
+   ```
 
-Les fichiers sont extraits dans les volumes du service `api`. Un fichier de même nom est écrasé, et un fichier absent de l'archive est laissé en place. Les fichiers ne sont restaurés que si la base cible est `dfa` : un essai de restauration dans une autre base laisse les fichiers en service intacts.
+   Le script charge d'abord la sauvegarde dans une nouvelle base, et ne remplace la base actuelle que si cela réussit. La base actuelle est conservée sous le nom `dfa_avant_restauration_<time>`, et le script affiche la commande qui la supprime une fois que vous êtes satisfait. Une sauvegarde endommagée ne détruit jamais vos données actuelles. Pour une sauvegarde chiffrée, déchiffrez-la d'abord (`age -d -i age.key -o backups/restore.sql.gz backups/dfa-....sql.gz.age`) et indiquez ce fichier.
 
-Le test de restauration mensuel (`restaurer-test.sh`) déchiffre et lit l'archive complète des fichiers. Il n'a pas encore été exécuté sur une vraie archive dans les tests automatisés : lancez-le à la main une fois après avoir activé la sauvegarde.
+3. Restaurez les fichiers (facultatif, si des documents sont perdus) :
+
+   ```sh
+   sudo tar -xzf backups/fichiers-2026-11-10_023000.tar.gz -C data/fichiers
+   ```
+
+4. Redémarrez les services :
+
+   ```sh
+   docker compose start api worker
+   ```
+
+Pour restaurer sur un nouveau serveur, copiez-y le fichier Compose, `./data/secrets` et les deux fichiers de sauvegarde, démarrez la pile une fois (`docker compose up -d`, puis `docker compose stop api worker`), et exécutez les étapes 2 à 4.
 
 :::caution
-`restaurer.sh` exige `age` sur l'hôte, avec la clé privée. La pile doit déjà tourner avant la restauration.
+Une sauvegarde que vous n'avez jamais restaurée n'est pas une sauvegarde. Restaurez-en une sur une machine séparée dès maintenant, connectez-vous et ouvrez un document, avant de saisir de vraies données.
 :::

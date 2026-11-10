@@ -2,6 +2,21 @@
 
 All notable changes to dmsforall are recorded here, for people who run it and for people who use it. Each entry says what changes for you. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/) until 1.0.
 
+## Unreleased
+
+A much simpler installation: one file, a handful of services, plain folders, a daily backup that runs by itself.
+
+### Changed
+
+- **One file, nothing else.** `docker-compose.yml` alone is enough: no other file, no folder to create, no `chown`. In an empty folder, `docker compose up -d` starts everything.
+- **Fewer services.** The `migrate`, `init-secrets` and `proxy` services are gone. The API applies the database migrations when it starts (one process at a time) and generates the passwords and keys on the first start. The worker waits for the API to be healthy. The queue service is now called `valkey` (it was `redis`).
+- **HTTPS only, one port.** The web container serves the interface and relays the API on one HTTPS port, `8443` by default (`DFA_PORT`), with a self-signed certificate generated on the first start. Put your own certificate in `./data/certs` to use it, or put your own reverse proxy in front for a real domain name and set `DFA_PUBLIC_URL`. Examples for Caddy, nginx and a Cloudflare tunnel are in the installation guide. dmsforall no longer manages domain names or Let's Encrypt, and `DFA_SITE_ADDRESS`, `DFA_HTTP_PORT`, `DFA_HTTPS_PORT` and `DFA_TRUST_PROXY_HOPS` no longer exist.
+- **Plain folders instead of Docker volumes.** Your data lives next to the Compose file: `./data/postgres`, `./data/valkey`, `./data/fichiers`, `./data/secrets`, `./data/certs` and `./backups`. You can see, copy and back them up with your usual tools.
+- **Daily backup, on by default.** The `backup` service no longer needs a profile or an encryption key. Every day at 02:30 (`DFA_BACKUP_TIME`) it writes the database and the uploaded files to `./backups` and keeps them 14 days (`DFA_BACKUP_KEEP_DAYS`). Encryption with an `age` key is optional (`DFA_BACKUP_AGE_PUBLIC_KEY`). Restoring is one command, and a damaged backup never destroys the current database: see [Back up and restore](docs/get-started/backup-and-restore.md).
+- **Clear message when the passwords do not match the data.** If `./data/postgres` was created with other passwords, or `./data/secrets` is missing, the services stop with a message that says what to restore or delete, instead of a database authentication error.
+- **Direct access works without a domain name.** Without `DFA_PUBLIC_URL`, you can sign in from any address that reaches the server. The session cookie is always `Secure`.
+- **Shorter `.env.example`.** Version, port, public address, e-mail and the backup hour and retention.
+
 ## 0.3.1 (2026-11-09)
 
 A short release after 0.3.0: a Compose version requirement, clearer start-up messages and a fix to the vehicle form.

@@ -111,6 +111,15 @@ export const schemaConfig = z
       .enum(['true', 'false'])
       .default('true')
       .transform((v) => v === 'true'),
+    // Accès direct par IP ou nom de machine (`https://IP:8443`, sans DFA_PUBLIC_URL) : l'adresse
+    // du navigateur n'est pas connue d'avance, donc `Origin` est comparé à l'en-tête `Host` de la
+    // requête au lieu de WEB_URL_PUBLIQUE. Sûr pour le CSRF : un site tiers ne peut pas faire
+    // envoyer à un navigateur un `Origin` égal au `Host` de notre serveur. Défaut false ; posé à
+    // true par l'entrypoint de l'image quand DFA_PUBLIC_URL est absent.
+    ORIGINE_ACCEPTER_HOTE: z
+      .enum(['true', 'false'])
+      .default('false')
+      .transform((v) => v === 'true'),
     ARGON2_MEMOIRE_KIB: z.coerce.number().int().min(19_456).default(19_456),
     ARGON2_ITERATIONS: z.coerce.number().int().min(2).default(2),
     ARGON2_PARALLELISME: z.coerce.number().int().min(1).default(1),

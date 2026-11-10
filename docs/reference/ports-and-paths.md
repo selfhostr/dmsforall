@@ -1,21 +1,20 @@
 ---
 title: Ports and paths
-description: Network ports, storage paths and Docker volumes used by dmsforall in the default stack and in development.
+description: Network ports and storage paths used by dmsforall in the default stack and in development.
 ---
 
 ## Network ports
 
 ### Default stack (`docker-compose.yml`)
 
-| Service                | Host port                 | Notes                                                                                |
-| ---------------------- | ------------------------- | ------------------------------------------------------------------------------------ |
-| `proxy` (Caddy) HTTP   | `8080` (`DFA_HTTP_PORT`)  | Maps to container port 80.                                                           |
-| `proxy` (Caddy) HTTPS  | `8443` (`DFA_HTTPS_PORT`) | Maps to container port 443. Use port 80 and 443 with a domain in `DFA_SITE_ADDRESS`. |
-| `web`, `api`, `worker` | none                      | Reached through the proxy only.                                                      |
-| `postgres`, `redis`    | none                      | Never published.                                                                     |
-| `ocr-permis`           | none                      | Profile `ocr`, reached from the API inside the Docker network.                       |
+| Service                        | Host port           | Notes                                                            |
+| ------------------------------ | ------------------- | ---------------------------------------------------------------- |
+| `web`                          | `8443` (`DFA_PORT`) | HTTPS only, maps to container port 8443. Relays `/api` to `api`. |
+| `api`, `worker`                | none                | Reached through `web` only.                                      |
+| `postgres`, `valkey`, `backup` | none                | Never published.                                                 |
+| `ocr-permis`                   | none                | Profile `ocr`, reached from the API inside the Docker network.   |
 
-Only the proxy publishes a port. Keep other ports closed at the firewall.
+Only `web` publishes a port, and there is no HTTP port. Keep other ports closed at the firewall.
 
 ### Development (`docker/compose.dev.yml`)
 
@@ -28,22 +27,21 @@ Only the proxy publishes a port. Keep other ports closed at the firewall.
 
 ## Storage paths
 
-| Path or volume                      | Content                                          | Backed up by the nightly backup |
-| ----------------------------------- | ------------------------------------------------ | ------------------------------- |
-| `dmsforall_dfa_postgres_data`       | PostgreSQL data.                                 | Yes, through the dump.          |
-| `dmsforall_dfa_postgres_backups`    | Encrypted nightly backups (profile `backup`).    | Local copy only.                |
-| `dmsforall_dfa_api_uploads`         | Uploaded and generated PDF documents.            | Yes, in the files archive.      |
-| `dmsforall_dfa_exports_resiliation` | Exports made when a garage leaves the service.   | Yes, in the files archive.      |
-| `dmsforall_dfa_photos_or`           | Repair order photos and thumbnails.              | Yes, in the files archive.      |
-| `dmsforall_dfa_reprise`             | Archives uploaded for a data takeover.           | Yes, in the files archive.      |
-| `dmsforall_dfa_secrets`             | Generated database passwords and encryption key. | No. Keep a copy somewhere safe. |
-| `dmsforall_dfa_redis_data`          | Valkey data.                                     | No.                             |
-| `dmsforall_dfa_caddy_data`          | TLS certificates obtained by Caddy.              | No.                             |
+The default stack uses plain folders next to `docker-compose.yml` (bind mounts), no Docker volume.
 
-The files archive (`dfa_<timestamp>.uploads.tar.gz.age`) covers everything mounted under `/uploads` in the `backup` service. See [back up and restore](../get-started/backup-and-restore.md).
+| Folder            | Content                                                  | Covered by the daily backup     |
+| ----------------- | -------------------------------------------------------- | ------------------------------- |
+| `./data/postgres` | PostgreSQL data.                                         | Yes, through the dump.          |
+| `./data/fichiers` | Uploaded and generated documents, photos, exports.       | Yes, in the files archive.      |
+| `./data/secrets`  | Generated database passwords and encryption key.         | No. Keep a copy somewhere safe. |
+| `./data/valkey`   | Valkey data (job queues).                                | No.                             |
+| `./data/certs`    | HTTPS certificate: `cert.pem` and `key.pem`.             | No. Regenerated if missing.     |
+| `./backups`       | The daily backups (`dfa-*.sql.gz`, `fichiers-*.tar.gz`). | Local copy only.                |
+
+The files archive covers everything under `./data/fichiers`. See [back up and restore](../get-started/backup-and-restore.md).
 
 In development, PDF files are written to `apps/api/uploads/documents-pdf/<tenant>/<document>.pdf`.
 
 :::caution
-Docker named volumes are not encrypted by Docker. For data at rest, use an encrypted disk or partition under the Docker data directory. See [what is protected](../security/what-is-protected.md).
+The folders are not encrypted by Docker. For data at rest, use an encrypted disk or partition under the folder that holds `docker-compose.yml`. See [what is protected](../security/what-is-protected.md).
 :::

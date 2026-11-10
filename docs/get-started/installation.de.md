@@ -1,66 +1,122 @@
 ---
 title: dmsforall auf einem Server installieren
-description: Einstellungen, HTTPS, die Dienste des Stacks, optionale Profile und Prüfungen einer dmsforall-Installation.
+description: dmsforall mit einer einzigen Compose-Datei installieren, einen eigenen Reverse Proxy für HTTPS auf einer Domain davorsetzen und die Installation prüfen.
 ---
 
-Diese Seite behandelt eine Installation auf einem Server. Die [Schnellstart](quick-start.md)-Anleitung gibt die Kurzfassung für `localhost`.
+Diese Seite behandelt eine Installation auf einem Server. Die [Schnellstart](quick-start.md)-Anleitung gibt die Kurzfassung.
 
-Am Ende dieser Seite läuft der Stack auf Ihrem Server, und Sie haben geprüft, dass er antwortet.
+Am Ende dieser Seite läuft der Stack auf Ihrem Server, gegebenenfalls hinter Ihrem HTTPS-Reverse-Proxy, und Sie haben geprüft, dass er antwortet.
 
 ## Voraussetzungen
 
 - Docker Engine und Docker Compose 2.24 oder neuer.
-- Für HTTPS auf einer Domain: ein DNS-Name, der auf den Server zeigt, und die Ports 80 und 443, die aus dem Internet erreichbar sind.
-- Speicherplatz für die PostgreSQL-Daten, die Sicherungen und die hochgeladenen Dokumente.
+- Speicherplatz für die Datenbank, die hochgeladenen Dokumente und die Sicherungen.
+- Für einen Domainnamen mit echtem Zertifikat: ein eigener Reverse Proxy (Caddy, nginx, Traefik, ein Cloudflare-Tunnel).
 
-## Einstellungen
+## Installieren
 
-Erstellen Sie neben `docker-compose.yml` eine Datei namens `.env`. Gehen Sie von `.env.example` aus, das jedem [Release](https://github.com/selfhostr/dmsforall/releases/latest) beiliegt, und entfernen Sie das `#` vor den Zeilen, die Sie brauchen. Nichts ist zwingend: Jede Einstellung hat einen Standardwert. Die wichtigsten sind:
+Erstellen Sie einen leeren Ordner, laden Sie die Compose-Datei hinein und starten Sie den Stack. Diese Datei ist alles, was Sie brauchen. Sie legen keine weitere Datei und keinen Unterordner an.
 
-| Variable               | Standard                | Wirkung                                                                                                 |
-| ---------------------- | ----------------------- | ------------------------------------------------------------------------------------------------------- |
-| `DFA_SITE_ADDRESS`     | `http://localhost`      | Adresse der Website. Setzen Sie einen Domainnamen, um HTTPS zu erhalten.                                |
-| `DFA_PUBLIC_URL`       | `http://localhost:8080` | Öffentliche Adresse, die die Benutzer im Browser eingeben. Muss mit der Website-Adresse übereinstimmen. |
-| `DFA_HTTP_PORT`        | `8080`                  | Host-Port für HTTP.                                                                                     |
-| `DFA_HTTPS_PORT`       | `8443`                  | Host-Port für HTTPS.                                                                                    |
-| `DFA_VERSION`          | `latest`                | Auszuführende Image-Version.                                                                            |
-| `DFA_TRUST_PROXY_HOPS` | `1`                     | Anzahl der Reverse Proxies vor der API.                                                                 |
+```sh
+mkdir dmsforall && cd dmsforall
+curl -LO https://github.com/selfhostr/dmsforall/releases/latest/download/docker-compose.yml
+docker compose up -d
+```
 
-Der ausgehende E-Mail-Versand wird mit `DFA_SMTP_HOST`, `DFA_SMTP_PORT`, `DFA_SMTP_USER`, `DFA_SMTP_PASSWORD` und `DFA_SMTP_FROM` eingestellt. Der Versand wird automatisch aktiviert, sobald der Host gesetzt ist. Die übrigen Einstellungen finden Sie in der [Konfigurationsreferenz](../reference/configuration.md).
+Öffnen Sie `https://<Serveradresse>:8443`. dmsforall veröffentlicht einen einzigen Port, nur in HTTPS, mit einem selbstsignierten Zertifikat, das beim ersten Start erzeugt wird. Ihr Browser fordert Sie einmalig auf, es zu akzeptieren. Für ein echtes Zertifikat setzen Sie einen Reverse Proxy davor (siehe unten).
 
-Sie geben nie ein Geheimnis selbst ein. Der Dienst `init-secrets` erzeugt beim ersten Start die Datenbank-Passwörter und den Schlüssel, der die gespeicherten Passwörter verschlüsselt, und bewahrt sie im Volume `dfa_secrets` auf. Die Rollen und Verbindungszeichenketten der Datenbank leiten sich daraus ab. Bewahren Sie eine Kopie des Inhalts dieses Volumes auf: siehe [Sichern und wiederherstellen](backup-and-restore.md).
+Der erste Start erzeugt die Passwörter und die Schlüssel, legt die Datenbank an, wendet die Migrationen an und startet alle Dienste. Alles wird neben der Compose-Datei gespeichert:
 
-## HTTPS
+| Ordner            | Inhalt                                                                                     |
+| ----------------- | ------------------------------------------------------------------------------------------ |
+| `./data/postgres` | Die Datenbank.                                                                             |
+| `./data/valkey`   | Die Warteschlangen der Hintergrundaufgaben.                                                |
+| `./data/fichiers` | Hochgeladene und erzeugte Dokumente und Fotos.                                             |
+| `./data/secrets`  | Erzeugte Passwörter und der Verschlüsselungsschlüssel. Bewahren Sie eine Kopie sicher auf. |
+| `./data/certs`    | Das HTTPS-Zertifikat (`cert.pem`, `key.pem`).                                              |
+| `./backups`       | Die täglichen Sicherungen.                                                                 |
 
-Wenn `DFA_SITE_ADDRESS` ein Domainname ist, beschafft und erneuert Caddy selbstständig ein Let's-Encrypt-Zertifikat. Die Ports 80 und 443 müssen den Server erreichen.
+Das sind gewöhnliche Ordner (Bind Mounts), keine Docker-Volumes: Sie können sie ansehen, kopieren und mit Ihren üblichen Werkzeugen sichern. Docker legt sie beim ersten Start mit dem richtigen Besitzer an. Sie führen weder `mkdir` noch `chown` aus.
 
-:::caution
-HTTPS mit einer echten Domain wurde noch nicht durchgehend getestet. Prüfen Sie das Zertifikat nach dem ersten Start, und lesen Sie die Logs von Caddy, wenn es fehlt.
-:::
+## Die erste Garage anlegen
+
+Eine neue Installation hat noch kein Konto. Legen Sie die erste Garage und ihr erstes Konto mit einem einzigen Befehl an: siehe [Ihre erste Garage einrichten](first-garage.md). Melden Sie sich danach unter der obigen Adresse an. Der Einrichtungsassistent, der durch die Einstellungen der Garage führt, startet nach dieser ersten Anmeldung.
+
+## HTTPS mit Ihrem eigenen Reverse Proxy
+
+dmsforall verwaltet weder Domainnamen noch Let's Encrypt. Um es auf einer Domain mit gültigem Zertifikat anzubieten, setzen Sie Ihren eigenen Reverse Proxy davor. Er muss an `https://127.0.0.1:8443` weiterleiten und das selbstsignierte Zertifikat des Upstreams akzeptieren (oder Sie legen Ihre eigenen `cert.pem` und `key.pem` in `./data/certs` ab und starten `web` neu).
+
+Setzen Sie die öffentliche Adresse in `.env` und starten Sie dann neu:
+
+```sh
+DFA_PUBLIC_URL=https://dmsforall.example.ch
+```
+
+Caddy (er beschafft das Zertifikat selbstständig):
+
+```text
+dmsforall.example.ch {
+  reverse_proxy https://127.0.0.1:8443 {
+    transport http {
+      tls_insecure_skip_verify
+    }
+  }
+}
+```
+
+nginx:
+
+```nginx
+location / {
+  proxy_pass https://127.0.0.1:8443;
+  proxy_ssl_verify off;
+  proxy_set_header Host $host;
+  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+  proxy_set_header X-Forwarded-Proto $scheme;
+  client_max_body_size 1g;
+}
+```
+
+Cloudflare-Tunnel (`cloudflared`), in der Konfigurationsdatei:
+
+```yaml
+ingress:
+  - hostname: dmsforall.example.ch
+    service: https://localhost:8443
+    originRequest:
+      noTLSVerify: true
+  - service: http_status:404
+```
+
+Das Sitzungs-Cookie ist immer `Secure`: Nutzen Sie die Website nur über HTTPS. Mit einem Reverse Proxy davor vertraut die API zwei Proxy-Hops (Ihrem und dem Container `web`). Ohne `DFA_PUBLIC_URL` vertraut sie einem.
+
+## Optionale Einstellungen
+
+Nichts ist zwingend. Um eine Einstellung zu ändern, erstellen Sie neben `docker-compose.yml` eine Datei namens `.env`. Gehen Sie von `.env.example` aus, das jedem [Release](https://github.com/selfhostr/dmsforall/releases/latest) beiliegt, und entfernen Sie das `#` vor den Zeilen, die Sie brauchen.
+
+| Variable                                                                                | Standard      | Wirkung                                                                       |
+| --------------------------------------------------------------------------------------- | ------------- | ----------------------------------------------------------------------------- |
+| `DFA_VERSION`                                                                           | `latest`      | Auszuführende Image-Version.                                                  |
+| `DFA_PORT`                                                                              | `8443`        | Der veröffentlichte HTTPS-Port.                                               |
+| `DFA_PUBLIC_URL`                                                                        | keiner        | Öffentliche Adresse hinter Ihrem Reverse Proxy. Wird in E-Mail-Links benutzt. |
+| `DFA_SMTP_HOST`, `DFA_SMTP_PORT`, `DFA_SMTP_USER`, `DFA_SMTP_PASSWORD`, `DFA_SMTP_FROM` | keiner, `587` | Ausgehende E-Mails. Der Versand wird aktiv, sobald der Host gesetzt ist.      |
+| `DFA_BACKUP_TIME`                                                                       | `02:30`       | Uhrzeit der täglichen Sicherung (Serverzeit).                                 |
+| `DFA_BACKUP_KEEP_DAYS`                                                                  | `14`          | Aufbewahrte Tage an Sicherungen.                                              |
+
+Die übrigen Einstellungen finden Sie in der [Konfigurationsreferenz](../reference/configuration.md).
 
 ## Die Dienste
 
-| Dienst         | Rolle                                                                        |
-| -------------- | ---------------------------------------------------------------------------- |
-| `proxy`        | Caddy. Veröffentlicht die HTTP- und HTTPS-Ports und leitet Anfragen weiter.  |
-| `web`          | Die Web-Oberfläche.                                                          |
-| `api`          | Die API. Nicht veröffentlicht.                                               |
-| `worker`       | Hintergrundaufgaben, aus demselben Image wie die API.                        |
-| `migrate`      | Wendet die Datenbankmigrationen an, bevor die API startet.                   |
-| `postgres`     | PostgreSQL 16. Nicht veröffentlicht.                                         |
-| `redis`        | Valkey. Nicht veröffentlicht.                                                |
-| `init-secrets` | Erzeugt die Datenbank-Passwörter und den Verschlüsselungsschlüssel einmalig. |
+| Dienst     | Rolle                                                                                               |
+| ---------- | --------------------------------------------------------------------------------------------------- |
+| `web`      | Die Web-Oberfläche in HTTPS. Der einzige veröffentlichte Port. Leitet `/api` an die API weiter.     |
+| `api`      | Die API. Wendet beim Start die Datenbankmigrationen an. Nicht veröffentlicht.                       |
+| `worker`   | Hintergrundaufgaben, aus demselben Image wie die API. Startet, sobald die API gesund ist.           |
+| `postgres` | PostgreSQL 16. Nicht veröffentlicht.                                                                |
+| `valkey`   | Valkey (Open Source, Redis-kompatibel). Nicht veröffentlicht.                                       |
+| `backup`   | Die tägliche Sicherung in `./backups`. Siehe [Sichern und wiederherstellen](backup-and-restore.md). |
 
-PostgreSQL und Valkey werden nie auf einem Host-Port veröffentlicht.
-
-## Optionale Profile
-
-- `--profile ocr`: startet das Image `ghcr.io/selfhostr/dmsforall-ocr`, das Fahrzeugausweise liest. Dieses Profil wurde noch nicht gestartet.
-- `--profile backup`: startet die nächtlichen verschlüsselten Sicherungen aus dem Image `ghcr.io/selfhostr/dmsforall-backup`. Dafür braucht es `AGE_CLE_PUBLIQUE` in `.env`. Siehe [Sichern und wiederherstellen](backup-and-restore.md).
-
-```sh
-docker compose --profile backup up -d
-```
+Das Profil `ocr` startet den Fahrzeugausweis-Scanner: `docker compose --profile ocr up -d`. Die Anwendung funktioniert auch ohne ihn, es fehlt nur die Abkürzung «Fahrzeugausweis scannen».
 
 ## Aus dem Quellcode bauen
 
@@ -70,18 +126,18 @@ Um die Images aus einem Klon des Repositorys zu bauen, statt sie zu laden:
 docker compose -f docker-compose.yml -f docker/compose.build.yml up -d --build
 ```
 
-## Die erste Garage anlegen
-
-Sobald der Stack läuft, legen Sie das erste Garagenkonto an. Den Befehl und seine Optionen finden Sie in [Ihre erste Garage einrichten](first-garage.md).
-
 ## Installation prüfen
 
 ```sh
 docker compose ps
-curl -s http://localhost:8080/api/v1/sante
+curl -k https://localhost:8443/api/v1/sante
 ```
 
-Ersetzen Sie `localhost:8080` auf einem Server durch Ihre Domain. Erwartetes Ergebnis: `postgres` und `redis` sind `healthy`, `migrate` ist ohne Fehler beendet, `api` und `worker` laufen, und der Gesundheitsendpunkt liefert ein JSON-Dokument.
+Erwartetes Ergebnis: Alle Dienste sind `healthy` (`worker` und `backup` nach wenigen Sekunden), und der Gesundheitsendpunkt liefert ein JSON-Dokument. Ersetzen Sie `localhost:8443` durch Ihre Adresse.
+
+:::caution
+Die Daten in `./data/postgres` und die Passwörter in `./data/secrets` gehören zusammen. Wenn Sie eines davon ohne das andere löschen oder ersetzen, weigert sich die API zu starten und nennt Ihnen den Ordner, den Sie wiederherstellen müssen. Löschen Sie `./data/secrets` nie allein.
+:::
 
 :::caution
 Lassen Sie `OPENAPI_EXPOSER_DOCS` ungesetzt oder auf `false` auf einem Server, der aus dem Internet erreichbar ist.

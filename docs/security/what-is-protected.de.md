@@ -26,21 +26,21 @@ Diese Seite listet die Schutzmassnahmen auf, die dmsforall im Code bietet, die L
 ## Was dmsforall nicht schützt
 
 - **Zweiter Faktor für Garagenkonten.** Die Zwei-Faktor-Authentifizierung (TOTP) ist für das Personal der Garagen in dieser Version nicht verfügbar. Die Betreiberkonsole, die von Garagen nicht genutzt wird, verlangt einen zweiten Faktor. Verwenden Sie für alle Konten lange, einzigartige Passwörter.
-- **Verschlüsselung im Ruhezustand.** Docker-Named-Volumes werden von Docker nicht verschlüsselt. Verschlüsseln Sie die Festplatte oder Partition, auf der das Docker-Datenverzeichnis liegt.
-- **Backups ausserhalb des Standorts.** Das nächtliche Backup ist verschlüsselt, bleibt aber auf demselben Server, bis Sie eine Kopie ausserhalb einrichten. Ein Backup auf derselben Festplatte schützt nicht vor dem Verlust des Servers. Siehe [Sichern und wiederherstellen](../get-started/backup-and-restore.md).
+- **Verschlüsselung im Ruhezustand.** Die Ordner `./data` und `./backups` werden von Docker nicht verschlüsselt. Verschlüsseln Sie die Festplatte oder Partition, auf der sie liegen.
+- **Backups ausserhalb des Standorts.** Das tägliche Backup wird auf demselben Server in `./backups` geschrieben (nur verschlüsselt, wenn Sie `DFA_BACKUP_AGE_PUBLIC_KEY` setzen). Kopieren Sie es selbst vom Server weg. Ein Backup auf derselben Festplatte schützt nicht vor dem Verlust des Servers. Siehe [Sichern und wiederherstellen](../get-started/backup-and-restore.md).
 - **Der PDF-Cache.** Er wird nicht gesichert. Er wird aus der Datenbank neu erzeugt.
 - **Der Server selbst.** Das Betriebssystem, der Docker-Host, seine Benutzer und seine Aktualisierungen liegen in Ihrer Verantwortung.
-- **Zugriff auf die Datenbank.** Wer das Passwort des PostgreSQL-Superusers kennt, kann alle Daten lesen. Bewahren Sie dieses Passwort getrennt von den Passwörtern der Anwendung auf.
+- **Zugriff auf die Datenbank.** Wer das Passwort des PostgreSQL-Superusers kennt, kann alle Daten lesen. Dieses Passwort und die Passwörter der Anwendung liegen in `./data/secrets`: Der Ordner darf nur für root lesbar sein. Die Datenbank ist nicht veröffentlicht, und nur der Container `web` stellt einen Port bereit.
 - **Sicherheit auf dem Client.** Ein Browser, der unverschlossen bleibt, gibt Zugriff auf das angemeldete Konto. Legen Sie Sitzungsdauern fest, die zu Ihrem Personal passen. Siehe die Variablen `SESSION_*` in der [Konfigurationsreferenz](../reference/configuration.md).
 - **Rate-Limits hinter einem Proxy.** Die Limits verwenden die IP-Adresse des Clients. Ist `TRUST_PROXY_HOPS` falsch gesetzt, können alle Benutzer dasselbe Limit teilen, oder ein Client kann seine Adresse fälschen.
 
 ## Was Sie tun müssen
 
-1. Betreiben Sie dmsforall nur über HTTPS, mit einem gültigen Zertifikat.
-2. Ersetzen Sie alle Entwicklungspasswörter vor dem ersten Start. Verwenden Sie einen Passwort-Manager.
-3. Setzen Sie `TRUST_PROXY_HOPS` auf die Anzahl der Reverse-Proxys vor der API.
+1. Betreiben Sie dmsforall über HTTPS mit einem gültigen Zertifikat: Setzen Sie Ihren eigenen Reverse Proxy davor und legen Sie `DFA_PUBLIC_URL` fest. Der veröffentlichte Port ist nur HTTPS, standardmässig mit einem selbstsignierten Zertifikat.
+2. Bewahren Sie eine Kopie von `./data/secrets` an einem sicheren Ort auf.
+3. Wenn Sie einen Reverse Proxy davorsetzen, prüfen Sie, dass er `X-Forwarded-For` sendet, und setzen Sie `TRUST_PROXY_HOPS`, wenn Sie mehr als einen verketten.
 4. Belassen Sie in der Produktion `OPENAPI_EXPOSER_DOCS=false` und `COOKIE_SECURE=true`.
-5. Schliessen Sie an der Firewall jeden Port ausser 80 und 443.
+5. Öffnen Sie an der Firewall nur den HTTPS-Port (den Ihres Reverse Proxys, und `8443` nur, wenn er direkt erreichbar sein muss).
 6. Halten Sie Server, Docker und die Images aktuell. Siehe [Aktualisieren](../operations/upgrading.md).
 7. Testen Sie regelmässig die Wiederherstellung Ihrer Backups.
 8. Prüfen Sie mindestens einmal im Jahr die Rollen Ihres Personals und deaktivieren Sie die Konten von Personen, die die Garage verlassen.

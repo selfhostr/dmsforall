@@ -39,11 +39,15 @@ function reflectorTest(estPublic: boolean): Reflector {
 function contexteExecutionTest(options: {
   method: string;
   origin?: string;
+  host?: string;
   cookies?: Record<string, string>;
 }): { context: ExecutionContext; req: Request } {
   const req = {
     method: options.method,
-    headers: options.origin !== undefined ? { origin: options.origin } : {},
+    headers: {
+      ...(options.origin !== undefined ? { origin: options.origin } : {}),
+      ...(options.host !== undefined ? { host: options.host } : {}),
+    },
     cookies: options.cookies ?? {},
   } as unknown as Request;
 
@@ -61,6 +65,45 @@ function serviceSessionTest(
 ): ServiceSession {
   return { ouvrir: vi.fn(), resoudre: vi.fn(resoudre), fermer: vi.fn() };
 }
+
+describe('GardeSession — ORIGINE_ACCEPTER_HOTE (installation sans URL publique)', () => {
+  async function postAvec(origin: string, host: string, accepterHote: boolean): Promise<boolean> {
+    const { context } = contexteExecutionTest({
+      method: 'POST',
+      origin,
+      host,
+      cookies: { dfa_session: 'jeton' },
+    });
+    const guard = new GardeSession(
+      reflectorTest(false),
+      configTest({
+        WEB_URL_PUBLIQUE: 'https://localhost:8443',
+        ORIGINE_ACCEPTER_HOTE: accepterHote,
+      }),
+      serviceSessionTest(async () => PRINCIPAL_TEST),
+      { attacherPrincipal: vi.fn(), actuelOuNull: vi.fn() } as unknown as ServiceContexteRequete,
+    );
+    return guard.canActivate(context);
+  }
+
+  it("accepte un Origin égal à l'en-tête Host quand le réglage est actif", async () => {
+    await expect(postAvec('https://192.168.1.20:8443', '192.168.1.20:8443', true)).resolves.toBe(
+      true,
+    );
+  });
+
+  it('refuse un Origin étranger au Host, même quand le réglage est actif', async () => {
+    await expect(
+      postAvec('https://malveillant.example', '192.168.1.20:8443', true),
+    ).rejects.toBeInstanceOf(ErreurOrigineRefusee);
+  });
+
+  it('refuse un Origin égal au Host quand le réglage est inactif (URL publique configurée)', async () => {
+    await expect(
+      postAvec('https://192.168.1.20:8443', '192.168.1.20:8443', false),
+    ).rejects.toBeInstanceOf(ErreurOrigineRefusee);
+  });
+});
 
 describe('GardeSession — vérification Origin (toute méthode ≠ GET/HEAD)', () => {
   it('laisse passer une méthode GET sans en-tête Origin', async () => {

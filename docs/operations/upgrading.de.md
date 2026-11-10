@@ -14,8 +14,6 @@ Am Ende dieser Seite läuft Ihre Installation mit der neuen Version, und Sie wis
 
 ## Aktualisierung
 
-Versionen nach 0.3.0 verwenden Valkey statt Redis für die Warteschlangen. Sie müssen nichts ändern: Der Dienstname `redis`, die Einstellung `REDIS_URL` und das Volume `dfa_redis_data` bleiben gleich, und Valkey liest die bestehenden Append-only-Dateien. `docker compose pull` holt das neue Image.
-
 1. Setzen Sie `DFA_VERSION` in `.env` auf den neuen Tag (fügen Sie die Zeile hinzu, falls die Datei keine hat). Nennen die Versionshinweise eine Änderung an `docker-compose.yml`, laden Sie die neue Datei zuerst aus dem Release herunter. Siehe [Images verifizieren](../security/verify-images.md).
 2. Holen Sie die neuen Images und starten Sie den Stack neu:
 
@@ -24,23 +22,24 @@ Versionen nach 0.3.0 verwenden Valkey statt Redis für die Warteschlangen. Sie m
    docker compose up -d
    ```
 
-3. Der Dienst `migrate` wendet die Datenbankmigrationen an, bevor die API startet. Prüfen Sie, dass er ohne Fehler beendet wurde:
+3. Der Dienst `api` wendet die Datenbankmigrationen beim Start an, und der `worker` wartet auf ihn. Prüfen Sie, dass die API gesund ist:
 
    ```sh
-   docker compose ps -a migrate
+   docker compose ps api
+   docker compose logs api
    ```
 
 4. Prüfen Sie den Gesundheitsendpunkt:
 
    ```sh
-   curl -s https://garage.example.org/api/v1/sante
+   curl -s https://dmsforall.example.ch/api/v1/sante
    ```
 
 5. Melden Sie sich an und prüfen Sie ein Dokument jedes Bereichs, den Sie nutzen.
 
 ## Wenn etwas fehlschlägt
 
-- **Die Migration ist fehlgeschlagen.** Die API startet nicht in der neuen Version, und die bisherige Version läuft weiter. Lesen Sie die Logs des Dienstes `migrate`, beheben Sie die Ursache und starten Sie den Stack erneut.
+- **Die Migration ist fehlgeschlagen.** Die API startet nicht in der neuen Version, und die bisherige Version läuft weiter. Lesen Sie die Logs des Dienstes `api`, beheben Sie die Ursache und starten Sie den Stack erneut.
 - **Die API startet nicht.** Lesen Sie die Logs. Ein Konfigurationsfehler nennt jede fehlerhafte Variable. Korrigieren Sie die Variable und starten Sie neu.
 - **Die neue Version verhält sich falsch.** Stellen Sie die Sicherung wieder her, die vor der Aktualisierung erstellt wurde. Das ist der unterstützte Weg zurück zum vorherigen Zustand.
 

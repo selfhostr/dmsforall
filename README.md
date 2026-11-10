@@ -20,7 +20,17 @@ docker compose up -d
 docker compose exec api node dist/cli/creer-garage.js --garage "Garage Exemple" --email direction@example.ch
 ```
 
-Open http://localhost:8080 and sign in. You need Docker with Compose v2. Nothing to configure: the passwords and keys are generated on the first start. Set up backups before you enter real data: [Back up and restore](https://dmsforall.selfhostr.io/docs/get-started/backup-and-restore/). For a server with a domain name and HTTPS, see [Install on a server](https://dmsforall.selfhostr.io/docs/get-started/installation/).
+Open `https://<server address>:8443` and sign in (the certificate is self-signed: accept it once). You need Docker with Compose v2. That one file is all you need: no clone, no other file, no folder to create. The passwords and keys are generated on the first start, your data lives in `./data` and a daily backup is written to `./backups`. Copy the backups off the server and test a restore before you enter real data: [Back up and restore](https://dmsforall.selfhostr.io/docs/get-started/backup-and-restore/).
+
+For a domain name with a real certificate, put your own reverse proxy in front, for example with Caddy, and set `DFA_PUBLIC_URL=https://dmsforall.example.ch` in a `.env` file:
+
+```text
+dmsforall.example.ch {
+  reverse_proxy https://127.0.0.1:8443 { transport http { tls_insecure_skip_verify } }
+}
+```
+
+nginx (`proxy_pass https://127.0.0.1:8443; proxy_ssl_verify off;`) and Cloudflare tunnels (`noTLSVerify: true`) are covered in [Install on a server](https://dmsforall.selfhostr.io/docs/get-started/installation/).
 
 ## Features
 
@@ -35,7 +45,7 @@ Open http://localhost:8080 and sign in. You need Docker with Compose v2. Nothing
 
 ## Architecture
 
-A React single-page application built with Vite calls a NestJS API that publishes an OpenAPI description. The API stores data in PostgreSQL 16 through Drizzle ORM, with row-level security on tenant tables. Valkey (Redis-compatible) and BullMQ run background jobs, and Caddy fronts the production Docker stack. More in [the architecture page](docs/development/architecture.md).
+A React single-page application built with Vite calls a NestJS API that publishes an OpenAPI description. The API stores data in PostgreSQL 16 through Drizzle ORM, with row-level security on tenant tables. Valkey (Redis-compatible) and BullMQ run background jobs, and the web container serves the app over HTTPS and relays the API in the production Docker stack. More in [the architecture page](docs/development/architecture.md).
 
 ## Limits
 
@@ -43,7 +53,8 @@ A React single-page application built with Vite calls a NestJS API that publishe
 - Designed for Swiss law and VAT only, with French, German and Italian interfaces.
 - No tax or legal guarantee: have invoices and accounting exports checked by a fiduciary.
 - Connectors to third-party services need their own licences or accounts.
-- The operator is responsible for TLS, secrets, backups and updates.
+- The operator is responsible for the HTTPS reverse proxy and certificate on a domain, copying the backups off the server, and updates.
+- The first garage is created with a command (`creer-garage.js`); the browser has no screen for it yet.
 
 ## Contributing
 

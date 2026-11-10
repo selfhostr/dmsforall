@@ -5,7 +5,7 @@ description: Créer le premier compte du garage, puis les sites, les utilisateur
 
 À la fin de cette page, le garage dispose de son premier compte, de ses sites, de ses comptes du personnel et des réglages de facturation nécessaires pour émettre une première facture.
 
-Créez le garage, son site (portant le nom du garage), son premier compte `direction` et une ligne d'audit avec une seule commande. Le garage reçoit aussi ses réglages d'atelier, un taux horaire `ATELIER` (CHF 140.00) et huit motifs de rendez-vous (entretien, pneus, MFK, freins, diagnostic, carrosserie, climatisation, autre), afin de pouvoir prendre des rendez-vous dès le premier jour. Tout peut être modifié dans les réglages :
+Une nouvelle installation n'a pas de compte, et l'interface web n'a pas encore d'écran pour créer le premier garage : il se crée avec une commande. Créez le garage, son site (portant le nom du garage), son premier compte `direction` et une ligne d'audit avec une seule commande. Le garage reçoit aussi ses réglages d'atelier, un taux horaire `ATELIER` (CHF 140.00) et huit motifs de rendez-vous (entretien, pneus, MFK, freins, diagnostic, carrosserie, climatisation, autre), afin de pouvoir prendre des rendez-vous dès le premier jour. Tout peut être modifié dans les réglages :
 
 ```sh
 docker compose exec api node dist/cli/creer-garage.js --garage "Garage Exemple" --email direction@example.ch
@@ -23,11 +23,11 @@ Le mot de passe est lu dans la variable `DFA_PREMIER_MOT_DE_PASSE`. Si elle n'es
 
 La commande se termine avec le statut 1 et l'un de ces codes :
 
-- `MOT_DE_PASSE_FAIBLE` : le mot de passe est trop faible. Le message indique pourquoi : trop courant, trop prévisible, ou il contient l'adresse e-mail ;
-- `GARAGE_EXISTANT` : un garage portant ce nom existe déjà ;
-- `COURRIEL_EXISTANT` : l'adresse e-mail est déjà utilisée.
+- `MOT_DE_PASSE_FAIBLE` : le mot de passe est trop faible. Le message indique pourquoi : trop courant, trop prévisible, ou il contient l'adresse e-mail ;
+- `GARAGE_EXISTANT` : un garage portant ce nom existe déjà ;
+- `COURRIEL_EXISTANT` : l'adresse e-mail est déjà utilisée.
 
-Résultat : le compte peut se connecter à l'interface web à l'adresse `DFA_PUBLIC_URL` (par défaut `http://localhost:8080`). Une connexion depuis une autre adresse renvoie `AUTH_ORIGINE_REFUSEE`.
+Résultat : le compte peut se connecter à l'interface web à l'adresse de votre installation (`https://<adresse du serveur>:8443`, ou `DFA_PUBLIC_URL` derrière un reverse proxy). Une connexion depuis une autre adresse que `DFA_PUBLIC_URL` renvoie `AUTH_ORIGINE_REFUSEE`. Après la première connexion, l'assistant de mise en route vous guide dans l'adresse, les coordonnées bancaires, la TVA, le taux horaire et le personnel du garage, avec des valeurs par défaut.
 
 Le jeu de données de démonstration (`pnpm db:seed`) ne s'exécute pas avec `NODE_ENV=production`. Ne l'utilisez pas sur un serveur qui contient de vraies données.
 

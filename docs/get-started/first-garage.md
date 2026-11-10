@@ -5,7 +5,7 @@ description: Create the first garage account, then the sites, users and invoicin
 
 At the end of this page, the garage has its first account, its sites, its staff accounts and the invoicing settings needed to issue a first invoice.
 
-Create the garage, its site (named after the garage), its first `direction` account and an audit line with one command. The garage also gets its workshop settings, an hourly rate `ATELIER` (CHF 140.00) and eight appointment reasons (service, tyres, MFK inspection, brakes, diagnosis, bodywork, air conditioning, other), so it can take appointments on day one. All of it can be changed in the settings:
+A new installation has no account, and the web interface has no screen to create the first garage yet: it is created with one command. Create the garage, its site (named after the garage), its first `direction` account and an audit line with one command. The garage also gets its workshop settings, an hourly rate `ATELIER` (CHF 140.00) and eight appointment reasons (service, tyres, MFK inspection, brakes, diagnosis, bodywork, air conditioning, other), so it can take appointments on day one. All of it can be changed in the settings:
 
 ```sh
 docker compose exec api node dist/cli/creer-garage.js --garage "Garage Exemple" --email direction@example.ch
@@ -27,7 +27,7 @@ The command exits with status 1 and one of these codes:
 - `GARAGE_EXISTANT`: a garage with this name already exists;
 - `COURRIEL_EXISTANT`: the e-mail address is already used.
 
-Result: the account can sign in on the web interface at `DFA_PUBLIC_URL` (default `http://localhost:8080`). Signing in from another address returns `AUTH_ORIGINE_REFUSEE`.
+Result: the account can sign in on the web interface at the address of your installation (`https://<server address>:8443`, or `DFA_PUBLIC_URL` behind a reverse proxy). Signing in from another address than `DFA_PUBLIC_URL` returns `AUTH_ORIGINE_REFUSEE`. After the first sign-in, the setup assistant guides you through the address, bank details, VAT, hourly rate and staff of the garage, with default values.
 
 The demo seed (`pnpm db:seed`) does not run with `NODE_ENV=production`. Do not use it on a server that holds real data.
 

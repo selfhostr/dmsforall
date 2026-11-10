@@ -26,21 +26,21 @@ This page lists the protections that dmsforall provides in the code, the gaps th
 ## What dmsforall does not protect
 
 - **Second factor for garage accounts.** Two-factor authentication (TOTP) is not available for garage staff accounts in this version. The operator console, which is not used by garages, requires a second factor. Use long, unique passwords for all accounts.
-- **Encryption at rest.** Docker named volumes are not encrypted by Docker. Encrypt the disk or partition under the Docker data directory.
-- **Off-site backups.** The nightly backup is encrypted, but it is kept on the same server until you configure an off-site copy. A backup on the same disk does not protect against a lost server. See [Back up and restore](../get-started/backup-and-restore.md).
+- **Encryption at rest.** The `./data` and `./backups` folders are not encrypted by Docker. Encrypt the disk or partition that holds them.
+- **Off-site backups.** The daily backup is written to `./backups` on the same server (encrypted only if you set `DFA_BACKUP_AGE_PUBLIC_KEY`). Copy it off the server yourself. A backup on the same disk does not protect against a lost server. See [Back up and restore](../get-started/backup-and-restore.md).
 - **The PDF cache.** It is not backed up. It is generated again from the database.
 - **The server itself.** The operating system, the Docker host, its users and its updates are your responsibility.
-- **Access to the database.** Anyone with the PostgreSQL superuser password can read all data. Keep that password separate from the application passwords.
+- **Access to the database.** Anyone with the PostgreSQL superuser password can read all data. That password and the application passwords are in `./data/secrets`: keep that folder readable by root only. The database is not published, and only the `web` container exposes a port.
 - **Client-side security.** A browser that is left unlocked gives access to the account that is signed in. Set session lengths that suit your staff. See the `SESSION_*` variables in the [configuration reference](../reference/configuration.md).
 - **Rate limits behind a proxy.** The limits use the client IP address. If `TRUST_PROXY_HOPS` is wrong, all users may share one limit, or a client may forge its address.
 
 ## What you must do
 
-1. Serve dmsforall over HTTPS only, with a valid certificate.
-2. Replace all development passwords before the first start. Use a password manager.
-3. Set `TRUST_PROXY_HOPS` to the number of reverse proxies in front of the API.
+1. Serve dmsforall over HTTPS with a valid certificate: put your own reverse proxy in front and set `DFA_PUBLIC_URL`. The published port is HTTPS only, with a self-signed certificate by default.
+2. Keep a copy of `./data/secrets` somewhere safe.
+3. If you add a reverse proxy, check that it sends `X-Forwarded-For`, and set `TRUST_PROXY_HOPS` if you chain more than one.
 4. Keep `OPENAPI_EXPOSER_DOCS=false` and `COOKIE_SECURE=true` in production.
-5. Close every port except 80 and 443 at the firewall.
+5. Open only the HTTPS port at the firewall (the one of your reverse proxy, and `8443` only if it must be reached directly).
 6. Keep the server, Docker and the images up to date. See [Upgrading](../operations/upgrading.md).
 7. Test a restore of your backups regularly.
 8. Review the roles of your staff at least once a year, and deactivate the accounts of people who leave.

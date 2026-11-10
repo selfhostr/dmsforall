@@ -14,6 +14,8 @@ docker compose ps
 
 **Message : `Invalid configuration`.** Le journal liste chaque variable fautive, avec la raison. Corrigez-les une à une dans `.env`, puis relancez `docker compose up -d`. Avec le fichier Compose standard, vous rencontrez rarement cette erreur, car la connexion à la base et les clés sont réglées pour vous.
 
+**Le message indique `PostgreSQL refuses the password stored in ./data/secrets`.** `./data/postgres` contient une base créée avec d'autres mots de passe : une autre installation, ou `./data/secrets` a été supprimé ou remplacé. Restaurez le dossier `./data/secrets` correspondant. Si cette base est inutile, exécutez `docker compose down`, supprimez `./data/postgres` et `./data/secrets`, puis redémarrez. Le service `postgres` donne un message semblable si `./data/secrets/postgres_password` manque.
+
 **Le message indique `COOKIE_SECURE must be true in production`.** Supprimez la ligne `COOKIE_SECURE=false` de `.env`. Le cookie de session doit être envoyé via HTTPS.
 
 **Le message indique qu'un mot de passe de développement est utilisé.** L'URL de la base contient `dfa_app_dev` ou `dfa_migrator_dev`. Vous avez défini `DATABASE_URL` vous-même avec les mots de passe de développement. Supprimez `DATABASE_URL` et `DATABASE_URL_MIGRATION` de `.env` : la pile les construit à partir de mots de passe générés.
@@ -22,11 +24,11 @@ docker compose ps
 
 ## La connexion échoue
 
-**L'accès web est refusé avec `AUTH_ORIGINE_REFUSEE`.** L'adresse dans votre navigateur ne correspond pas à `DFA_PUBLIC_URL` (par défaut `http://localhost:8080`). Ouvrez le site à cette adresse, ou modifiez `DFA_PUBLIC_URL` et redémarrez la pile.
+**L'accès web est refusé avec `AUTH_ORIGINE_REFUSEE`.** Vous avez défini `DFA_PUBLIC_URL`, et l'adresse dans votre navigateur ne lui correspond pas. Ouvrez le site à cette adresse, ou modifiez `DFA_PUBLIC_URL` et redémarrez la pile. Votre reverse proxy doit transmettre l'en-tête `Host`.
 
 **Le mot de passe est refusé, et le compte est verrouillé.** Attendez la fin du verrouillage. Des échecs répétés verrouillent le compte pendant un certain temps. La limite se règle avec `SEUIL_VERROUILLAGE_COMPTE`.
 
-**La connexion renvoie `429`.** Trop de tentatives depuis une même adresse, ou trop de tentatives sur un même compte. Attendez la fin de la fenêtre. Si tous les utilisateurs sont bloqués en même temps, `TRUST_PROXY_HOPS` est probablement faux, et tous les utilisateurs partagent une seule adresse.
+**La connexion renvoie `429`.** Trop de tentatives depuis une même adresse, ou trop de tentatives sur un même compte. Attendez la fin de la fenêtre. Si tous les utilisateurs sont bloqués en même temps, `TRUST_PROXY_HOPS` est probablement faux, et tous les utilisateurs partagent une seule adresse. Votre reverse proxy doit envoyer `X-Forwarded-For`.
 
 **La page s'affiche, mais vous restez déconnecté.** Vérifiez que `WEB_URL_PUBLIQUE` et `API_URL_PUBLIQUE` utilisent HTTPS et correspondent aux adresses de votre navigateur. Vérifiez `COOKIE_DOMAINE`, si vous l'avez défini.
 
@@ -54,7 +56,7 @@ Vérifiez que le conteneur `web` tourne, et que sa version correspond à celle d
 
 ## La migration a échoué
 
-L'API ne démarre pas sur la nouvelle version, et la version précédente continue de tourner. Lisez les journaux du service `migrate`, corrigez la cause dans une nouvelle version, puis relancez la mise à jour. Ne modifiez pas un fichier de migration déjà appliqué.
+L'API ne démarre pas sur la nouvelle version, et la version précédente continue de tourner. Lisez les journaux du service `api`, corrigez la cause dans une nouvelle version, puis relancez la mise à jour. Ne modifiez pas un fichier de migration déjà appliqué.
 
 ## Où obtenir de l'aide
 

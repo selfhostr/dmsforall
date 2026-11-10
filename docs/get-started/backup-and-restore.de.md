@@ -1,98 +1,75 @@
 ---
 title: Sichern und wiederherstellen
-description: Die verschlüsselte nächtliche Sicherung der Datenbank und der hochgeladenen Dateien einschalten, einen manuellen Dump erstellen und prüfen, was beim Wiederherstellen belegt ist und was nicht.
+description: Die tägliche Sicherung, die von selbst läuft, wie Sie eine von Hand erstellen und wiederherstellen und was nicht abgedeckt ist.
 ---
 
-Am Ende dieser Seite wissen Sie, wie Sie die nächtliche Sicherung einschalten, wie Sie von Hand einen Dump erstellen und wie es um die Wiederherstellung steht.
+Am Ende dieser Seite wissen Sie, wo die täglichen Sicherungen liegen, wie Sie eine von Hand erstellen, wie Sie eine wiederherstellen und was Sie selbst noch kopieren müssen.
 
-:::caution
-Die Kopie ausserhalb des Servers wurde nicht getestet. Bewahren Sie eine zweite Kopie ausserhalb des Servers auf und prüfen Sie sie selbst.
-:::
+## Die tägliche Sicherung
 
-## Nächtliche Sicherung einschalten
+Der Dienst `backup` läuft mit dem Stack. Jeden Tag um 02:30 (Serverzeit, Europe/Zurich) schreibt er zwei Dateien in den Ordner `./backups`, neben der Compose-Datei:
 
-Die Sicherung läuft im Profil `backup`. Jede Nacht schreibt sie verschlüsselte Dateien in das Volume `dmsforall_dfa_postgres_backups`. Jede Nacht entstehen drei Dateien mit demselben Zeitstempel:
+| Datei                           | Inhalt                                                                                         |
+| ------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `dfa-<date>_<time>.sql.gz`      | Die ganze Datenbank: Schema und Daten.                                                         |
+| `fichiers-<date>_<time>.tar.gz` | Die hochgeladenen und erzeugten Dateien: Rechnungs-PDFs, Fotos zu Reparaturaufträgen, Exporte. |
 
-| Datei                                | Inhalt                                                                                         |
-| ------------------------------------ | ---------------------------------------------------------------------------------------------- |
-| `dfa_<timestamp>.dump.age`           | Die Datenbank: Schema und Daten.                                                               |
-| `dfa_<timestamp>.roles.sql.age`      | Die Datenbankrollen, mit ihren aktuellen Passwörtern.                                          |
-| `dfa_<timestamp>.uploads.tar.gz.age` | Die hochgeladenen und erzeugten Dateien: Rechnungs-PDFs, Fotos zu Reparaturaufträgen, Exporte. |
+Sicherungen, die älter als 14 Tage sind, werden gelöscht. Uhrzeit und Anzahl Tage ändern Sie mit `DFA_BACKUP_TIME` und `DFA_BACKUP_KEEP_DAYS` in `.env`. Das Dateiarchiv ist jede Nacht vollständig, nicht inkrementell: Dimensionieren Sie den Datenträger für 14 Kopien Ihrer Dokumente.
 
-Die drei Dateien werden mit demselben `age`-Schlüssel verschlüsselt, gemeinsam rotiert (7 tägliche, 4 wöchentliche und 12 monatliche) und gemeinsam ausserhalb des Servers kopiert, sobald `RCLONE_REMOTE` gesetzt ist. Das Dateiarchiv ist jede Nacht vollständig statt inkrementell. Komprimiert ist es etwa so gross wie die Dateien selbst (Fotos lassen sich kaum komprimieren), und das Volume behält bis zu 23 Kopien. Dimensionieren Sie das Volume entsprechend.
-
-1. Tragen Sie einen öffentlichen `age`-Schlüssel in `.env` ein:
-
-   ```sh
-   AGE_CLE_PUBLIQUE=age1...
-   ```
-
-2. Starten Sie das Profil:
-
-   ```sh
-   docker compose --profile backup up -d
-   ```
-
-Bewahren Sie den privaten `age`-Schlüssel nicht auf diesem Server auf. Ohne ihn lassen sich die Sicherungen nicht lesen. Die Sicherung läuft aus dem veröffentlichten Image `ghcr.io/selfhostr/dmsforall-backup`, der Server braucht also keinen Klon des Repositorys. Das Wiederherstellungsskript `restaurer.sh` gehört nicht zum Image: Holen Sie es aus dem Repository oder aus einem Klon auf dem Rechner, auf dem Sie wiederherstellen.
-
-Die Uhrzeit der Sicherung legen Sie mit `HEURE_SAUVEGARDE` fest (Standard `03:15`), die Zeitzone mit `DFA_TIMEZONE` (Standard `UTC`).
-
-## Einen Dump von Hand erstellen
-
-Für eine einmalige Kopie der Datenbank verwenden Sie `pg_dump` im Postgres-Container:
+Um jetzt eine Sicherung zu erstellen:
 
 ```sh
-docker compose exec postgres pg_dump -U dfa -Fc dfa > dfa-$(date +%Y%m%d).dump
+docker compose exec -u dfa backup /scripts/sauvegarder.sh
 ```
 
-Speichern Sie die Datei verschlüsselt und ausserhalb des Servers.
+:::caution
+`./backups` liegt auf demselben Rechner wie die Daten. Ein Plattendefekt oder ein gestohlener Server verliert beides. Kopieren Sie den Ordner jeden Tag auf einen anderen Rechner (`rsync`, `rclone`, ein NAS) und bewahren Sie dort auch eine Kopie von `./data/secrets` auf.
+:::
 
-## Was gesichert wird
+Um die Sicherungen zu verschlüsseln, setzen Sie `DFA_BACKUP_AGE_PUBLIC_KEY` in `.env` auf einen öffentlichen [age](https://age-encryption.org)-Schlüssel. Die Dateien enden dann auf `.age`. Bewahren Sie den privaten Schlüssel nicht auf dem Server auf: Ohne ihn lassen sich die Sicherungen nicht lesen.
 
-Der Sicherungscontainer hängt die Upload-Volumes schreibgeschützt unter `/uploads` ein und archiviert alles, was er dort findet:
+## Was eine Sicherung enthält und was nicht
 
-- `dmsforall_dfa_api_uploads`: Rechnungen und andere PDF-Dokumente.
-- `dmsforall_dfa_photos_or`: Fotos zu Reparaturaufträgen und deren Vorschaubilder.
-- `dmsforall_dfa_exports_resiliation`: die Exporte, die einer Garage beim Austritt übergeben werden. Sie können die Daten einer ganzen Garage enthalten und lassen sich nach dem Austritt der Garage nicht immer neu erzeugen.
-- `dmsforall_dfa_reprise`: die Archive, die für die Übernahme der Daten aus der bisherigen Software hochgeladen wurden. Sie sind die Quelle der Übernahme und lassen sich nicht neu erzeugen.
+Der Datenbank-Dump und das Dateiarchiv decken alles ab, was die Anwendung speichert: Dokumente, Fotos, die Exporte, die einer Garage beim Austritt übergeben werden, und die Archive, die für die Übernahme der Daten aus der bisherigen Software hochgeladen wurden.
 
-Ein neues Upload-Volume, das im Dienst `api` der Datei `docker-compose.yml` hinzugefügt wird, ist erst gesichert, wenn Sie es ebenfalls schreibgeschützt unter `/uploads/` im Dienst `backup` einhängen.
+Nicht abgedeckt:
 
-Das Archiv wird als Strom geschrieben (`tar` in `age`): Es entsteht keine unverschlüsselte Datei auf dem Datenträger. Die Sicherung schlägt fehl, und `dernier-statut.txt` zeigt `ECHEC`, wenn das Archiv nicht geschrieben werden kann oder `/uploads` fehlt.
-
-## Was nicht gesichert wird
-
-- Die Valkey-Daten. Warteschlangen und kurzlebige Zustände werden neu erzeugt.
-- Die erzeugten Datenbank-Passwörter und der Verschlüsselungsschlüssel (Volume `dmsforall_dfa_secrets`) sowie die TLS-Zertifikate (Volume `dmsforall_dfa_caddy_data`). Die Rollendatei der Sicherung enthält die Datenbank-Passwörter. Der Verschlüsselungsschlüssel schützt die Versand-Passwörter, die Garagen in der App gespeichert haben: Ohne ihn müssen sie neu eingegeben werden. Bewahren Sie eine Kopie des Schlüssels an einem sicheren Ort auf:
-
-  ```sh
-  docker compose run --rm --no-deps --entrypoint cat api /secrets/secrets_key
-  ```
-
-- Dateien in einem Upload-Verzeichnis, das kein eingehängtes Volume ist. Sie liegen im Container und gehen verloren, sobald dieser neu erstellt wird.
+- `./data/secrets`, die erzeugten Passwörter und der Verschlüsselungsschlüssel. Der Schlüssel schützt die Versand-Passwörter, die Garagen in der Anwendung gespeichert haben: Ohne ihn müssen sie neu eingegeben werden. Kopieren Sie diesen kleinen Ordner einmalig an einen sicheren Ort.
+- `./data/valkey`. Die Warteschlangen und kurzlebigen Zustände werden neu erzeugt.
+- `./data/certs`, das HTTPS-Zertifikat. Es wird neu erzeugt, wenn es fehlt.
 
 ## Wiederherstellen
 
-Eine Wiederherstellung bringt die Datenbank auf den Stand der Sicherung zurück. Alles, was nach dieser Sicherung geschrieben wurde, geht verloren.
+Eine Wiederherstellung bringt die Datenbank auf den Stand der Sicherung zurück. Alles, was danach geschrieben wurde, geht verloren. Führen Sie diese Befehle im Ordner der Compose-Datei aus.
 
-1. Stoppen Sie die Dienste `api` und `worker`, damit nichts mehr in die Datenbank schreibt.
-2. Spielen Sie den Dump zuerst auf einem separaten Rechner in eine leere Datenbank ein und prüfen Sie das Ergebnis.
-3. Erst danach stellen Sie auf dem Produktionsserver wieder her. Eine vollständige Wiederherstellung auf einer frischen Installation ist belegt.
+1. Stoppen Sie die Dienste, die in die Datenbank schreiben:
 
-`restaurer.sh` stellt Datenbank und Dateien gemeinsam wieder her, solange die Datei `.uploads.tar.gz.age` neben der Datei `.dump.age` liegt:
+   ```sh
+   docker compose stop api worker
+   ```
 
-```sh
-AGE_CLE_PRIVEE_FICHIER=/path/to/age.key \
-  docker/postgres/sauvegarde/restaurer.sh /path/to/dfa_20260101-031500.dump.age dfa --confirmer
-```
+2. Stellen Sie die Datenbank aus einer Sicherungsdatei wieder her (der Name einer Datei in `./backups`):
 
-- `--base-seule` stellt nur die Datenbank wieder her.
-- `--fichiers-seuls` stellt nur die Dateien wieder her. Übergeben Sie `-` als Datenbankname.
+   ```sh
+   docker compose exec -u dfa backup /scripts/restaurer.sh dfa-2026-11-10_023000.sql.gz
+   ```
 
-Die Dateien werden in die Volumes des Dienstes `api` entpackt. Eine Datei mit gleichem Namen wird überschrieben, eine Datei, die nicht im Archiv liegt, bleibt unberührt. Die Dateien werden nur wiederhergestellt, wenn die Zieldatenbank `dfa` ist. Eine Testwiederherstellung in eine andere Datenbank lässt die laufenden Dateien unberührt.
+   Das Skript lädt die Sicherung zuerst in eine neue Datenbank und ersetzt die aktuelle erst, wenn das gelingt. Die aktuelle Datenbank bleibt unter dem Namen `dfa_avant_restauration_<time>` erhalten, und das Skript gibt den Befehl aus, der sie löscht, sobald Sie zufrieden sind. Eine beschädigte Sicherung zerstört nie Ihre aktuellen Daten. Eine verschlüsselte Sicherung entschlüsseln Sie zuerst (`age -d -i age.key -o backups/restore.sql.gz backups/dfa-....sql.gz.age`) und übergeben dann diese Datei.
 
-Der monatliche Wiederherstellungstest (`restaurer-test.sh`) entschlüsselt und liest das gesamte Dateiarchiv. Er wurde in den automatisierten Tests noch nicht gegen ein echtes Archiv ausgeführt. Führen Sie ihn einmal von Hand aus, nachdem Sie die Sicherung eingeschaltet haben.
+3. Stellen Sie die Dateien wieder her (optional, wenn Dokumente verloren sind):
+
+   ```sh
+   sudo tar -xzf backups/fichiers-2026-11-10_023000.tar.gz -C data/fichiers
+   ```
+
+4. Starten Sie die Dienste wieder:
+
+   ```sh
+   docker compose start api worker
+   ```
+
+Um auf einem neuen Server wiederherzustellen, kopieren Sie die Compose-Datei, `./data/secrets` und die beiden Sicherungsdateien dorthin, starten den Stack einmal (`docker compose up -d`, dann `docker compose stop api worker`) und führen die Schritte 2 bis 4 aus.
 
 :::caution
-`restaurer.sh` benötigt `age` auf dem Host, mit dem privaten Schlüssel. Der Stack muss bereits laufen, bevor Sie wiederherstellen.
+Eine Sicherung, die Sie nie wiederhergestellt haben, ist keine Sicherung. Stellen Sie jetzt auf einem separaten Rechner eine wieder her, melden Sie sich an und öffnen Sie ein Dokument, bevor Sie echte Daten erfassen.
 :::

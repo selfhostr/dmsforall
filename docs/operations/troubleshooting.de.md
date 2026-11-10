@@ -14,6 +14,8 @@ docker compose ps
 
 **Meldung: `Invalid configuration`.** Das Log nennt jede fehlerhafte Variable mit dem Grund. Korrigieren Sie jede in `.env` und starten Sie danach mit `docker compose up -d` neu. Mit der Standard-Compose-Datei tritt dieser Fehler selten auf, weil Datenbankverbindung und Schlüssel für Sie gesetzt sind.
 
+**Die Meldung lautet `PostgreSQL refuses the password stored in ./data/secrets`.** `./data/postgres` enthält eine Datenbank, die mit anderen Passwörtern angelegt wurde: eine andere Installation, oder `./data/secrets` wurde gelöscht oder ersetzt. Stellen Sie den passenden Ordner `./data/secrets` wieder her. Wird diese Datenbank nicht gebraucht, führen Sie `docker compose down` aus, löschen `./data/postgres` und `./data/secrets` und starten neu. Der Dienst `postgres` gibt eine ähnliche Meldung aus, wenn `./data/secrets/postgres_password` fehlt.
+
 **Die Meldung lautet `COOKIE_SECURE must be true in production`.** Entfernen Sie die Zeile `COOKIE_SECURE=false` aus `.env`. Das Sitzungs-Cookie muss über HTTPS übertragen werden.
 
 **Die Meldung besagt, dass ein Entwicklungs-Passwort verwendet wird.** Die Datenbank-URL enthält `dfa_app_dev` oder `dfa_migrator_dev`. Sie haben `DATABASE_URL` selbst mit den Entwicklungs-Passwörtern gesetzt. Entfernen Sie `DATABASE_URL` und `DATABASE_URL_MIGRATION` aus `.env`: Der Stack baut sie aus den erzeugten Passwörtern.
@@ -22,11 +24,11 @@ docker compose ps
 
 ## Die Anmeldung schlägt fehl
 
-**Der Webzugriff wird mit `AUTH_ORIGINE_REFUSEE` abgelehnt.** Die Adresse in Ihrem Browser stimmt nicht mit `DFA_PUBLIC_URL` überein (Standard `http://localhost:8080`). Öffnen Sie die Website unter dieser Adresse oder ändern Sie `DFA_PUBLIC_URL` und starten Sie den Stack neu.
+**Der Webzugriff wird mit `AUTH_ORIGINE_REFUSEE` abgelehnt.** Sie haben `DFA_PUBLIC_URL` gesetzt, und die Adresse in Ihrem Browser stimmt nicht damit überein. Öffnen Sie die Website unter dieser Adresse oder ändern Sie `DFA_PUBLIC_URL` und starten Sie den Stack neu. Ihr Reverse Proxy muss den Header `Host` weiterleiten.
 
 **Das Passwort wird abgelehnt, und das Konto ist gesperrt.** Warten Sie, bis die Sperre abläuft. Wiederholte Fehlversuche sperren das Konto für eine Weile. Die Schwelle legt `SEUIL_VERROUILLAGE_COMPTE` fest.
 
-**Die Anmeldung liefert `429`.** Es gab zu viele Versuche von einer Adresse oder auf einem Konto. Warten Sie, bis das Zeitfenster abgelaufen ist. Sind alle Benutzer gleichzeitig gesperrt, ist `TRUST_PROXY_HOPS` wahrscheinlich falsch, und alle Benutzer teilen sich eine Adresse.
+**Die Anmeldung liefert `429`.** Es gab zu viele Versuche von einer Adresse oder auf einem Konto. Warten Sie, bis das Zeitfenster abgelaufen ist. Sind alle Benutzer gleichzeitig gesperrt, ist `TRUST_PROXY_HOPS` wahrscheinlich falsch, und alle Benutzer teilen sich eine Adresse. Ihr Reverse Proxy muss `X-Forwarded-For` senden.
 
 **Die Seite lädt, aber Sie bleiben abgemeldet.** Prüfen Sie, dass `WEB_URL_PUBLIQUE` und `API_URL_PUBLIQUE` HTTPS verwenden und mit den Adressen in Ihrem Browser übereinstimmen. Prüfen Sie `COOKIE_DOMAINE`, falls Sie die Variable gesetzt haben.
 
@@ -54,7 +56,7 @@ Prüfen Sie, dass der Web-Container läuft und dass seine Version mit der Versio
 
 ## Die Migration ist fehlgeschlagen
 
-Die API startet nicht in der neuen Version, und die bisherige Version läuft weiter. Lesen Sie die Logs des Dienstes `migrate`, beheben Sie die Ursache in einem neuen Release und führen Sie die Aktualisierung erneut aus. Bearbeiten Sie keine Migrationsdatei, die bereits angewendet wurde.
+Die API startet nicht in der neuen Version, und die bisherige Version läuft weiter. Lesen Sie die Logs des Dienstes `api`, beheben Sie die Ursache in einem neuen Release und führen Sie die Aktualisierung erneut aus. Bearbeiten Sie keine Migrationsdatei, die bereits angewendet wurde.
 
 ## Weitere Hilfe
 
