@@ -3460,6 +3460,18 @@
         ],
         "type": "object"
       },
+      "EtatInstallationDto": {
+        "properties": {
+          "premierGarageRequis": {
+            "description": "true tant que la base ne contient aucun garage : l’écran « Créer votre garage » s’impose.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "premierGarageRequis"
+        ],
+        "type": "object"
+      },
       "EtatMappingExportDto": {
         "properties": {
           "cible": {
@@ -6931,7 +6943,9 @@
               "COURRIEL_TLS_ECHEC",
               "COURRIEL_ENVOI_ECHEC",
               "AUTH_CHANGEMENT_MOT_DE_PASSE_REQUIS",
-              "SERVICE_LECTURE_INDISPONIBLE"
+              "SERVICE_LECTURE_INDISPONIBLE",
+              "INSTALLATION_CODE_INVALIDE",
+              "INSTALLATION_DEJA_FAITE"
             ],
             "type": "string"
           },
@@ -7113,7 +7127,9 @@
               "COURRIEL_TLS_ECHEC",
               "COURRIEL_ENVOI_ECHEC",
               "AUTH_CHANGEMENT_MOT_DE_PASSE_REQUIS",
-              "SERVICE_LECTURE_INDISPONIBLE"
+              "SERVICE_LECTURE_INDISPONIBLE",
+              "INSTALLATION_CODE_INVALIDE",
+              "INSTALLATION_DEJA_FAITE"
             ],
             "type": "string"
           },
@@ -29332,6 +29348,156 @@
         "summary": "Réactive un fournisseur (retour à `actif`).",
         "tags": [
           "Pièces — Fournisseurs"
+        ]
+      }
+    },
+    "/installation/etat": {
+      "get": {
+        "description": "Public, sans session. Ne révèle rien d’autre que ce booléen : `true` tant qu’aucun garage n’existe.",
+        "operationId": "InstallationController_etat",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EtatInstallationDto"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "summary": "Cette instance attend-elle son premier garage ?",
+        "tags": [
+          "Installation"
+        ]
+      }
+    },
+    "/installation/premier-garage": {
+      "post": {
+        "description": "Public, protégé par le code d’installation à usage unique affiché dans les journaux de l’API au démarrage (`docker compose logs api`) ; il change à chaque démarrage tant qu’aucun garage n’existe. Mêmes valeurs par défaut que le CLI `creer-garage` (site principal, taux « ATELIER », motifs de rendez-vous). Le compte créé est de rôle `direction`. Limitation de débit stricte par adresse IP et globale. La session est ouverte dans la réponse (cookie), comme `POST /auth/connexion`.",
+        "operationId": "InstallationController_premierGarage",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "defaut": {
+                  "value": {
+                    "codeInstallation": "K7QM-3XRB-9TNA",
+                    "email": "direction@garage-exemple.ch",
+                    "garage": "Garage Exemple SA",
+                    "motDePasse": "une phrase de passe assez longue",
+                    "nom": "Martin",
+                    "prenom": "Claire"
+                  }
+                }
+              },
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "codeInstallation": {
+                    "maxLength": 32,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "email": {
+                    "format": "email",
+                    "maxLength": 320,
+                    "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$",
+                    "type": "string"
+                  },
+                  "garage": {
+                    "maxLength": 200,
+                    "minLength": 2,
+                    "type": "string"
+                  },
+                  "motDePasse": {
+                    "maxLength": 256,
+                    "minLength": 12,
+                    "type": "string"
+                  },
+                  "nom": {
+                    "maxLength": 100,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "prenom": {
+                    "maxLength": 100,
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "codeInstallation",
+                  "garage",
+                  "prenom",
+                  "nom",
+                  "email",
+                  "motDePasse"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionCouranteDto"
+                }
+              }
+            },
+            "description": "Garage créé, session ouverte."
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "VALIDATION_ECHOUEE — corps invalide, ou saisie refusée (MOT_DE_PASSE_FAIBLE, COURRIEL_INVALIDE, GARAGE_INVALIDE dans `erreurs[].code`)."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "INSTALLATION_CODE_INVALIDE — code absent, faux ou périmé."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "INSTALLATION_DEJA_FAITE — un garage existe déjà."
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemeDetailCommunDto"
+                }
+              }
+            },
+            "description": "AUTH_TROP_DE_TENTATIVES — limitation de débit (en-tête Retry-After)."
+          }
+        },
+        "summary": "Crée le premier garage de l’instance et ouvre la session de son responsable.",
+        "tags": [
+          "Installation"
         ]
       }
     },

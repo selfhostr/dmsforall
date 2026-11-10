@@ -5,7 +5,34 @@ description: Das erste Garagenkonto anlegen, danach die Standorte, Mitarbeitende
 
 Am Ende dieser Seite hat die Garage ihr erstes Konto, ihre Standorte, ihre Mitarbeitenden-Konten und die Einstellungen zur Fakturierung, die für eine erste Rechnung nötig sind.
 
-Eine neue Installation hat noch kein Konto, und die Web-Oberfläche hat noch keinen Bildschirm, um die erste Garage anzulegen: Sie wird mit einem Befehl angelegt. Mit einem einzigen Befehl legen Sie die Garage, ihren Standort (er trägt den Namen der Garage), das erste Konto mit der Rolle `direction` und eine Zeile im Prüfprotokoll an. Die Garage erhält ausserdem ihre Werkstatt-Einstellungen, einen Stundenansatz `ATELIER` (CHF 140.00) und acht Terminmotive (Service, Reifen, MFK-Kontrolle, Bremsen, Diagnose, Karosserie, Klimaanlage, Sonstiges). So kann sie vom ersten Tag an Termine vereinbaren. Alles lässt sich in den Einstellungen ändern:
+## 1. Die Garage anlegen
+
+Eine neue Installation hat noch kein Konto. Beim ersten Start erzeugt die API einen einmaligen Installationscode und gibt ihn in ihren Protokollen aus. Die Web-Oberfläche fragt ihn auf dem ersten Bildschirm ab.
+
+1. Lesen Sie den Installationscode in den Protokollen der API:
+
+   ```sh
+   docker compose logs api
+   ```
+
+   Suchen Sie den Block mit `Installationscode` bzw. `Installation code`, gefolgt von einem Code wie `K7QM-3XRB-9TNA`.
+
+2. Öffnen Sie `https://<Serveradresse>:8443` (die Adresse Ihrer Installation, oder `DFA_PUBLIC_URL` hinter einem Reverse Proxy). Bei einer neuen Installation zeigt der Browser **Garage erstellen** statt der Anmeldeseite. Geben Sie den Namen der Garage, Ihren Vor- und Nachnamen, Ihre E-Mail-Adresse, ein zweimal eingegebenes Passwort (mindestens 12 Zeichen) und den Installationscode ein.
+
+3. Wählen Sie **Meine Garage erstellen**. Sie sind mit dem Konto `direction` angemeldet, und der Einrichtungsassistent öffnet sich.
+
+Ergebnis: Die Garage besteht mit ihrem Standort (er trägt den Namen der Garage), dem Konto `direction` und einer Zeile im Prüfprotokoll. Sie erhält ausserdem ihre Werkstatt-Einstellungen, einen Stundenansatz `ATELIER` (CHF 140.00) und acht Terminmotive (Service, Reifen, MFK-Kontrolle, Bremsen, Diagnose, Karosserie, Klimaanlage, Sonstiges). So kann sie vom ersten Tag an Termine vereinbaren. Alles lässt sich in den Einstellungen ändern. Der Einrichtungsassistent führt mit Standardwerten durch Adresse, Bankverbindung, MWST, Stundenansatz und Mitarbeitende der Garage.
+
+Der Installationscode schützt eine neue, aus dem Internet erreichbare Installation, bevor ihr Eigentümer eintrifft: Nur wer die Protokolle des Servers lesen kann, kann die erste Garage anlegen. Der Code gilt einmal. Bei jedem Start der API wird ein neuer Code erzeugt, solange keine Garage existiert, und er wird ungültig, sobald eine Garage existiert. In der Datenbank liegt nur ein gesalzener Hash. Haben Sie ihn verloren, führen Sie `docker compose restart api` aus und lesen Sie die Protokolle erneut. Der Bildschirm lehnt mit diesen Codes ab:
+
+- `INSTALLATION_CODE_INVALIDE` (403): Der Code ist falsch oder abgelaufen;
+- `INSTALLATION_DEJA_FAITE` (409): Auf dieser Installation existiert bereits eine Garage. Melden Sie sich stattdessen an;
+- `AUTH_TROP_DE_TENTATIVES` (429): Zu viele Versuche. Warten Sie und versuchen Sie es erneut;
+- `MOT_DE_PASSE_FAIBLE` (innerhalb eines 400 `VALIDATION_ECHOUEE`): Das Passwort ist zu schwach, zu verbreitet, zu vorhersehbar oder enthält die E-Mail-Adresse.
+
+### Alternative: die Befehlszeile
+
+Um die Garage ohne Browser anzulegen, führen Sie einen Befehl aus. Er tut genau dasselbe wie der Bildschirm (derselbe Standort, derselbe Stundenansatz, dieselben Terminmotive) und braucht den Installationscode nicht, weil er auf dem Server läuft:
 
 ```sh
 docker compose exec api node dist/cli/creer-garage.js --garage "Garage Exemple" --email direction@example.ch

@@ -22,12 +22,20 @@ Sie brauchen Docker Engine und Docker Compose 2.24 oder neuer. Die [Installation
    docker compose up -d
    ```
 
-3. Legen Sie das erste Garagenkonto an (siehe [Ihre erste Garage einrichten](first-garage.md)) und öffnen Sie dann `https://<Serveradresse>:8443` im Browser. Das Zertifikat ist selbstsigniert: Akzeptieren Sie es einmalig.
+3. Lesen Sie den einmaligen Installationscode, den die API beim ersten Start ausgibt:
 
-Ergebnis: Die Anmeldeseite wird geladen. Beim ersten Start werden die Passwörter und der Verschlüsselungsschlüssel erzeugt, die Datenbank angelegt und die Migrationen angewendet. Ihre Daten liegen im Ordner `./data` und Ihre Sicherungen in `./backups`, neben der Compose-Datei.
+   ```sh
+   docker compose logs api
+   ```
+
+   Er sieht aus wie `K7QM-3XRB-9TNA`.
+
+4. Öffnen Sie `https://<Serveradresse>:8443` im Browser. Das Zertifikat ist selbstsigniert: Akzeptieren Sie es einmalig. Die Seite **Garage erstellen** öffnet sich: Geben Sie den Namen der Garage, Ihren Namen, Ihre E-Mail-Adresse, ein Passwort und den Installationscode ein. Sie sind angemeldet, und der Einrichtungsassistent öffnet sich. Siehe [Ihre erste Garage einrichten](first-garage.md).
+
+Ergebnis: Die Seite zum Erstellen Ihrer Garage wird geladen. Beim ersten Start werden die Passwörter und der Verschlüsselungsschlüssel erzeugt, die Datenbank angelegt und die Migrationen angewendet. Ihre Daten liegen im Ordner `./data` und Ihre Sicherungen in `./backups`, neben der Compose-Datei.
 
 ## Nächste Schritte
 
 - Für einen Domainnamen mit echtem Zertifikat setzen Sie Ihren eigenen Reverse Proxy davor: siehe [dmsforall auf einem Server installieren](installation.md).
-- Legen Sie das erste Garagenkonto mit `creer-garage.js` an: siehe [Ihre erste Garage einrichten](first-garage.md).
+- Legen Sie die erste Garage stattdessen über die Befehlszeile an: siehe [Ihre erste Garage einrichten](first-garage.md).
 - Die tägliche Sicherung ist bereits aktiv. Kopieren Sie `./backups` auf einen anderen Rechner und testen Sie eine Wiederherstellung: siehe [Sichern und wiederherstellen](backup-and-restore.md).

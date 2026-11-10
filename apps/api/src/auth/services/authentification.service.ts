@@ -201,6 +201,39 @@ export class ServiceAuthentificationImpl implements ServiceAuthentification {
     return { session: sessionOuverte, corps };
   }
 
+  /**
+   * Ouvre la session du compte que vient de créer l'installation (`POST /installation/premier-garage`).
+   *
+   * Aucun mot de passe n'est revérifié : l'appelant vient de le faire hacher et de créer le compte
+   * dans la même requête, derrière le code d'installation. Tout le reste est celui de la connexion
+   * (même session, même journal de sécurité), avec une origine distincte dans le journal.
+   */
+  async ouvrirSessionPourPremierCompte(
+    emailBrut: string,
+    ip: string | null,
+    ua: string | null,
+  ): Promise<{ session: SessionOuverte; corps: SessionCourante }> {
+    const email = emailBrut.trim().toLowerCase();
+    const u = await this.accesAmorcage.utilisateurParEmail(email);
+    if (!u) {
+      // Inatteignable tant que la création et cette lecture suivent l'une l'autre : refus net.
+      throw new ErreurIdentifiantsInvalides();
+    }
+    const sessionOuverte = await this.serviceSession.ouvrir(u, ip, ua);
+    const principal: PrincipalAuthentifie = {
+      sessionId: sessionOuverte.sessionId,
+      tenantId: u.tenantId,
+      utilisateurId: u.id,
+      role: u.role,
+      langue: u.langue,
+    };
+    const corps = await this.sessionCourante(principal);
+    await this.journaliser('connexion_reussie', u.tenantId, u.id, email, ip, ua, {
+      origine: 'installation',
+    });
+    return { session: sessionOuverte, corps };
+  }
+
   async deconnecter(principal: PrincipalAuthentifie): Promise<void> {
     const ctx = this.contexte.actuelOuNull();
 

@@ -69,6 +69,8 @@ function collecterChemins(routes: readonly RouteObject[], prefixe = ''): string[
  */
 const HORS_MENU: Readonly<Record<string, string>> = {
   '/login': "Écran public, hors coquille applicative — aucun menu n'existe à ce moment-là.",
+  '/installation':
+    "Écran public d'une instance sans garage — on y arrive depuis /login, qui y redirige tant qu'aucun garage n'existe.",
   '/changer-mot-de-passe':
     'Écran hors coquille (issue #58) : atteint par redirection automatique de `RouteProtegee` tant que le mot de passe temporaire n’est pas remplacé.',
   '/console':
