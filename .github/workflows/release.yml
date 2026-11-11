@@ -101,9 +101,9 @@ jobs:
             title: dmsforall registration document scanner
           - name: backup
             image: ghcr.io/selfhostr/dmsforall-backup
-            context: docker/postgres/sauvegarde
-            dockerfile: docker/postgres/sauvegarde/Dockerfile
-            title: dmsforall encrypted backups
+            context: docker/backup
+            dockerfile: docker/backup/Dockerfile
+            title: dmsforall daily backups
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

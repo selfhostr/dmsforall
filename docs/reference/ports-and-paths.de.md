@@ -1,21 +1,20 @@
 ---
 title: Ports und Pfade
-description: Netzwerkports, Speicherpfade und Docker-Volumes, die dmsforall im Standard-Stack und in der Entwicklung verwendet.
+description: Netzwerkports und Speicherpfade, die dmsforall im Standard-Stack und in der Entwicklung verwendet.
 ---
 
 ## Netzwerkports
 
 ### Standard-Stack (`docker-compose.yml`)
 
-| Dienst                 | Host-Port                 | Hinweise                                                                                                               |
-| ---------------------- | ------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| `proxy` (Caddy) HTTP   | `8080` (`DFA_HTTP_PORT`)  | Wird auf den Container-Port 80 abgebildet.                                                                             |
-| `proxy` (Caddy) HTTPS  | `8443` (`DFA_HTTPS_PORT`) | Wird auf den Container-Port 443 abgebildet. Mit einer Domain in `DFA_SITE_ADDRESS` verwenden Sie die Ports 80 und 443. |
-| `web`, `api`, `worker` | keiner                    | Nur über den Proxy erreichbar.                                                                                         |
-| `postgres`, `redis`    | keiner                    | Werden nie veröffentlicht.                                                                                             |
-| `ocr-permis`           | keiner                    | Profil `ocr`, von der API im Docker-Netzwerk erreichbar.                                                               |
+| Dienst                         | Host-Port           | Hinweise                                                                               |
+| ------------------------------ | ------------------- | -------------------------------------------------------------------------------------- |
+| `web`                          | `8443` (`DFA_PORT`) | Nur HTTPS, wird auf den Container-Port 8443 abgebildet. Leitet `/api` an `api` weiter. |
+| `api`, `worker`                | keiner              | Nur über `web` erreichbar.                                                             |
+| `postgres`, `valkey`, `backup` | keiner              | Werden nie veröffentlicht.                                                             |
+| `ocr-permis`                   | keiner              | Profil `ocr`, von der API im Docker-Netzwerk erreichbar.                               |
 
-Nur der Proxy veröffentlicht einen Port. Halten Sie die übrigen Ports an der Firewall geschlossen.
+Nur `web` veröffentlicht einen Port, und es gibt keinen HTTP-Port. Halten Sie die übrigen Ports an der Firewall geschlossen.
 
 ### Entwicklung (`docker/compose.dev.yml`)
 
@@ -28,22 +27,21 @@ Nur der Proxy veröffentlicht einen Port. Halten Sie die übrigen Ports an der F
 
 ## Speicherpfade
 
-| Pfad oder Volume                    | Inhalt                                                       | Von der nächtlichen Sicherung erfasst                    |
-| ----------------------------------- | ------------------------------------------------------------ | -------------------------------------------------------- |
-| `dmsforall_dfa_postgres_data`       | PostgreSQL-Daten.                                            | Ja, über den Dump.                                       |
-| `dmsforall_dfa_postgres_backups`    | Verschlüsselte nächtliche Sicherungen (Profil `backup`).     | Nur lokale Kopie.                                        |
-| `dmsforall_dfa_api_uploads`         | Hochgeladene und erzeugte PDF-Dokumente.                     | Ja, im Dateiarchiv.                                      |
-| `dmsforall_dfa_exports_resiliation` | Exporte, die beim Austritt einer Garage erstellt werden.     | Ja, im Dateiarchiv.                                      |
-| `dmsforall_dfa_photos_or`           | Fotos zu Reparaturaufträgen und Vorschaubilder.              | Ja, im Dateiarchiv.                                      |
-| `dmsforall_dfa_reprise`             | Archive, die für eine Datenübernahme hochgeladen wurden.     | Ja, im Dateiarchiv.                                      |
-| `dmsforall_dfa_secrets`             | Erzeugte Datenbank-Passwörter und Verschlüsselungsschlüssel. | Nein. Bewahren Sie eine Kopie an einem sicheren Ort auf. |
-| `dmsforall_dfa_redis_data`          | Valkey-Daten.                                                | Nein.                                                    |
-| `dmsforall_dfa_caddy_data`          | TLS-Zertifikate, die Caddy beschafft hat.                    | Nein.                                                    |
+Der Standard-Stack verwendet gewöhnliche Ordner neben `docker-compose.yml` (Bind Mounts), kein Docker-Volume.
 
-Das Dateiarchiv (`dfa_<timestamp>.uploads.tar.gz.age`) umfasst alles, was im Dienst `backup` unter `/uploads` eingehängt ist. Siehe [Sichern und wiederherstellen](../get-started/backup-and-restore.md).
+| Ordner            | Inhalt                                                           | Von der täglichen Sicherung erfasst       |
+| ----------------- | ---------------------------------------------------------------- | ----------------------------------------- |
+| `./data/postgres` | PostgreSQL-Daten.                                                | Ja, über den Dump.                        |
+| `./data/fichiers` | Hochgeladene und erzeugte Dokumente, Fotos, Exporte.             | Ja, im Dateiarchiv.                       |
+| `./data/secrets`  | Erzeugte Datenbank-Passwörter und Verschlüsselungsschlüssel.     | Nein. Bewahren Sie eine Kopie sicher auf. |
+| `./data/valkey`   | Valkey-Daten (Warteschlangen).                                   | Nein.                                     |
+| `./data/certs`    | HTTPS-Zertifikat: `cert.pem` und `key.pem`.                      | Nein. Wird neu erzeugt, wenn es fehlt.    |
+| `./backups`       | Die täglichen Sicherungen (`dfa-*.sql.gz`, `fichiers-*.tar.gz`). | Nur lokale Kopie.                         |
+
+Das Dateiarchiv umfasst alles unter `./data/fichiers`. Siehe [Sichern und wiederherstellen](../get-started/backup-and-restore.md).
 
 In der Entwicklung werden PDF-Dateien unter `apps/api/uploads/documents-pdf/<tenant>/<document>.pdf` geschrieben.
 
 :::caution
-Docker-Named-Volumes werden von Docker nicht verschlüsselt. Für ruhende Daten verwenden Sie eine verschlüsselte Festplatte oder Partition unter dem Datenverzeichnis von Docker. Siehe [Was geschützt ist](../security/what-is-protected.md).
+Die Ordner werden von Docker nicht verschlüsselt. Für ruhende Daten verwenden Sie eine verschlüsselte Festplatte oder Partition unter dem Ordner, der `docker-compose.yml` enthält. Siehe [Was geschützt ist](../security/what-is-protected.md).
 :::

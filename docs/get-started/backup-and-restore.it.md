@@ -1,98 +1,75 @@
 ---
 title: Eseguire il backup e il ripristino
-description: Attivare il backup notturno cifrato del database e dei file caricati, eseguire un dump manuale, e cosa è stato e cosa non è stato dimostrato sul ripristino.
+description: Il backup giornaliero che si esegue da solo, come eseguirne uno a mano, come ripristinarlo e che cosa non è coperto.
 ---
 
-Al termine di questa pagina, Lei sa come attivare il backup notturno, come eseguire un dump a mano e a che punto è il ripristino.
+Al termine di questa pagina, Lei sa dove si trovano i backup giornalieri, come eseguirne uno a mano, come ripristinarne uno e che cosa deve ancora copiare Lei stesso.
 
-:::caution
-La copia fuori sede non è stata verificata. Conservi una seconda copia al di fuori del server, e la controlli Lei stesso.
-:::
+## Il backup giornaliero
 
-## Attivare il backup notturno
+Il servizio `backup` gira insieme allo stack. Ogni giorno alle 02:30 (ora del server, Europe/Zurich) scrive due file nella cartella `./backups`, accanto al file Compose:
 
-Il backup viene eseguito nel profilo `backup`. Ogni notte scrive file cifrati nel volume `dmsforall_dfa_postgres_backups`. Ogni notte vengono prodotti tre file con lo stesso timestamp:
+| File                            | Contenuto                                                                                      |
+| ------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `dfa-<date>_<time>.sql.gz`      | L'intero database: schema e dati.                                                              |
+| `fichiers-<date>_<time>.tar.gz` | I file caricati e generati: PDF delle fatture, foto degli ordini di riparazione, esportazioni. |
 
-| File                                 | Contenuto                                                                                      |
-| ------------------------------------ | ---------------------------------------------------------------------------------------------- |
-| `dfa_<timestamp>.dump.age`           | Il database: schema e dati.                                                                    |
-| `dfa_<timestamp>.roles.sql.age`      | I ruoli del database, con le password correnti.                                                |
-| `dfa_<timestamp>.uploads.tar.gz.age` | I file caricati e generati: PDF delle fatture, foto degli ordini di riparazione, esportazioni. |
+I backup più vecchi di 14 giorni vengono eliminati. Cambi l'ora e il numero di giorni con `DFA_BACKUP_TIME` e `DFA_BACKUP_KEEP_DAYS` in `.env`. L'archivio dei file è completo ogni notte, non incrementale: dimensioni quindi il disco per 14 copie dei Suoi documenti.
 
-I tre file sono cifrati con la stessa chiave `age`, ruotati insieme (7 giornalieri, 4 settimanali, 12 mensili) e copiati fuori sede insieme quando è impostato `RCLONE_REMOTE`. L'archivio dei file è completo ogni notte, non incrementale: una volta compresso ha circa le dimensioni dei file stessi (le foto si comprimono appena), e il volume conserva fino a 23 copie. Dimensioni il volume di conseguenza.
-
-1. Inserisca in `.env` una chiave pubblica `age`:
-
-   ```sh
-   AGE_CLE_PUBLIQUE=age1...
-   ```
-
-2. Avvii il profilo:
-
-   ```sh
-   docker compose --profile backup up -d
-   ```
-
-Tenga la chiave privata `age` lontana da questo server. Senza di essa, i backup non possono essere letti. Il backup viene eseguito dall'immagine pubblicata `ghcr.io/selfhostr/dmsforall-backup`, quindi il server non ha bisogno di un clone del repository. Lo script di ripristino `restaurer.sh` invece sì: lo prenda dal repository, oppure da un clone sulla macchina su cui esegue il ripristino.
-
-L'ora del backup si imposta con `HEURE_SAUVEGARDE` (predefinito `03:15`), e il fuso orario con `DFA_TIMEZONE` (predefinito `UTC`).
-
-## Eseguire un dump a mano
-
-Per una copia occasionale del database, usi `pg_dump` nel container di Postgres:
+Per eseguire un backup subito:
 
 ```sh
-docker compose exec postgres pg_dump -U dfa -Fc dfa > dfa-$(date +%Y%m%d).dump
+docker compose exec -u dfa backup /scripts/sauvegarder.sh
 ```
 
-Conservi il file cifrato e fuori dal server.
+:::caution
+`./backups` si trova sulla stessa macchina dei dati. Un guasto del disco o un server rubato fa perdere entrambi. Copi la cartella su un'altra macchina ogni giorno (`rsync`, `rclone`, un NAS), e conservi con essa una copia di `./data/secrets`.
+:::
 
-## Che cosa viene salvato
+Per cifrare i backup, imposti `DFA_BACKUP_AGE_PUBLIC_KEY` in `.env` con una chiave pubblica [age](https://age-encryption.org). I file terminano allora con `.age`. Tenga la chiave privata lontana dal server: senza di essa, i backup non possono essere letti.
 
-Il container di backup monta in sola lettura i volumi di caricamento sotto `/uploads` e archivia tutto ciò che vi trova:
+## Che cosa contiene un backup, e che cosa no
 
-- `dmsforall_dfa_api_uploads`: fatture e altri documenti PDF.
-- `dmsforall_dfa_photos_or`: foto degli ordini di riparazione e relative miniature.
-- `dmsforall_dfa_exports_resiliation`: le esportazioni consegnate a un'autorimessa che lascia il servizio. Possono contenere tutti i dati di un'autorimessa e, una volta che l'autorimessa non è più presente, non sempre possono essere rigenerate.
-- `dmsforall_dfa_reprise`: gli archivi caricati per la ripresa dei dati dal software precedente. Sono la fonte della ripresa e non possono essere rigenerati.
+Il dump del database e l'archivio dei file coprono tutto ciò che l'applicazione conserva: documenti, foto, le esportazioni consegnate a un'autorimessa che lascia il servizio e gli archivi caricati per la ripresa dei dati dal software precedente.
 
-Un nuovo volume di caricamento aggiunto al servizio `api` in `docker-compose.yml` non viene salvato finché non lo monta anche, in sola lettura, sotto `/uploads/` nel servizio `backup`.
+Non sono coperti:
 
-L'archivio viene scritto come flusso (`tar` verso `age`): non viene mai scritto su disco un file in chiaro. Il backup fallisce, e `dernier-statut.txt` riporta `ECHEC`, se l'archivio non può essere scritto o se manca `/uploads`.
-
-## Che cosa non viene salvato
-
-- I dati di Valkey. Le code e lo stato a breve termine vengono ricreati.
-- Le password del database generate e la chiave di cifratura (volume `dmsforall_dfa_secrets`), e i certificati TLS (volume `dmsforall_dfa_caddy_data`). Il file dei ruoli del backup contiene le password del database. La chiave di cifratura protegge le password di invio che le autorimesse hanno salvato nell'app: senza di essa, devono essere digitate di nuovo. Conservi una copia della chiave in un luogo sicuro:
-
-  ```sh
-  docker compose run --rm --no-deps --entrypoint cat api /secrets/secrets_key
-  ```
-
-- I file in una cartella di caricamento che non è un volume montato. Vivono nel container e vanno persi quando il container viene ricreato.
+- `./data/secrets`, le password generate e la chiave di cifratura. La chiave protegge le password di invio che le autorimesse hanno salvato nell'applicazione: senza di essa, devono essere digitate di nuovo. Copi una volta questa piccola cartella in un luogo sicuro.
+- `./data/valkey`. Le code e lo stato a breve termine vengono ricreati.
+- `./data/certs`, il certificato HTTPS. Viene rigenerato se manca.
 
 ## Ripristino
 
-Un ripristino riporta il database al momento del backup. Tutto ciò che è stato scritto dopo quel backup va perso.
+Un ripristino riporta il database al momento del backup. Tutto ciò che è stato scritto dopo va perso. Esegua questi comandi nella cartella del file Compose.
 
-1. Fermi i servizi `api` e `worker`, così che nulla scriva nel database.
-2. Ripristini il dump in un database vuoto su una macchina separata, e ne verifichi il risultato.
-3. Solo dopo proceda al ripristino sul server di produzione. Un ripristino completo su un'installazione nuova è stato dimostrato.
+1. Fermi i servizi che scrivono nel database:
 
-`restaurer.sh` ripristina insieme il database e i file, purché il file `.uploads.tar.gz.age` si trovi accanto al file `.dump.age`:
+   ```sh
+   docker compose stop api worker
+   ```
 
-```sh
-AGE_CLE_PRIVEE_FICHIER=/path/to/age.key \
-  docker/postgres/sauvegarde/restaurer.sh /path/to/dfa_20260101-031500.dump.age dfa --confirmer
-```
+2. Ripristini il database da un file di backup (il nome di un file in `./backups`):
 
-- `--base-seule` ripristina solo il database.
-- `--fichiers-seuls` ripristina solo i file. Passi `-` come nome del database.
+   ```sh
+   docker compose exec -u dfa backup /scripts/restaurer.sh dfa-2026-11-10_023000.sql.gz
+   ```
 
-I file vengono estratti nei volumi del servizio `api`. Un file con lo stesso nome viene sovrascritto, mentre un file che non è presente nell'archivio viene lasciato com'è. I file vengono ripristinati solo quando il database di destinazione è `dfa`: un ripristino di prova in un altro database lascia intatti i file in uso.
+   Lo script carica prima il backup in un nuovo database e solo se riesce sostituisce quello attuale. Il database attuale viene conservato con il nome `dfa_avant_restauration_<time>`, e lo script stampa il comando che lo elimina quando Lei è soddisfatto. Un backup danneggiato non distrugge mai i Suoi dati attuali. Per un backup cifrato, lo decifri prima (`age -d -i age.key -o backups/restore.sql.gz backups/dfa-....sql.gz.age`) e indichi quel file.
 
-Il test di ripristino mensile (`restaurer-test.sh`) decifra e legge l'intero archivio dei file. Non è ancora stato eseguito su un archivio reale nei test automatici: lo esegua a mano una volta dopo aver attivato il backup.
+3. Ripristini i file (facoltativo, quando dei documenti sono andati persi):
+
+   ```sh
+   sudo tar -xzf backups/fichiers-2026-11-10_023000.tar.gz -C data/fichiers
+   ```
+
+4. Riavvii i servizi:
+
+   ```sh
+   docker compose start api worker
+   ```
+
+Per ripristinare su un nuovo server, vi copi il file Compose, `./data/secrets` e i due file di backup, avvii lo stack una volta (`docker compose up -d`, poi `docker compose stop api worker`) ed esegua i passi da 2 a 4.
 
 :::caution
-`restaurer.sh` richiede `age` sull'host, con la chiave privata. Lo stack deve essere già in esecuzione prima del ripristino.
+Un backup che non è mai stato ripristinato non è un backup. Ne ripristini uno su una macchina separata adesso, acceda e apra un documento, prima di inserire dati reali.
 :::

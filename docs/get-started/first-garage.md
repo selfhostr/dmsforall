@@ -5,7 +5,34 @@ description: Create the first garage account, then the sites, users and invoicin
 
 At the end of this page, the garage has its first account, its sites, its staff accounts and the invoicing settings needed to issue a first invoice.
 
-Create the garage, its site (named after the garage), its first `direction` account and an audit line with one command. The garage also gets its workshop settings, an hourly rate `ATELIER` (CHF 140.00) and eight appointment reasons (service, tyres, MFK inspection, brakes, diagnosis, bodywork, air conditioning, other), so it can take appointments on day one. All of it can be changed in the settings:
+## 1. Create the garage
+
+A new installation has no account. The first start of the API draws a one-time installation code and prints it in its logs. The web interface asks for it on its first screen.
+
+1. Read the installation code in the API logs:
+
+   ```sh
+   docker compose logs api
+   ```
+
+   Look for the block that says `Installation code`, followed by a code like `K7QM-3XRB-9TNA`.
+
+2. Open `https://<server address>:8443` (the address of your installation, or `DFA_PUBLIC_URL` behind a reverse proxy). On a new installation the browser shows **Create your garage** instead of the sign-in page. Enter the garage name, your first and last name, your e-mail address, a password typed twice (at least 12 characters) and the installation code.
+
+3. Select **Create my garage**. You are signed in as the `direction` account, and the setup assistant opens.
+
+Result: the garage exists with its site (named after the garage), its `direction` account and an audit line. It also gets its workshop settings, an hourly rate `ATELIER` (CHF 140.00) and eight appointment reasons (service, tyres, MFK inspection, brakes, diagnosis, bodywork, air conditioning, other), so it can take appointments on day one. All of it can be changed in the settings. The setup assistant guides you through the address, bank details, VAT, hourly rate and staff of the garage, with default values.
+
+The installation code protects a new installation that is reachable from the internet before its owner arrives: only someone who can read the server logs can create the first garage. The code works once. A new code is drawn each time the API starts while no garage exists, and it stops working as soon as a garage exists. Only a salted hash of it is stored in the database. If you lost it, run `docker compose restart api` and read the logs again. The screen refuses with these codes:
+
+- `INSTALLATION_CODE_INVALIDE` (403): the code is wrong or out of date;
+- `INSTALLATION_DEJA_FAITE` (409): a garage already exists on this installation. Sign in instead;
+- `AUTH_TROP_DE_TENTATIVES` (429): too many attempts. Wait, then try again;
+- `MOT_DE_PASSE_FAIBLE` (inside a 400 `VALIDATION_ECHOUEE`): the password is too weak, too common, too predictable, or it contains the e-mail address.
+
+### Alternative: the command line
+
+To create the garage without the browser, run one command. It does exactly the same as the screen (same site, hourly rate and appointment reasons) and does not need the installation code, because it runs on the server:
 
 ```sh
 docker compose exec api node dist/cli/creer-garage.js --garage "Garage Exemple" --email direction@example.ch
@@ -27,7 +54,7 @@ The command exits with status 1 and one of these codes:
 - `GARAGE_EXISTANT`: a garage with this name already exists;
 - `COURRIEL_EXISTANT`: the e-mail address is already used.
 
-Result: the account can sign in on the web interface at `DFA_PUBLIC_URL` (default `http://localhost:8080`). Signing in from another address returns `AUTH_ORIGINE_REFUSEE`.
+Result: the account can sign in on the web interface at the address of your installation (`https://<server address>:8443`, or `DFA_PUBLIC_URL` behind a reverse proxy). Signing in from another address than `DFA_PUBLIC_URL` returns `AUTH_ORIGINE_REFUSEE`. After the first sign-in, the setup assistant guides you through the address, bank details, VAT, hourly rate and staff of the garage, with default values.
 
 The demo seed (`pnpm db:seed`) does not run with `NODE_ENV=production`. Do not use it on a server that holds real data.
 

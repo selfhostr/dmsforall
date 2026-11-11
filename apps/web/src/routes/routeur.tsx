@@ -2,6 +2,7 @@ import { createBrowserRouter, Navigate, type RouteObject } from 'react-router';
 
 import { AppShell } from '@/composants/layout/AppShell';
 import { EcranConnexion } from '@/ecrans/EcranConnexion';
+import { EcranPremierGarage } from '@/ecrans/installation/EcranPremierGarage';
 // `EcranRendezVous` (routé ci-dessous) est le CONTENEUR réseau ; il rend `EcranAgendaRendezVous`
 // (présentation pure, testée séparément par fixtures locales) — l'écran métier existe donc bien
 // dans ce fichier, à un niveau d'indirection près (`ecrans/rendez-vous/EcranAgendaRendezVous.tsx`).
@@ -73,6 +74,11 @@ import { chemins } from './chemins';
 import { RouteProtegee } from './RouteProtegee';
 import { RoutePublique } from './RoutePublique';
 import {
+  CHEMIN_INSTALLATION,
+  GardeInstallation,
+  RedirectionVersInstallation,
+} from './RouteInstallation';
+import {
   CHEMIN_CHANGEMENT_MOT_DE_PASSE,
   EcranChangementMotDePasse,
 } from '@/ecrans/EcranChangementMotDePasse';
@@ -131,7 +137,22 @@ export const routesConfig: RouteObject[] = [
     path: '/login',
     element: (
       <RoutePublique>
-        <EcranConnexion />
+        <RedirectionVersInstallation>
+          <EcranConnexion />
+        </RedirectionVersInstallation>
+      </RoutePublique>
+    ),
+  },
+  // Instance neuve (aucun garage) : création du premier garage, protégée par le code d'installation
+  // des journaux de l'API. Publique, comme `/login` ; `GardeInstallation` la ferme dès qu'un garage
+  // existe.
+  {
+    path: CHEMIN_INSTALLATION,
+    element: (
+      <RoutePublique>
+        <GardeInstallation>
+          <EcranPremierGarage />
+        </GardeInstallation>
       </RoutePublique>
     ),
   },

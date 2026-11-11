@@ -26,21 +26,21 @@ Questa pagina elenca le protezioni che dmsforall offre nel codice, le lacune che
 ## Cosa dmsforall non protegge
 
 - **Secondo fattore per gli account delle autorimesse.** L'autenticazione a due fattori (TOTP) non è disponibile per il personale delle autorimesse in questa versione. La console dell'operatore, che non è usata dalle autorimesse, richiede un secondo fattore. Usi password lunghe e uniche per tutti gli account.
-- **Cifratura a riposo.** I volumi con nome di Docker non sono cifrati da Docker. Cifri il disco o la partizione sotto la cartella dei dati di Docker.
-- **Backup fuori sede.** Il backup notturno è cifrato, ma resta sullo stesso server finché non configura una copia fuori sede. Un backup sullo stesso disco non protegge da una perdita del server. Vedere [Eseguire il backup e il ripristino](../get-started/backup-and-restore.md).
+- **Cifratura a riposo.** Le cartelle `./data` e `./backups` non sono cifrate da Docker. Cifri il disco o la partizione che le contiene.
+- **Backup fuori sede.** Il backup giornaliero viene scritto in `./backups` sullo stesso server (cifrato solo se imposta `DFA_BACKUP_AGE_PUBLIC_KEY`). Lo copi Lei stesso fuori dal server. Un backup sullo stesso disco non protegge da una perdita del server. Vedere [Eseguire il backup e il ripristino](../get-started/backup-and-restore.md).
 - **La cache dei PDF.** Non viene salvata nel backup. Viene rigenerata a partire dal database.
 - **Il server stesso.** Il sistema operativo, l'host Docker, i suoi utenti e i suoi aggiornamenti sono di Sua responsabilità.
-- **Accesso al database.** Chiunque conosca la password del superutente PostgreSQL può leggere tutti i dati. Tenga quella password separata dalle password delle applicazioni.
+- **Accesso al database.** Chiunque conosca la password del superutente PostgreSQL può leggere tutti i dati. Quella password e le password dell'applicazione si trovano in `./data/secrets`: tenga quella cartella leggibile solo da root. Il database non è pubblicato, e solo il container `web` espone una porta.
 - **Sicurezza lato client.** Un browser lasciato sbloccato dà accesso all'account connesso. Imposti durate di sessione adeguate al Suo personale. Vedere le variabili `SESSION_*` nel [riferimento della configurazione](../reference/configuration.md).
 - **Limiti di frequenza dietro un proxy.** I limiti usano l'indirizzo IP del client. Se `TRUST_PROXY_HOPS` è errato, tutti gli utenti possono condividere un solo limite, oppure un client può falsificare il proprio indirizzo.
 
 ## Cosa deve fare Lei
 
-1. Serva dmsforall solo tramite HTTPS, con un certificato valido.
-2. Sostituisca tutte le password di sviluppo prima del primo avvio. Usi un gestore di password.
-3. Imposti `TRUST_PROXY_HOPS` al numero di proxy inversi davanti all'API.
+1. Serva dmsforall tramite HTTPS con un certificato valido: metta davanti il Suo reverse proxy e imposti `DFA_PUBLIC_URL`. La porta pubblicata è solo HTTPS, con un certificato autofirmato per impostazione predefinita.
+2. Conservi una copia di `./data/secrets` in un luogo sicuro.
+3. Se aggiunge un reverse proxy, verifichi che invii `X-Forwarded-For`, e imposti `TRUST_PROXY_HOPS` se ne concatena più di uno.
 4. Mantenga `OPENAPI_EXPOSER_DOCS=false` e `COOKIE_SECURE=true` in produzione.
-5. Chiuda ogni porta tranne 80 e 443 sul firewall.
+5. Apra sul firewall solo la porta HTTPS (quella del Suo reverse proxy, e `8443` solo se deve essere raggiunta direttamente).
 6. Mantenga aggiornati il server, Docker e le immagini. Vedere [Aggiornamento](../operations/upgrading.md).
 7. Verifichi regolarmente il ripristino dei backup.
 8. Riveda i ruoli del personale almeno una volta all'anno, e disattivi gli account delle persone che lasciano l'autorimessa.

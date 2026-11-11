@@ -86,7 +86,10 @@ import { ServiceSessionImpl } from './services/session.service';
   // (`ServiceUtilisateur.reinitialiserAcces`) en a besoin pour révoquer, DANS SA PROPRE
   // transaction, tout jeton de réinitialisation en libre-service encore valide d'un employé —
   // voir le commentaire de `revoquerJetonsActifsDansTransaction` (`auth.types.ts`).
+  // `ServiceAuthentificationImpl` exporté pour `InstallationModule` : l'écran « Créer votre garage »
+  // ouvre la session du premier compte par le même service que la connexion.
   exports: [
+    ServiceAuthentificationImpl,
     JETON_SERVICE_SESSION,
     JETON_SERVICE_MOT_DE_PASSE,
     JETON_SERVICE_REINITIALISATION_MOT_DE_PASSE,

@@ -55,6 +55,8 @@ export interface EntreeCreerGarage {
   /** Garage assujetti à la TVA ? Défaut `true` ; `false` (CLI `--non-assujetti`) : aucune TVA sur
    *  ses documents, aucun n° TVA. */
   readonly assujettiTva?: boolean;
+  /** Origine de la création, consignée dans l'audit : le CLI (défaut) ou l'écran web d'installation. */
+  readonly source?: 'cli' | 'web';
 }
 
 export interface ResultatCreerGarage {
@@ -220,7 +222,7 @@ export async function creerGarage(
       [
         tenantId,
         utilisateurId,
-        JSON.stringify({ role: 'direction', statut: 'actif', source: 'cli' }),
+        JSON.stringify({ role: 'direction', statut: 'actif', source: entree.source ?? 'cli' }),
       ],
     );
     await bd.query('commit');

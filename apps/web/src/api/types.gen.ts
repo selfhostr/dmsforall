@@ -2087,6 +2087,46 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/installation/etat': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Cette instance attend-elle son premier garage ?
+     * @description Public, sans session. Ne révèle rien d’autre que ce booléen : `true` tant qu’aucun garage n’existe.
+     */
+    get: operations['InstallationController_etat'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/installation/premier-garage': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Crée le premier garage de l’instance et ouvre la session de son responsable.
+     * @description Public, protégé par le code d’installation à usage unique affiché dans les journaux de l’API au démarrage (`docker compose logs api`) ; il change à chaque démarrage tant qu’aucun garage n’existe. Mêmes valeurs par défaut que le CLI `creer-garage` (site principal, taux « ATELIER », motifs de rendez-vous). Le compte créé est de rôle `direction`. Limitation de débit stricte par adresse IP et globale. La session est ouverte dans la réponse (cookie), comme `POST /auth/connexion`.
+     */
+    post: operations['InstallationController_premierGarage'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/motifs-rendez-vous': {
     parameters: {
       query?: never;
@@ -5976,6 +6016,10 @@ export interface components {
       /** @description Au moins un taux horaire. */
       tauxHoraire: boolean;
     };
+    EtatInstallationDto: {
+      /** @description true tant que la base ne contient aucun garage : l’écran « Créer votre garage » s’impose. */
+      premierGarageRequis: boolean;
+    };
     EtatMappingExportDto: {
       /** @enum {string} */
       cible: 'bexio' | 'winbiz' | 'abacus' | 'banana' | 'csv';
@@ -7173,7 +7217,9 @@ export interface components {
         | 'COURRIEL_TLS_ECHEC'
         | 'COURRIEL_ENVOI_ECHEC'
         | 'AUTH_CHANGEMENT_MOT_DE_PASSE_REQUIS'
-        | 'SERVICE_LECTURE_INDISPONIBLE';
+        | 'SERVICE_LECTURE_INDISPONIBLE'
+        | 'INSTALLATION_CODE_INVALIDE'
+        | 'INSTALLATION_DEJA_FAITE';
       /** @description Détail technique — jamais affiché à l'utilisateur final. */
       detail?: string;
       erreurs?: components['schemas']['ErreurChampCommunDto'][];
@@ -7329,7 +7375,9 @@ export interface components {
         | 'COURRIEL_TLS_ECHEC'
         | 'COURRIEL_ENVOI_ECHEC'
         | 'AUTH_CHANGEMENT_MOT_DE_PASSE_REQUIS'
-        | 'SERVICE_LECTURE_INDISPONIBLE';
+        | 'SERVICE_LECTURE_INDISPONIBLE'
+        | 'INSTALLATION_CODE_INVALIDE'
+        | 'INSTALLATION_DEJA_FAITE';
       detail?: string;
       erreurs?: components['schemas']['ErreurChampDto'][];
       instance: string;
@@ -18697,6 +18745,93 @@ export interface operations {
       };
       /** @description Fournisseur introuvable pour ce tenant. */
       404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+    };
+  };
+  InstallationController_etat: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['EtatInstallationDto'];
+        };
+      };
+    };
+  };
+  InstallationController_premierGarage: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          codeInstallation: string;
+          /** Format: email */
+          email: string;
+          garage: string;
+          motDePasse: string;
+          nom: string;
+          prenom: string;
+        };
+      };
+    };
+    responses: {
+      /** @description Garage créé, session ouverte. */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['SessionCouranteDto'];
+        };
+      };
+      /** @description VALIDATION_ECHOUEE — corps invalide, ou saisie refusée (MOT_DE_PASSE_FAIBLE, COURRIEL_INVALIDE, GARAGE_INVALIDE dans `erreurs[].code`). */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description INSTALLATION_CODE_INVALIDE — code absent, faux ou périmé. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description INSTALLATION_DEJA_FAITE — un garage existe déjà. */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemeDetailCommunDto'];
+        };
+      };
+      /** @description AUTH_TROP_DE_TENTATIVES — limitation de débit (en-tête Retry-After). */
+      429: {
         headers: {
           [name: string]: unknown;
         };

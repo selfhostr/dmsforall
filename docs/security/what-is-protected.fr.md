@@ -26,21 +26,21 @@ Cette page énumère les protections que dmsforall fournit dans le code, les lac
 ## Ce que dmsforall ne protège pas
 
 - **Second facteur pour les comptes des garages.** L'authentification à deux facteurs (TOTP) n'est pas disponible pour les comptes du personnel des garages dans cette version. La console d'exploitation, que les garages n'utilisent pas, exige un second facteur. Utilisez des mots de passe longs et uniques pour tous les comptes.
-- **Chiffrement au repos.** Les volumes nommés Docker ne sont pas chiffrés par Docker. Chiffrez le disque ou la partition qui contient le répertoire de données Docker.
-- **Sauvegardes hors site.** La sauvegarde nocturne est chiffrée, mais elle reste sur le même serveur tant que vous n'avez pas configuré une copie hors site. Une sauvegarde sur le même disque ne protège pas contre la perte du serveur. Voir [Sauvegarder et restaurer](../get-started/backup-and-restore.md).
+- **Chiffrement au repos.** Les dossiers `./data` et `./backups` ne sont pas chiffrés par Docker. Chiffrez le disque ou la partition qui les contient.
+- **Sauvegardes hors site.** La sauvegarde quotidienne est écrite dans `./backups` sur le même serveur (chiffrée seulement si vous renseignez `DFA_BACKUP_AGE_PUBLIC_KEY`). Copiez-la vous-même hors du serveur. Une sauvegarde sur le même disque ne protège pas contre la perte du serveur. Voir [Sauvegarder et restaurer](../get-started/backup-and-restore.md).
 - **Le cache des PDF.** Il n'est pas sauvegardé. Il est régénéré à partir de la base de données.
 - **Le serveur lui-même.** Le système d'exploitation, l'hôte Docker, ses utilisateurs et ses mises à jour relèvent de votre responsabilité.
-- **Accès à la base de données.** Toute personne qui connaît le mot de passe du superutilisateur PostgreSQL peut lire toutes les données. Conservez ce mot de passe séparément des mots de passe des applications.
+- **Accès à la base de données.** Toute personne qui connaît le mot de passe du superutilisateur PostgreSQL peut lire toutes les données. Ce mot de passe et ceux de l'application sont dans `./data/secrets` : laissez ce dossier lisible par root uniquement. La base n'est pas publiée, et seul le conteneur `web` expose un port.
 - **Sécurité côté client.** Un navigateur laissé déverrouillé donne accès au compte connecté. Définissez des durées de session adaptées à votre personnel. Voir les variables `SESSION_*` dans la [référence de configuration](../reference/configuration.md).
 - **Limites de débit derrière un proxy.** Les limites utilisent l'adresse IP du client. Si `TRUST_PROXY_HOPS` est mal réglé, tous les utilisateurs peuvent partager une même limite, ou un client peut falsifier son adresse.
 
 ## Ce que vous devez faire
 
-1. Servez dmsforall uniquement en HTTPS, avec un certificat valide.
-2. Remplacez tous les mots de passe de développement avant le premier démarrage. Utilisez un gestionnaire de mots de passe.
-3. Réglez `TRUST_PROXY_HOPS` sur le nombre de proxies inverses placés devant l'API.
+1. Servez dmsforall en HTTPS avec un certificat valide : placez votre propre reverse proxy devant et renseignez `DFA_PUBLIC_URL`. Le port publié est en HTTPS uniquement, avec un certificat auto-signé par défaut.
+2. Gardez une copie de `./data/secrets` en lieu sûr.
+3. Si vous ajoutez un reverse proxy, vérifiez qu'il envoie `X-Forwarded-For`, et réglez `TRUST_PROXY_HOPS` si vous en enchaînez plusieurs.
 4. Gardez `OPENAPI_EXPOSER_DOCS=false` et `COOKIE_SECURE=true` en production.
-5. Fermez tous les ports sauf 80 et 443 au niveau du pare-feu.
+5. Ouvrez uniquement le port HTTPS au niveau du pare-feu (celui de votre reverse proxy, et `8443` seulement s'il doit être joint directement).
 6. Gardez le serveur, Docker et les images à jour. Voir [Mettre à jour](../operations/upgrading.md).
 7. Testez régulièrement la restauration de vos sauvegardes.
 8. Vérifiez les rôles de votre personnel au moins une fois par an, et désactivez les comptes des personnes qui quittent l'entreprise.

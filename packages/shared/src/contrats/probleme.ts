@@ -312,7 +312,7 @@ export const CODES_ERREUR = [
   'RESILIATION_TENANT_PURGE_PREMATUREE',
   // La re-saisie de confirmation (raison sociale du tenant) ne correspond pas — geste PAS assez
   // sans ambiguïté pour déclencher un export intégral de toute la base du garage (arbitrage
-  // 20.08.2026, sur le modèle de `docker/postgres/sauvegarde/restaurer.sh`).
+  // 20.08.2026, sur le modèle de `docker/backup/restaurer.sh`).
   'RESILIATION_TENANT_CONFIRMATION_INVALIDE',
   // --- Reprise de données par dépôt d'archive (contrats/reprise.ts, migration 0067) ---
   // Même patron qu'OR_TRANSITION_INTERDITE : transition hors de la machine à états gelée
@@ -372,6 +372,10 @@ export const CODES_ERREUR = [
   // --- Scan de permis (issue #64) : le service de lecture (OCR) ne répond pas — 503, ce n'est pas
   // une panne de l'application ; le front propose la saisie manuelle. ---
   'SERVICE_LECTURE_INDISPONIBLE',
+  // --- Installation d'une instance neuve : création du premier garage depuis le navigateur ---
+  // Code d'installation absent, faux ou périmé (403) ; un garage existe déjà (409).
+  'INSTALLATION_CODE_INVALIDE',
+  'INSTALLATION_DEJA_FAITE',
 ] as const;
 export type CodeErreur = (typeof CODES_ERREUR)[number];
 
@@ -534,6 +538,8 @@ export const STATUT_HTTP_PAR_CODE_ERREUR: Readonly<Record<CodeErreur, number>> =
   COURRIEL_TLS_ECHEC: 422,
   COURRIEL_ENVOI_ECHEC: 422,
   SERVICE_LECTURE_INDISPONIBLE: 503,
+  INSTALLATION_CODE_INVALIDE: 403,
+  INSTALLATION_DEJA_FAITE: 409,
 };
 
 /**
@@ -682,6 +688,8 @@ export const TITRE_FR_PAR_CODE_ERREUR: Readonly<Record<CodeErreur, string>> = {
   COURRIEL_TLS_ECHEC: "Connexion sécurisée impossible avec le serveur d'envoi",
   COURRIEL_ENVOI_ECHEC: "Échec d'envoi de l'e-mail",
   SERVICE_LECTURE_INDISPONIBLE: 'Service de lecture indisponible',
+  INSTALLATION_CODE_INVALIDE: "Code d'installation invalide",
+  INSTALLATION_DEJA_FAITE: 'Installation déjà faite',
 };
 
 /**

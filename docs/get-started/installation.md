@@ -1,66 +1,122 @@
 ---
 title: Install dmsforall on a server
-description: Settings, HTTPS, the services of the stack, optional profiles, and checks for an installation of dmsforall.
+description: Install dmsforall with one Compose file, put your own reverse proxy in front for HTTPS on a domain, and check the installation.
 ---
 
-This page covers an installation on a server. The [Quick start](quick-start.md) gives the short version for `localhost`.
+This page covers an installation on a server. The [Quick start](quick-start.md) gives the short version.
 
-At the end of this page, the stack runs on your server, and you have checked that it answers.
+At the end of this page, the stack runs on your server, behind your HTTPS reverse proxy if you have one, and you have checked that it answers.
 
 ## Requirements
 
 - Docker Engine and Docker Compose 2.24 or later.
-- For HTTPS on a domain: a DNS name that points to the server, and ports 80 and 443 open to the Internet.
-- Disk space for the PostgreSQL data, the backups and the uploaded documents.
+- Disk space for the database, the uploaded documents and the backups.
+- For a domain name with a real certificate: a reverse proxy of your own (Caddy, nginx, Traefik, a Cloudflare tunnel).
 
-## Settings
+## Install
 
-Next to `docker-compose.yml`, create a file named `.env`. Start from `.env.example`, which is attached to each [release](https://github.com/selfhostr/dmsforall/releases/latest), and remove the `#` in front of the lines you need. Nothing is required: every setting has a default. The most common ones are:
+Create an empty folder, download the Compose file into it, and start the stack. That file is all you need. You create no other file and no sub-folder.
 
-| Variable               | Default                 | Effect                                                                      |
-| ---------------------- | ----------------------- | --------------------------------------------------------------------------- |
-| `DFA_SITE_ADDRESS`     | `http://localhost`      | Address of the site. Set a domain name to get HTTPS.                        |
-| `DFA_PUBLIC_URL`       | `http://localhost:8080` | Public address that users type in the browser. Must match the site address. |
-| `DFA_HTTP_PORT`        | `8080`                  | Host port for HTTP.                                                         |
-| `DFA_HTTPS_PORT`       | `8443`                  | Host port for HTTPS.                                                        |
-| `DFA_VERSION`          | `latest`                | Image version to run.                                                       |
-| `DFA_TRUST_PROXY_HOPS` | `1`                     | Number of reverse proxies in front of the API.                              |
+```sh
+mkdir dmsforall && cd dmsforall
+curl -LO https://github.com/selfhostr/dmsforall/releases/latest/download/docker-compose.yml
+docker compose up -d
+```
 
-Outgoing e-mail is set with `DFA_SMTP_HOST`, `DFA_SMTP_PORT`, `DFA_SMTP_USER`, `DFA_SMTP_PASSWORD` and `DFA_SMTP_FROM`. Sending turns on by itself once the host is set. The other settings are in the [configuration reference](../reference/configuration.md).
+Open `https://<server address>:8443`. dmsforall publishes one port, in HTTPS only, with a self-signed certificate generated on the first start. Your browser asks you to accept it once. For a real certificate, put a reverse proxy in front (below).
 
-You never type a secret. The `init-secrets` service generates the database passwords and the key that encrypts stored passwords on the first start, and keeps them in the `dfa_secrets` volume. The roles and connection strings of the database are derived from them. Keep a copy of that volume's content: see [Back up and restore](backup-and-restore.md).
+The first start generates the passwords and the keys, creates the database, applies the migrations and starts every service. Everything is stored next to the Compose file:
 
-## HTTPS
+| Folder            | Content                                                                 |
+| ----------------- | ----------------------------------------------------------------------- |
+| `./data/postgres` | The database.                                                           |
+| `./data/valkey`   | The queues of background jobs.                                          |
+| `./data/fichiers` | Uploaded and generated documents and photos.                            |
+| `./data/secrets`  | Generated passwords and the encryption key. Keep a copy somewhere safe. |
+| `./data/certs`    | The HTTPS certificate (`cert.pem`, `key.pem`).                          |
+| `./backups`       | The daily backups.                                                      |
 
-When `DFA_SITE_ADDRESS` is a domain name, Caddy obtains and renews a Let's Encrypt certificate by itself. Ports 80 and 443 must reach the server.
+These are plain folders (bind mounts), not Docker volumes: you can see them, copy them and back them up with your usual tools. Docker creates them with the right owner on the first start. You do not run `mkdir` or `chown`.
 
-:::caution
-HTTPS with a real domain has not been tested end to end yet. Check the certificate after the first start, and read the Caddy logs if it is missing.
-:::
+## Create the first garage
+
+A new installation has no account yet. Create the first garage and its first account with one command: see [Set up your first garage](first-garage.md). Then sign in at the address above. The setup assistant that guides the garage settings starts after that first sign-in.
+
+## HTTPS with your own reverse proxy
+
+dmsforall does not manage domain names or Let's Encrypt. To serve it on a domain with a valid certificate, put your own reverse proxy in front. It must forward to `https://127.0.0.1:8443` and accept the self-signed certificate of the upstream (or you put your own `cert.pem` and `key.pem` in `./data/certs` and restart `web`).
+
+Set the public address in `.env`, then restart:
+
+```sh
+DFA_PUBLIC_URL=https://dmsforall.example.ch
+```
+
+Caddy (it gets the certificate by itself):
+
+```text
+dmsforall.example.ch {
+  reverse_proxy https://127.0.0.1:8443 {
+    transport http {
+      tls_insecure_skip_verify
+    }
+  }
+}
+```
+
+nginx:
+
+```nginx
+location / {
+  proxy_pass https://127.0.0.1:8443;
+  proxy_ssl_verify off;
+  proxy_set_header Host $host;
+  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+  proxy_set_header X-Forwarded-Proto $scheme;
+  client_max_body_size 1g;
+}
+```
+
+Cloudflare tunnel (`cloudflared`), in the configuration file:
+
+```yaml
+ingress:
+  - hostname: dmsforall.example.ch
+    service: https://localhost:8443
+    originRequest:
+      noTLSVerify: true
+  - service: http_status:404
+```
+
+The session cookie is always `Secure`: use the site only over HTTPS. With one reverse proxy in front, the API trusts two proxy hops (yours and the `web` container). Without `DFA_PUBLIC_URL`, it trusts one.
+
+## Optional settings
+
+Nothing is required. To change a setting, create a file named `.env` next to `docker-compose.yml`, starting from `.env.example` (attached to each [release](https://github.com/selfhostr/dmsforall/releases/latest)), and remove the `#` in front of the lines you need.
+
+| Variable                                                                                | Default     | Effect                                                          |
+| --------------------------------------------------------------------------------------- | ----------- | --------------------------------------------------------------- |
+| `DFA_VERSION`                                                                           | `latest`    | Image version to run.                                           |
+| `DFA_PORT`                                                                              | `8443`      | The published HTTPS port.                                       |
+| `DFA_PUBLIC_URL`                                                                        | none        | Public address behind your reverse proxy. Used in e-mail links. |
+| `DFA_SMTP_HOST`, `DFA_SMTP_PORT`, `DFA_SMTP_USER`, `DFA_SMTP_PASSWORD`, `DFA_SMTP_FROM` | none, `587` | Outgoing e-mail. Sending turns on once the host is set.         |
+| `DFA_BACKUP_TIME`                                                                       | `02:30`     | Hour of the daily backup (server time).                         |
+| `DFA_BACKUP_KEEP_DAYS`                                                                  | `14`        | Days of backups kept.                                           |
+
+The other settings are in the [configuration reference](../reference/configuration.md).
 
 ## The services
 
-| Service        | Role                                                           |
-| -------------- | -------------------------------------------------------------- |
-| `proxy`        | Caddy. Publishes the HTTP and HTTPS ports and routes requests. |
-| `web`          | The web interface.                                             |
-| `api`          | The API. Not published.                                        |
-| `worker`       | Background jobs, from the same image as the API.               |
-| `migrate`      | Applies the database migrations before the API starts.         |
-| `postgres`     | PostgreSQL 16. Not published.                                  |
-| `redis`        | Valkey. Not published.                                         |
-| `init-secrets` | Generates the database passwords and the encryption key once.  |
+| Service    | Role                                                                                |
+| ---------- | ----------------------------------------------------------------------------------- |
+| `web`      | The web interface in HTTPS. The only published port. Relays `/api` to the API.      |
+| `api`      | The API. Applies the database migrations when it starts. Not published.             |
+| `worker`   | Background jobs, from the same image as the API. Starts after the API is healthy.   |
+| `postgres` | PostgreSQL 16. Not published.                                                       |
+| `valkey`   | Valkey (open source, Redis compatible). Not published.                              |
+| `backup`   | The daily backup, in `./backups`. See [Back up and restore](backup-and-restore.md). |
 
-PostgreSQL and Valkey are never published on a host port.
-
-## Optional profiles
-
-- `--profile ocr`: starts the image `ghcr.io/selfhostr/dmsforall-ocr`, which reads vehicle registration documents. This profile has not been started yet.
-- `--profile backup`: starts the nightly encrypted backups, from the image `ghcr.io/selfhostr/dmsforall-backup`. It needs `AGE_CLE_PUBLIQUE` in `.env`. See [Back up and restore](backup-and-restore.md).
-
-```sh
-docker compose --profile backup up -d
-```
+The `ocr` profile starts the registration-document scanner: `docker compose --profile ocr up -d`. The application works without it, only the "scan the registration document" shortcut is missing.
 
 ## Build from source
 
@@ -70,18 +126,18 @@ To build the images from a clone of the repository instead of pulling them:
 docker compose -f docker-compose.yml -f docker/compose.build.yml up -d --build
 ```
 
-## Create the first garage
-
-Once the stack is up, create the first garage account. See [Set up your first garage](first-garage.md) for the command and its options.
-
 ## Check the installation
 
 ```sh
 docker compose ps
-curl -s http://localhost:8080/api/v1/sante
+curl -k https://localhost:8443/api/v1/sante
 ```
 
-Replace `localhost:8080` with your domain for a server. Expected result: `postgres` and `redis` are healthy, `migrate` has exited without error, `api` and `worker` are running, and the health endpoint returns a JSON document.
+Expected result: every service is healthy (the `worker` and `backup` after a few seconds), and the health endpoint returns a JSON document. Replace `localhost:8443` with your address.
+
+:::caution
+The data in `./data/postgres` and the passwords in `./data/secrets` go together. If you delete or replace one of them without the other, the API refuses to start and tells you which folder to restore. Never delete `./data/secrets` alone.
+:::
 
 :::caution
 Keep `OPENAPI_EXPOSER_DOCS` unset or `false` on a server reachable from the Internet.

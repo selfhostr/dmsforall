@@ -1,8 +1,8 @@
 # syntax=docker/dockerfile:1
 #
 # API image (NestJS). Multi-stage, minimal final image, non-root user, built-in healthcheck.
-# The same image runs the API, the background worker and the migration job (see
-# docker-compose.yml): only the command changes.
+# The same image runs the API and the background worker (see docker-compose.yml): only the
+# command changes. The API container applies the database migrations when it starts.
 #
 # The build context is the repository root, not apps/api: pnpm resolves @dfa/shared through the
 # root lockfile and workspace file.
@@ -57,7 +57,7 @@ WORKDIR /repo
 
 # mdbtools reads the Microsoft Access archives of the data import (mdb-tables, mdb-schema and
 # mdb-export are spawned as sub-processes). Two Alpine packages: the CLI lives in mdbtools-utils.
-RUN apk add --no-cache mdbtools mdbtools-utils
+RUN apk add --no-cache mdbtools mdbtools-utils su-exec
 
 # Fixed uid/gid (100/101) so that volume ownership stays predictable.
 RUN addgroup -g 101 -S dfa && adduser -S -u 100 -G dfa -h /repo -s /sbin/nologin dfa
@@ -71,8 +71,8 @@ COPY --from=build --chown=dfa:dfa /repo/apps/api/package.json ./apps/api/package
 COPY --from=build --chown=dfa:dfa /repo/apps/api/dist ./apps/api/dist
 COPY --chmod=0755 docker/entrypoint-api.sh /usr/local/bin/dfa-entrypoint
 
-# Data directories, created here so that a fresh named volume mounted on them inherits the
-# dfa ownership.
+# Data directories. The bind mounts of docker-compose.yml shadow them with host folders created
+# as root: the entrypoint gives them to dfa on start.
 RUN mkdir -p /repo/apps/api/uploads/documents-pdf /repo/apps/api/uploads/exports-resiliation /repo/apps/api/uploads/photos-or /repo/apps/api/uploads/reprise && \
     chown -R dfa:dfa /repo/apps/api/uploads
 
@@ -84,13 +84,14 @@ ARG VERSION_APP_BRANCHE=unknown
 ENV VERSION_APP_BRANCHE=${VERSION_APP_BRANCHE}
 
 # Nothing at runtime needs npm, npx, corepack or yarn: the entrypoint is sh, the healthcheck and
-# the jobs (dist/main.js, dist/main-worker.js, dist/db/migrer.js, dist/cli/*.js) only call node.
+# the jobs (dist/main.js, dist/main-worker.js, dist/db/*.js, dist/cli/*.js) only call node.
 # Removing them drops the CVEs of npm's bundled dependencies from the final image.
 RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack \
            /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack \
            /opt/yarn* /usr/local/bin/yarn /usr/local/bin/yarnpkg
 
-USER dfa
+# No USER line: the entrypoint starts as root only to hand the bind-mounted folders to dfa, then
+# switches to dfa (su-exec) before anything else runs. The API and the worker never run as root.
 WORKDIR /repo/apps/api
 
 EXPOSE 3000

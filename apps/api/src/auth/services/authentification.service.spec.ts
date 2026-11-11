@@ -959,3 +959,60 @@ describe('ServiceAuthentificationImpl.sessionCourante — modules actifs', () =>
     );
   });
 });
+
+describe('ServiceAuthentificationImpl.ouvrirSessionPourPremierCompte (installation)', () => {
+  function fabrique(utilisateur: UtilisateurAmorcage | null) {
+    const accesAmorcage = {
+      utilisateurParEmail: vi.fn().mockResolvedValue(utilisateur),
+      journaliserSecurite: vi.fn().mockResolvedValue(undefined),
+    } as unknown as AccesAmorcage;
+    const serviceSession = {
+      ouvrir: vi.fn().mockResolvedValue({
+        tokenClair: 'jeton-clair',
+        sessionId: 'session-id',
+        expireLe: new Date('2026-07-28T12:00:00.000Z'),
+      }),
+    } as unknown as ServiceSession;
+    const servicePwd = {
+      verifier: vi.fn(),
+      verifierLeurre: vi.fn(),
+    } as unknown as ServiceMotDePasse;
+    const limiteur = { consommer: vi.fn() } as unknown as ServiceLimitationDebit;
+    const service = new ServiceAuthentificationImpl(
+      configTest(),
+      accesBaseTest(),
+      accesAmorcage,
+      servicePwd,
+      serviceSession,
+      limiteur,
+      contexteTest(),
+    );
+    return { service, accesAmorcage, serviceSession, servicePwd, limiteur };
+  }
+
+  it('ouvre la session du compte créé sans revérifier de mot de passe ni consommer de débit', async () => {
+    const { service, serviceSession, servicePwd, limiteur, accesAmorcage } = fabrique(
+      utilisateurTest({ role: 'direction' }),
+    );
+    const resultat = await service.ouvrirSessionPourPremierCompte(
+      ' Garage@Example.ch ',
+      '203.0.113.1',
+      'ua',
+    );
+    expect(accesAmorcage.utilisateurParEmail).toHaveBeenCalledWith('garage@example.ch');
+    expect(serviceSession.ouvrir).toHaveBeenCalledTimes(1);
+    expect(resultat.session.tokenClair).toBe('jeton-clair');
+    expect(resultat.corps.utilisateur.email).toBe('garage@example.ch');
+    expect(servicePwd.verifier).not.toHaveBeenCalled();
+    expect(limiteur.consommer).not.toHaveBeenCalled();
+    expect(accesAmorcage.journaliserSecurite).toHaveBeenCalledTimes(1);
+  });
+
+  it('compte introuvable : refus net, aucune session', async () => {
+    const { service, serviceSession } = fabrique(null);
+    await expect(
+      service.ouvrirSessionPourPremierCompte('x@example.ch', null, null),
+    ).rejects.toBeInstanceOf(ErreurIdentifiantsInvalides);
+    expect(serviceSession.ouvrir).not.toHaveBeenCalled();
+  });
+});

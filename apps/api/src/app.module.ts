@@ -23,6 +23,7 @@ import { DbModule } from './db/db.module';
 import { ExploitationModule } from './exploitation';
 import { CycleVieTenantJobModule } from './exploitation/cycle-vie-tenant/cycle-vie-tenant-job.module';
 import { CycleVieTenantModule } from './exploitation/cycle-vie-tenant/cycle-vie-tenant.module';
+import { InstallationModule } from './installation';
 import { FacturationModule } from './facturation/facturation.module';
 import { ImpressionModule } from './facturation/impression/impression.module';
 import { OrdonnancementModule } from './ordonnancement';
@@ -57,6 +58,8 @@ export class AppModule implements NestModule {
         CommonModule,
         DbModule,
         AuthModule,
+        // Création du premier garage depuis le navigateur (routes publiques, code d'installation).
+        InstallationModule,
         SocleModule,
         SanteModule,
         SystemeModule,

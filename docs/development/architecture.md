@@ -9,15 +9,15 @@ This document describes how dmsforall is built. It is written for developers and
 
 ## Components
 
-| Component          | Technology                                    | Where                                                      |
-| ------------------ | --------------------------------------------- | ---------------------------------------------------------- |
-| Web interface      | React, Vite, shadcn/ui, TanStack Query        | `apps/web/`                                                |
-| API                | NestJS, TypeScript (strict)                   | `apps/api/`                                                |
-| Worker             | The same NestJS code, started in worker mode  | `apps/api/src/main-worker.ts`                              |
-| Database           | PostgreSQL 16, Drizzle ORM                    | `apps/api/src/db/`                                         |
-| Queue and realtime | Valkey, BullMQ                                | `apps/api/src/ordonnancement/`, `apps/api/src/temps-reel/` |
-| Shared contracts   | TypeScript package                            | `packages/shared/`                                         |
-| Reverse proxy      | Caddy, in front of the web and API containers | `docker-compose.yml`                                       |
+| Component          | Technology                                                   | Where                                                      |
+| ------------------ | ------------------------------------------------------------ | ---------------------------------------------------------- |
+| Web interface      | React, Vite, shadcn/ui, TanStack Query                       | `apps/web/`                                                |
+| API                | NestJS, TypeScript (strict)                                  | `apps/api/`                                                |
+| Worker             | The same NestJS code, started in worker mode                 | `apps/api/src/main-worker.ts`                              |
+| Database           | PostgreSQL 16, Drizzle ORM                                   | `apps/api/src/db/`                                         |
+| Queue and realtime | Valkey, BullMQ                                               | `apps/api/src/ordonnancement/`, `apps/api/src/temps-reel/` |
+| Shared contracts   | TypeScript package                                           | `packages/shared/`                                         |
+| HTTPS entry point  | nginx in the web image: front, `/api` relay, self-signed TLS | `apps/web/nginx.conf`, `docker-compose.yml`                |
 
 The web interface is a client of the public API and has no privileged access to the database. Each feature exists as an endpoint in the OpenAPI description before it has a screen.
 

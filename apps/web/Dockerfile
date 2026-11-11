@@ -1,8 +1,8 @@
 # syntax=docker/dockerfile:1
 #
-# Web image (React + Vite single page app) served by nginx. Multi-stage, non-root, built-in
-# healthcheck. The API is not proxied here: put a reverse proxy in front of both (the bundled
-# docker-compose.yml does it with Caddy).
+# Web image (React + Vite single page app) served by nginx over HTTPS (self-signed certificate
+# generated on first start, or your own in /certs). It also relays /api to the api container, so
+# it is the only entry point of the installation. Multi-stage, built-in healthcheck, workers run as nginx.
 #
 # The build context is the repository root, not apps/web: pnpm needs the root lockfile, and Vite
 # resolves @dfa/shared straight to its TypeScript sources.
@@ -46,20 +46,26 @@ ARG VITE_API_URL=/api/v1
 ENV VITE_API_URL=${VITE_API_URL}
 RUN pnpm --filter @dfa/web build
 
-# --- runtime: nginx, non-root ---
+# --- runtime: nginx, HTTPS, non-root ---
 FROM ${NGINX_IMAGE} AS runtime
+# openssl generates the first-start certificate.
+RUN apk add --no-cache openssl
 RUN mkdir -p /var/cache/nginx/client_temp /var/cache/nginx/proxy_temp \
              /var/cache/nginx/fastcgi_temp /var/cache/nginx/uwsgi_temp /var/cache/nginx/scgi_temp && \
     chown -R nginx:nginx /var/cache/nginx /etc/nginx
 
 COPY --chown=nginx:nginx apps/web/nginx.conf /etc/nginx/nginx.conf
+COPY --chown=nginx:nginx apps/web/nginx-securite.conf /etc/nginx/securite.conf
 COPY --from=build --chown=nginx:nginx /repo/apps/web/dist /usr/share/nginx/html
+COPY --chmod=0755 docker/entrypoint-web.sh /usr/local/bin/dfa-web-entrypoint
 
-USER nginx
+# No USER line: the nginx master process stays root with minimal capabilities (docker-compose.yml
+# drops all others), its workers run as nginx.
+EXPOSE 8443
 
-EXPOSE 8080
-
+# Loopback-only probe listener (see nginx.conf), independent of the certificate.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-  CMD wget --quiet --tries=1 --spider http://127.0.0.1:8080/healthz || exit 1
+  CMD wget --quiet --tries=1 --spider http://127.0.0.1:8081/healthz || exit 1
 
+ENTRYPOINT ["dfa-web-entrypoint"]
 CMD ["nginx", "-g", "daemon off;"]

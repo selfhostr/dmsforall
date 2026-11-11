@@ -1,6 +1,6 @@
 ---
 title: Démarrage rapide
-description: Démarrer la pile dmsforall avec Docker Compose et ouvrir l'interface web.
+description: Démarrer la pile dmsforall avec un seul fichier Docker Compose et ouvrir l'interface web.
 ---
 
 À la fin de cette page, la pile dmsforall tourne sur votre machine ou sur votre serveur, et vous pouvez ouvrir l'interface web dans un navigateur.
@@ -9,28 +9,33 @@ Il faut Docker Engine et Docker Compose 2.24 ou plus récent. La [page d'install
 
 ## Étapes
 
-1. Téléchargez le fichier Compose. C'est le seul fichier dont vous avez besoin.
+1. Créez un dossier vide et téléchargez-y le fichier Compose. C'est le seul fichier dont vous avez besoin.
 
    ```sh
+   mkdir dmsforall && cd dmsforall
    curl -LO https://github.com/selfhostr/dmsforall/releases/latest/download/docker-compose.yml
    ```
 
-2. Démarrez la pile. Les images sont téléchargées depuis `ghcr.io/selfhostr`. Aucun réglage n'est nécessaire pour un premier essai sur `localhost`.
+2. Démarrez la pile. Les images sont téléchargées depuis `ghcr.io/selfhostr`. Il n'y a rien à régler et aucun dossier à créer.
 
    ```sh
    docker compose up -d
    ```
 
-3. Créez le premier compte du garage (voir [Configurer votre premier garage](first-garage.md)), puis ouvrez http://localhost:8080 dans un navigateur.
+3. Lisez le code d'installation à usage unique que l'API affiche à son premier démarrage :
 
-Résultat : la page de connexion s'affiche. Au premier démarrage, la pile génère une seule fois les mots de passe de la base de données et la clé de chiffrement, applique les migrations, puis démarre l'API et le worker.
+   ```sh
+   docker compose logs api
+   ```
+
+   Il ressemble à `K7QM-3XRB-9TNA`.
+
+4. Ouvrez `https://<adresse du serveur>:8443` dans un navigateur. Le certificat est auto-signé : acceptez-le une fois. La page **Créer votre garage** s'ouvre : saisissez le nom du garage, votre nom, votre adresse e-mail, un mot de passe et le code d'installation. Vous êtes connecté et l'assistant de mise en route s'ouvre. Voir [Configurer votre premier garage](first-garage.md).
+
+Résultat : la page qui crée votre garage s'affiche. Le premier démarrage génère les mots de passe et la clé de chiffrement, crée la base de données et applique les migrations. Vos données sont dans le dossier `./data` et vos sauvegardes dans `./backups`, à côté du fichier Compose.
 
 ## Suite
 
-- Pour un serveur accessible depuis Internet, définissez un domaine et HTTPS (un fichier `.env` de quelques lignes) : voir [Installer dmsforall sur un serveur](installation.md).
-- Créez le premier compte du garage avec `creer-garage.js` : voir [Configurer votre premier garage](first-garage.md).
-- Mettez en place les sauvegardes avant de saisir de vraies données : voir [Sauvegarder et restaurer](backup-and-restore.md).
-
-:::caution
-La pile a été définie et ses fichiers ont été relus, mais l'installation complète n'a pas encore été exécutée de bout en bout sur une machine vierge, avec un vrai domaine. Signalez toute différence que vous constatez.
-:::
+- Pour un nom de domaine avec un vrai certificat, placez votre propre reverse proxy devant : voir [Installer dmsforall sur un serveur](installation.md).
+- Créez le premier garage en ligne de commande plutôt que dans le navigateur : voir [Configurer votre premier garage](first-garage.md).
+- La sauvegarde quotidienne est déjà active. Copiez `./backups` sur une autre machine, et testez une restauration : voir [Sauvegarder et restaurer](backup-and-restore.md).

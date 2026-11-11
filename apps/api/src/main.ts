@@ -60,6 +60,7 @@ import { JETON_DB } from './db/db.jetons';
 import type { AccesBase } from './db/db.types';
 import { construireDocumentConsole } from './exploitation';
 import { construireDocument } from './openapi';
+import { afficherCodeInstallation, ServiceInstallation } from './installation';
 import { initialiserSentry, installerGestionnairesCrash } from './observabilite';
 
 /** Code de sortie standard (`sysexits.h`) pour une configuration invalide. */
@@ -107,6 +108,17 @@ async function main(): Promise<void> {
     process.stderr.write(`Invalid RLS posture, the API refuses to start: ${String(erreur)}\n`);
     await app.close();
     process.exit(1);
+  }
+
+  // 4bis. Instance sans garage : tire le code d'installation à usage unique (seul le processus
+  // API le fait, jamais le worker). Il est affiché APRÈS l'écoute (étape 13), pour finir en bas des
+  // journaux plutôt que noyé dans les lignes de routes. Un échec ne bloque pas le démarrage : sans
+  // code valide, la création du premier garage reste simplement refusée.
+  let codeInstallation: string | null = null;
+  try {
+    codeInstallation = await app.get(ServiceInstallation).preparerCodeDemarrage();
+  } catch (erreur) {
+    process.stderr.write(`Could not prepare the installation code: ${String(erreur)}\n`);
   }
 
   // 5. trust proxy — nombre EXACT de hops, JAMAIS `true` (avec `true`, `X-Forwarded-For` devient
@@ -175,6 +187,9 @@ async function main(): Promise<void> {
 
   // 13. Écoute.
   await app.listen(config.PORT);
+
+  // 14. Code d'installation, en dernier : c'est ce que lit `docker compose logs api`.
+  if (codeInstallation !== null) afficherCodeInstallation(codeInstallation);
 }
 
 main().catch((erreur: unknown) => {
