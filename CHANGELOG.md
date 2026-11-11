@@ -2,7 +2,7 @@
 
 All notable changes to dmsforall are recorded here, for people who run it and for people who use it. Each entry says what changes for you. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/) until 1.0.
 
-## Unreleased
+## 0.4.0 (2026-11-10)
 
 A much simpler installation: one file, a handful of services, plain folders, a daily backup that runs by itself.
 
